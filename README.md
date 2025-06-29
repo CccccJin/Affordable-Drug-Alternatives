@@ -28,6 +28,9 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 
 ### Ocrelizumab (Ocrevus®) vs. Rituximab (Biosimilars)
 
+* **Ocrelizumab Brand:** `Ocrevus®`
+* **Rituximab Biosimilar Brands Include:** `Truxima®`, `Ruxience®`, `Riabni™`, `Hanlikang®`, `Delituo®`
+
 > **Condition Context:** Relapsing-Remitting MS (RRMS) is the most common form, accounting for about **85%** of diagnoses in the US. Primary Progressive MS (PPMS) is less common, affecting **10-15%** of patients.
 
 #### 💰 Annual Cost Comparison by Region
