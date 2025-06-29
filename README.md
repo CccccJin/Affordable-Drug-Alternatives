@@ -38,10 +38,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 | **United States (Medicaid Net)**| `~$47,671` | `~$5,893` | Highest percentage savings. |
 | **Sweden** | `~$1,650` | `~$22,300` | *Note: Biosimilar listed at a higher price.* |
 | **United Kingdom** | `~$12,700` (per course) | `~$24,000` (initial list price) | *Note: Biosimilar listed at a higher price.* |
-
 <br>
-
-> **💡 Key Takeaway:** While biosimilars offer substantial cost savings for Rituximab in the United States, the provided list prices in Sweden and the UK appear higher than the originator drug. This may reflect different national pricing agreements, reimbursement models, or specific data reporting conventions.
 
 #### 📊 Head-to-Head Visualization
 <p align="center">
