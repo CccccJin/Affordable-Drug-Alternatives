@@ -69,3 +69,39 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
   <br>
   <em><small>Source: <a href="https://atlasofms.org/map/global/epidemiology/number-of-people-with-ms#about">Atlas of MS - Epidemiology</a></small></em>
 </div>
+
+---
+
+<details>
+<summary>💪 <strong> COVID-19: Molnupiravir vs. Fluvoxamine</strong></summary>
+
+### Molnupiravir (Lagevrio®) vs. Fluvoxamine
+
+* **Molnupiravir Brand:** `Lagevrio®`
+* **Fluvoxamine Brands:** Primarily available as a generic drug. A common brand name is `Luvox®`.
+
+> **Condition Context:** These oral medications are used for the early treatment of mild-to-moderate COVID-19 in non-hospitalized adults who are at high risk for progression to severe disease. The goal is to prevent hospitalization and death.
+
+#### 💰 Cost per Treatment Course Comparison (All Figures in USD)
+
+| Drug | Region | Estimated Cost per Course (USD) | Notes |
+| :--- | :--- | ---: | :--- |
+| **Molnupiravir**<br>(Lagevrio®) | **United States** | `~$700` | Based on initial US government procurement price. |
+| | **United Kingdom/EU** | `~$300 - $500` | Price reflects national negotiations and procurements. |
+| | **LMICs (via MPP)** | `~$20 - $40` | Generic versions available via the Medicines Patent Pool license. |
+| **Fluvoxamine**<br>(Generic) | **Global** | `~$10 - $30` | Mature, widely available generic drug.<br>Used off-label for COVID-19. |
+
+</details>
+#### 📊 Epidemiological Data & Visualizations
+
+<p align="center">
+  <strong>Annual Cost Comparison: Ocrelizumab vs. Rituximab Biosimilar (US)</strong><br>
+  <img width="559" alt="Cost comparison chart for Ocrevus and Rituximab" src="https://github.com/user-attachments/assets/6033094b-b1fd-4975-be2f-9622752ac757" />
+</p>
+
+<div align="center">
+  <strong>Global Number of People with MS (Prevalence)</strong><br>
+  <img width="894" alt="Global MS Prevalence Map from Atlas of MS" src="https://github.com/user-attachments/assets/34194f4b-802e-4cca-9755-39381ca1ed8e" />
+  <br>
+  <em><small>Source: <a href="https://atlasofms.org/map/global/epidemiology/number-of-people-with-ms#about">Atlas of MS - Epidemiology</a></small></em>
+</div>
