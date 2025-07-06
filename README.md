@@ -4,7 +4,8 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 
 ---
 
-## 🧠 Treatment-Resistant Depression (TRD)
+<details>
+<summary>🧠 <strong>Treatment-Resistant Depression (TRD): Esketamine vs. Ketamine</strong></summary>
 
 ### Esketamine (Spravato®) vs. Ketamine (IV Infusion)
 
@@ -17,17 +18,27 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 | **Esketamine** | `Spravato®` nasal spray | ~ $4,720 – $7,080 | **~$20,000 – $30,000** |
 | **Ketamine** | Racemic, IV Infusion (Cash-pay) | ~ $2,100 – $6,000 | **~$5,600 – $16,000** |
 
-<br>
-*Note: Annual cost is estimated based on a standard treatment protocol, including an initial induction phase followed by a full year of maintenance sessions (approx. 34 sessions/year for Spravato® and 16 sessions/year for IV Ketamine).
+*<small>Note: Annual cost is estimated based on a standard treatment protocol, including an initial induction phase followed by a full year of maintenance sessions (approx. 34 sessions/year for Spravato® and 16 sessions/year for IV Ketamine).</small>*
 
-#### 📊 Head-to-Head Visualization
+#### 📊 Epidemiological Data & Visualizations
+
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/700f5f30-ecaa-4265-910e-afee107310ae" width="600">
+  <strong>Annual Cost Comparison: Esketamine vs. IV Ketamine</strong><br>
+  <img src="https://github.com/user-attachments/assets/700f5f30-ecaa-4265-910e-afee107310ae" width="600">
 </p>
+<div align="center">
+  <strong>Global Depression Prevalence</strong><br>
+  <img width="100%" alt="Global Depression Prevalence Map from OECD" src="https://github.com/user-attachments/assets/67d15ec9-062d-423a-947e-6d6e097c61ca" />
+  <br>
+  <em><small>Source: <a href="https://www.oecd.org/en/topics/mental-health.html">OECD Mental Health Data</a></small></em>
+</div>
+
+</details>
 
 ---
 
-## 💪 Multiple Sclerosis (MS)
+<details>
+<summary>💪 <strong>Multiple Sclerosis (MS): Ocrelizumab vs. Rituximab</strong></summary>
 
 ### Ocrelizumab (Ocrevus®) vs. Rituximab (Biosimilars)
 
@@ -36,22 +47,25 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 
 > **Condition Context:** Relapsing-Remitting MS (RRMS) is the most common form, accounting for about **85%** of diagnoses in the US. Primary Progressive MS (PPMS) is less common, affecting **10-15%** of patients.
 
-#### 💰 Annual Cost Comparison by Region (Corrected)
+#### 💰 Annual Cost Comparison by Region (All Figures in USD)
 
-| Region / Payer | Ocrelizumab (Ocrevus®) Cost | Rituximab Biosimilar Cost | Notes |
+| Region / Payer | Ocrelizumab Cost (USD) | Rituximab Biosimilar Cost (USD) | Notes |
 | :--- | :--- | :--- | :--- |
-| **United States (Medicare)** | `~$69,949` | `~$11,759` | Based on Average Sales Price (ASP). Significant savings with biosimilar. |
-| **United States (Medicaid Net)**| `~$47,671` | `~$5,893` | Net price after mandatory rebates. Highest percentage savings. |
-| **Sweden** | `~$12,400` | `~$2,400` | Based on estimated national tender prices. Rituximab is the far cheaper off-label option. |
-| **United Kingdom** | `~$12,700` | `~$3,500` | Ocrelizumab cost is the net price after confidential NHS discount. Rituximab cost is for off-label MS use. |
-<br>
+| **United States (Medicare)** | `~$69,949` | `~$11,759` | Based on Average Sales Price (ASP).<br>Significant savings with biosimilar. |
+| **United States (Medicaid Net)**| `~$47,671` | `~$5,893` | Net price after mandatory rebates.<br>Highest percentage savings. |
+| **Sweden** | `~$12,400` | `~$2,400` | Based on estimated national tender prices.<br>Rituximab is the far cheaper off-label option. |
+| **United Kingdom** | `~$12,700` | `~$3,500` | Ocrelizumab cost is net price after NHS discount.<br>Rituximab cost is for off-label MS use. |
 
-#### 📊 Head-to-Head Visualization
+#### 📊 Epidemiological Data & Visualizations
+
 <p align="center">
-  <img width="559" alt="image" src="https://github.com/user-attachments/assets/6033094b-b1fd-4975-be2f-9622752ac757" />
+  <strong>Annual Cost Comparison: Ocrelizumab vs. Rituximab Biosimilar (US)</strong><br>
+  <img width="559" alt="Cost comparison chart for Ocrevus and Rituximab" src="https://github.com/user-attachments/assets/6033094b-b1fd-4975-be2f-9622752ac757" />
 </p>
 
-MS Global Incidence (Cited from https://atlasofms.org/map/global/epidemiology/number-of-people-with-ms#about)
-<img width="894" alt="image" src="https://github.com/user-attachments/assets/2e750584-b477-4796-8a7a-c75b6e5b8b3f" />
-
-
+<div align="center">
+  <strong>Global Number of People with MS (Prevalence)</strong><br>
+  <img width="894" alt="Global MS Prevalence Map from Atlas of MS" src="https://github.com/user-attachments/assets/34194f4b-802e-4cca-9755-39381ca1ed8e" />
+  <br>
+  <em><small>Source: <a href="https://atlasofms.org/map/global/epidemiology/number-of-people-with-ms#about">Atlas of MS - Epidemiology</a></small></em>
+</div>
