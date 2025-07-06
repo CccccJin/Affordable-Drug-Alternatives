@@ -96,15 +96,13 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 #### 📊 Epidemiological Data & Visualizations
 
 <div align="center">
-  <strong>[PLACEHOLDER] Cost per Course: Molnupiravir vs. Fluvoxamine</strong><br>
-  <p><em>(A bar chart comparing the ~$700 cost of Molnupiravir in the US to the ~$20 cost of Fluvoxamine would be effective here.)</em></p>
+  <strong>Global COVID-19 Epidemiological Trends</strong><br>
+  <img width="1284" alt="WHO COVID-19 Dashboard showing global cases" src="https://github.com/user-attachments/assets/518d2254-3c27-49ae-ae71-c53c9c4831c8" />
+  <br>
+  <em><small>Source: <a href="https://data.who.int/dashboards/covid19/cases?n=c">WHO COVID-19 Dashboard</a></small></em>
 </div>
 
-<div align="center">
-  <strong>[PLACEHOLDER] Global COVID-19 Incidence/Hospitalization Trends</strong><br>
-  <p><em>(A line chart from Our World in Data showing COVID-19 hospitalization trends would be a good example here.)</em></p>
-</div>
-
+> **Methodological Note:** For acute infectious diseases such as COVID-19, market size assessment is critically dependent on **incidence** (the rate of new cases) over **prevalence**, as incidence directly reflects the flow of new patients requiring therapy. In the current era, official case counts are significant undercounts due to reduced routine testing, making them unreliable for direct analysis. A robust estimation must therefore leverage epidemiological models that integrate more reliable data streams, such as hospitalization rates and wastewater surveillance. Given the inherent uncertainties, the market potential should be presented as a **scenario-based forecast** (e.g., low, medium, high) rather than a single, definitive point estimate.
 </details>
 
 ---
