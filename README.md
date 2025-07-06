@@ -126,14 +126,28 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 
 #### 📊 Epidemiological Data & Visualizations
 
-<div align="center">
-  <strong>[PLACEHOLDER] Annual Cost: Korlym vs. Generic Mifepristone</strong><br>
-  <p><em>(A bar chart showing the dramatic price difference would be highly effective.)</em></p>
-</div>
-<div align="center">
-  <strong>[PLACEHOLDER] Cushing's Disease Epidemiology</strong><br>
-  <p><em>(Data on the incidence/prevalence of Cushing's, e.g., from NORD or other rare disease registries.)</em></p>
-</div>
+## Market Comparison: Korlym® vs. Generic Mifepristone
+
+| Comparison Metric | Korlym® (for Cushing's Disease) | Generic Mifepristone (Primarily for Medical Abortion) |
+| :--- | :---: | :---: |
+| **Primary Indication** | To control hyperglycemia in patients with Cushing's syndrome (a rare disease). | Medical termination of early pregnancy. |
+| **Patient Population Size** | **Very Small**. A few thousand patients treated annually in the U.S. | **Very Large**. Hundreds of thousands of users annually in the U.S. |
+| **Pricing Strategy** | **Ultra-High Price**. Leverages its "Orphan Drug" status for premium pricing. | **Low Price**. Priced competitively as a generic drug. |
+| **Market Size Driver** | **Price** | **Volume** |
+
+---
+
+### Chart 1: Estimated Annual Market Size (USD)
+*Source: [DelveInsight Cushing's Disease Market Report](https://www.delveinsight.com/report-store/cushings-disease-market)*
+
+![Estimated Annual Market Size](https://github.com/user-attachments/assets/b365448c-8507-4518-8c14-a036ac450b6b)
+***Caption***: *This chart illustrates the estimated annual cost and market size for Cushing's Disease treatments.*
+
+### Chart 2: Prevalence Comparison
+*Source: [DelveInsight Cushing's Disease Market Report](https://www.delveinsight.com/report-store/cushings-disease-market)*
+
+![US vs EU Prevalence Comparison](https://github.com/user-attachments/assets/677a5ba6-cb6e-4b4e-b265-f8e3a8a3936c)
+***Caption***: *A comparison of diagnosed Cushing's Disease cases in the US vs. the EU4 & UK, broken down by gender (2024 data).*
 
 </details>
 
