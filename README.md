@@ -137,7 +137,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 
 ---
 
-### Chart 1: Estimated Annual Market Size (USD)
+### Chart 1: Estimated Market Size (USD)
 *Data Source: [DelveInsight Cushing's Disease Market Report](https://www.delveinsight.com/report-store/cushings-disease-market)*
 
 ![Estimated Annual Market Size](https://github.com/user-attachments/assets/b365448c-8507-4518-8c14-a036ac450b6b)
@@ -170,16 +170,29 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 | **Procysbi®** | Delayed-Release (12-hr dosing) | **`~$300,000 - $900,000+`** | Priced at a significant premium for the quality-of-life benefit of not requiring middle-of-the-night dosing. Cost is highly weight-dependent. |
 | **Cystagon®** | Immediate-Release (6-hr dosing) | **`~$50,000 - $150,000`** | The older standard of care. While still expensive as an orphan drug, it is far less costly than the newer formulation. |
 
-#### 📊 Epidemiological Data & Visualizations
+## 📊 Epidemiological Data & Visualizations
 
-<div align="center">
-  <strong>[PLACEHOLDER] Annual Cost: Procysbi vs. Cystagon</strong><br>
-  <p><em>(A bar chart comparing the two drug costs would clearly show the premium for the delayed-release formulation.)</em></p>
-</div>
-<div align="center">
-  <strong>[PLACEHOLDER] Nephropathic Cystinosis Epidemiology</strong><br>
-  <p><em>(Data on the prevalence of this rare disease, often cited as ~1 in 100,000 to 200,000 live births.)</em></p>
-</div>
+<table align="center" border="0" cellpadding="0" cellspacing="0" style="border: none;">
+  <tr>
+    <td style="border: none; text-align: center;">
+      <img src="https://github.com/user-attachments/assets/99f1b22a-93f2-483a-a9bb-20876b92f2c0" alt="Chart comparing the market size of Tepezza, Krystexxa, and Uplizna in 2023" style="max-width: 80%; height: auto;">
+    </td>
+  </tr>
+</table>
+
+*<small><strong>Source:</strong> According to the <a href="https://investors.amgen.com/static-files/95644920-150e-471b-99ee-4facd7c4e1ac">Amgen 2023 Annual Report</a>, the company completed its acquisition of Horizon Therapeutics, the developer of Procysbi, in October 2023.</small>*
+> **Note:** Cystagon's market share is continuously shrinking due to patient conversion to its successor, Procysbi, leaving it to serve a niche population with access challenges and an estimated market size in the tens of millions.
+
+
+<table align="center" border="0" cellpadding="0" cellspacing="0" style="border: none;">
+  <tr>
+    <td style="border: none; text-align: center;">
+      <img src="https://github.com/user-attachments/assets/17084129-3e75-4572-a099-82c336d36501" alt="Chart comparing the annual incidence of Nephropathic Cystinosis in Europe and the US" style="max-width: 60%; height: auto;">
+    </td>
+  </tr>
+</table>
+
+*Data extracted from: [Orphanet Epidemiology Data](https://sciences.orphadata.com/epidemiology/)*
 
 </details>
 
@@ -205,12 +218,21 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 #### 📊 Epidemiological Data & Visualizations
 
 <div align="center">
-  <strong>[PLACEHOLDER] Cost per Course: Acthar Gel vs. Corticosteroids</strong><br>
-  <p><em>(A bar chart would dramatically illustrate the several-hundred-fold price difference.)</em></p>
-</div>
-<div align="center">
-  <strong>[PLACEHOLDER] MS Relapse Rate Epidemiology</strong><br>
-  <p><em>(Data on the annual relapse rate for MS patients, which defines the potential market for these acute treatments.)</em></p>
+  <img src="https://github.com/user-attachments/assets/878d1418-4a7e-46a7-be9a-76a93d4212e6" alt="Bar chart comparing the annual market size of H.P. Acthar Gel vs. Synthetic Corticosteroids" width="70%">
+  <br>
+  <em><small>Source: <a href="https://ir.mallinckrodt.com/node/31401/pdf">Mallinckrodt plc FY 2024 Financial Results</a>. Corticosteroid market is an estimation.</small></em>
 </div>
 
-</details>
+> **Methodological Note:** The estimated annual market size for synthetic corticosteroids in treating MS flares, ranging from $128 million to $510 million, is calculated by multiplying the U.S. RRMS patient population (~850,000) by an average annual relapse rate (~0.3) and a per-treatment course cost of $500-$2,000.
+
+<br>
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/d46ccc93-e202-483b-90ea-c288ee520346" alt="Grouped bar chart comparing the annual incidence of MS and Rheumatic Disorders in the US vs. Global" width="80%">
+</div>
+
+> **Data Sources:**
+> * **MS Data:** Based on analysis from [Wallin, M. T., et al. (2019), *Neurology*](https://pubmed.ncbi.nlm.nih.gov/30770430/).
+> * **Rheumatic Disorders (RA) Data:** Based on data from the CDC and [Myasoedova, E., et al. (2010), *Arthritis & Rheumatism*](https://pubmed.ncbi.nlm.nih.gov/20191579/).
+
+*<small>Note: The Y-axis uses a logarithmic scale to visualize data spanning multiple orders of magnitude.</small>*
