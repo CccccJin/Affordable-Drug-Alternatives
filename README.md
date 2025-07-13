@@ -355,7 +355,7 @@ General lung cancer statistics include both small cell (SCLC) and non-small cell
 * **Intravenous (IV) Ravulizumab:** A long-acting `C5 complement inhibitor` administered by a healthcare professional every 8 weeks.
 * **Subcutaneous (SC) Ravulizumab:** The same `C5 complement inhibitor` formulated for weekly self-administration at home using an on-body delivery device.
 
-> **Condition Context:** Both formulations are used for the long-term treatment of `Paroxysmal Nocturnal Hemoglobinuria (PNH)` to prevent hemolysis (red blood cell destruction). The standard IV infusion requires patients to visit a clinic every two months. The subcutaneous option offers greater convenience and autonomy by allowing patients to treat themselves at home. Clinical studies, like the one published in the *British Journal of Clinical Pharmacology*, have shown that the SC administration is non-inferior to the IV formulation in efficacy.
+> **Condition Context:** Both formulations are used for the long-term treatment of `Paroxysmal Nocturnal Hemoglobinuria (PNH)` to prevent hemolysis (red blood cell destruction). The standard IV infusion requires patients to visit a clinic every two months. The subcutaneous option offers greater convenience and autonomy by allowing patients to treat themselves at home, which improves patient-friendliness. A study in the [*British Journal of Clinical Pharmacology*](https://doi.org/10.1111/bcp.15602) found that dose reductions of up to 64% are possible while maintaining therapeutic exposure. The study also notes that the subcutaneous administration is non-inferior to the intravenous formulation in efficacy.
 
 #### 💰 Annual Treatment Cost Comparison (All Figures in USD)
 
