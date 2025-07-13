@@ -364,6 +364,7 @@ General lung cancer statistics include both small cell (SCLC) and non-small cell
 | **IV Ravulizumab** | `Intravenous Infusion` every 8 weeks | **`~ $500,000+`** | Represents the standard of care. Cost is based on the high list price of the drug and includes administration/infusion service fees. |
 | **SC Ravulizumab** | `Subcutaneous Injection` every week | **`~ $500,000+`** | Drug acquisition cost is comparable to the IV version annually. Reduces costs associated with clinic visits and infusion services but adds costs for the delivery device. |
 
+Product differentiation: When there are multiple competing drugs with similar effects, a more convenient way of administration is a huge competitive advantage.
 #### 📊 Epidemiological Data & Visualizations
 
 </details>
