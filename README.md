@@ -5,7 +5,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary>🧠 <strong>Treatment-Resistant Depression (TRD): Esketamine vs. Ketamine</strong></summary>
+<summary>🧠 <strong>Treatment-Resistant Depression (TRD):</strong> Esketamine vs. Ketamine</strong></summary>
 
 ### Esketamine (Spravato®) vs. Ketamine (IV Infusion)
 
@@ -38,7 +38,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary>💪 <strong>Multiple Sclerosis (MS): Ocrelizumab vs. Rituximab</strong></summary>
+<summary>💪 <strong>Multiple Sclerosis (MS):</strong> Ocrelizumab vs. Rituximab</strong></summary>
 
 ### Ocrelizumab (Ocrevus®) vs. Rituximab (Biosimilars)
 
@@ -75,7 +75,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary> 🦠 <strong> COVID-19: Molnupiravir vs. Fluvoxamine</strong></summary>
+<summary> 🦠 <strong> COVID-19:</strong> Molnupiravir vs. Fluvoxamine</strong></summary>
 
 ### Molnupiravir (Lagevrio®) vs. Fluvoxamine
 
@@ -108,7 +108,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary>🧬 <strong>Cushing's Disease: Korlym vs. Mifepristone</strong></summary>
+<summary>🧬 <strong>Cushing's Disease:</strong> Korlym vs. Mifepristone</strong></summary>
 
 ### Korlym (mifepristone) vs. Generic Mifepristone
 
@@ -154,7 +154,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary>⚕️ <strong>Nephropathic Cystinosis: Procysbi vs. Cystagon</strong></summary>
+<summary>⚕️ <strong>Nephropathic Cystinosis:</strong> Procysbi vs. Cystagon</strong></summary>
 
 ### Procysbi (cysteamine) vs. Cystagon (cysteamine)
 
@@ -199,7 +199,7 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary>🔬 <strong>MS & Rheumatic Disorders: H.P. Acthar Gel vs. Corticosteroids</strong></summary>
+<summary>🔬 <strong>MS & Rheumatic Disorders:</strong> H.P. Acthar Gel vs. Corticosteroids</summary>
 
 ### H.P. Acthar® Gel (ACTH) vs. Synthetic Corticosteroids
 
@@ -236,3 +236,158 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 > * **Rheumatic Disorders (RA) Data:** Based on data from the CDC and [Myasoedova, E., et al. (2010), *Arthritis & Rheumatism*](https://pubmed.ncbi.nlm.nih.gov/20191579/).
 
 *<small>Note: The Y-axis uses a logarithmic scale to visualize data spanning multiple orders of magnitude.</small>*
+
+</details>
+
+---
+
+<details>
+<summary>🔬 <strong>Urea Cycle Disorders:</strong> Ravicti® vs. ATX-018</summary>
+
+### Ravicti® (glycerol phenylbutyrate) vs. ATX-018 (mRNA Therapy)
+
+* **Ravicti®:** A nitrogen-scavenging agent, `glycerol phenylbutyrate`, that provides an alternative pathway for the body to remove toxic ammonia.
+* **ATX-018:** An investigational messenger RNA (mRNA) therapeutic designed to enable a patient's liver cells to produce the correct, functioning enzyme they are genetically missing.
+
+> **Condition Context:** Both are therapies for Urea Cycle Disorders (UCDs), a group of rare genetic diseases that cause life-threatening hyperammonemia (high ammonia levels in the blood). The long-standing first-line therapy is dietary protein restriction combined with older nitrogen-scavenging drugs like generic `sodium phenylbutyrate`. Ravicti is a newer-generation scavenger, while ATX-018 represents a potential future gene-based therapy to correct the underlying problem rather than just managing symptoms.
+
+#### 💰 Annual Treatment Cost Comparison (All Figures in USD)
+
+| Therapy | Details | Estimated Annual Cost (USD) | Notes |
+| :--- | :--- | ---: | :--- |
+| **ATX-018** | Investigational mRNA Therapy | **`N/A`** | Currently in clinical development. As a potential gene-based therapy for a rare disease, it is expected to have an extremely high cost if approved. |
+| **Ravicti®** | Branded Nitrogen Scavenger | **`~$500,000 - $800,000+`** | The advanced, branded standard of care. Extremely high cost for a chronic, lifelong medication. |
+| **Sodium Phenylbutyrate** | Generic Nitrogen Scavenger | **`~$100,000 - $250,000`** | The older, generic standard of care. Significantly less expensive but is known for its high pill burden, very unpleasant taste, and high sodium content. |
+
+#### 📊 Epidemiological Data & Visualizations
+<img width="2048" height="2048" alt="Gemini_Generated_Image_cvu7bzcvu7bzcvu7" src="https://github.com/user-attachments/assets/eb8289da-cdea-499f-a621-21a83a3a1531" />
+Source：https://www.transparencymarketresearch.com/urea-cycle-disorder-treatment-market.html
+https://dataintelo.com/report/global-ravicti-market
+Ravicti® (Current Market): According to Dataintelo, the global market size of Ravicti® in 2023 is approximately $600 million. This value represents its current market value as a single leading product.
+ATX-018 (Potential Market): Since ATX-018 is an investigational drug that has not yet been launched, its market size is represented by the total size of the entire urea cycle disorder (UCD) treatment market. According to The Business Research Company, the total size of this market in 2024 is $1.33 billion. This represents the largest market space that new therapies like ATX-018 can compete for in the future.
+
+Urea Cycle Disorders (UCDs) are a group of rare genetic diseases with an estimated incidence of 1 in 8,500 births. [cite_start]However, the exact incidence rate is unknown and considered an underestimate, as many cases go undiagnosed or infants with the condition die before a definitive diagnosis is made[cite: 1].
+
+Among the different types, Ornithine Transcarbamylase Deficiency (OTCD) is the most common UCD. [cite_start]According to a literature review on pregnancies in women with UCDs, the authors noted the following distribution of cases[cite: 2]:
+* **Ornithine Transcarbamylase Deficiency (OTCD)**: 59.6% of cases
+* **Argininosuccinate Synthetase Deficiency (ASSD)**: 25.0% of cases
+* **Carbamoyl Phosphate Synthetase I Deficiency (CPSD)**: 9.6% of cases
+* **Argininosuccinate Lyase Deficiency (ASLD)**: 5.8% of cases
+
+[cite_start]The authors explicitly state that OTCD is the most common UCD, followed by ASLD[cite: 2].
+
+---
+**Sources:**
+
+[1] National Urea Cycle Disorders Foundation. (n.d.). *What is a UCD?* Retrieved from https://nucdf.org/about-ucd/what-is-a-ucd/
+
+[2] Stepien, K. M., Langendonk, J. G., Dao, M., et al. (2024). *The management and clinical outcomes of pregnancies in women with urea cycle disorders: A review of the literature and results of an international survey*. Journal of Inherited Metabolic Disease, 47(6), 1239-1259. https://doi.org/10.1002/jimd.12695
+
+</details>
+
+---
+
+<details>
+<summary>🔬 <strong>Non-Small Cell Lung Cancer:</strong> Standard-Dose vs. Low-Dose Pembrolizumab</summary>
+
+## 💊 Pembrolizumab: Standard vs. Low-Dose Regimens
+
+* **Standard-Dose Pembrolizumab:** An `anti-PD-1 monoclonal antibody` administered at the FDA-approved fixed dose, such as **400 mg every 6 weeks**.
+* **Low-Dose Pembrolizumab:** An evidence-driven, dose-optimization strategy using a reduced amount of the same `anti-PD-1 monoclonal antibody`, such as **200 mg every 6 weeks**.
+
+> ### 🏥 Clinical Context: Treating Non-Small Cell Lung Cancer (NSCLC)
+> Both regimens are for the treatment of `Non-Small Cell Lung Cancer (NSCLC)`, where Pembrolizumab is a foundational immunotherapy. It is a first-line standard of care, particularly for patients whose tumors express the PD-L1 biomarker. The standard dose is the approved, widely adopted regimen. Low-dose strategies are being actively investigated based on clinical data suggesting that PD-1 receptors can be fully saturated at lower concentrations, potentially offering similar efficacy with significant cost reductions and a lower risk of toxicity.
+
+---
+
+### 💰 Annual Cost Comparison by Region (All Figures in USD)
+
+*Comparison based on a standard-dose of `400 mg every 6 weeks` versus a hypothetical low-dose of `200 mg every 6 weeks`.*
+
+| Region | Standard-Dose Cost (USD) | Low-Dose Cost (USD) | Notes |
+| :--- | :---: | :---: | :--- |
+| **United States** | **`~$191,000 - $205,000`** | **`~$95,500 - $102,500`** | Represents one of the highest global list prices. |
+| **Canada** | **`~$112,000`** | **`~$56,000`** | Based on national health system pricing and review. |
+| **United Kingdom** | **`~$115,000`** | **`~$57,500`** | Net price after National Health Service (NHS) discounts. |
+| **Germany** | **`~$89,000`** | **`~$44,500`** | Price reflects national negotiation outcomes. |
+| **Japan** | **`~$44,000`** | **`~$22,000`** | Represents one of the lower prices among developed nations. |
+
+*<small>Note: Costs are estimates based on publicly available list prices and pharmacoeconomic data, not net transaction prices. Actual costs vary by country, payer, and negotiated discounts.</small>*
+
+---
+### 📊 Epidemiological Landscape & NSCLC Estimates
+
+#### Global Cancer Incidence
+Lung cancer is the leading cancer by incidence globally, highlighting its significant public health burden.**Global Cancer Incidence Ranking: Top 15 Cancers in 2022:**
+
+<img width="4880" alt="Global Cancer Incidence Ranking" src="https://github.com/user-attachments/assets/759440c3-bfaa-47f7-a923-6c59942b11cc" />
+
+<small>Source: [IARC GLOBOCAN 2022](https://gco.iarc.who.int/today/en/dataviz/bars?mode=cancer&key=total&group_populations=1&types=0&sort_by=value1&populations=900&multiple_populations=0&values_position=out&cancers_h=15)</small>
+
+#### Lung Cancer Incidence in Key Countries
+The following chart details the absolute numbers of new lung cancer cases in 2022 across selected developed nations.
+
+<img width="4880" alt="Lung Cancer Incidence by Country" src="https://github.com/user-attachments/assets/7f097871-340d-491b-891c-6148ff8e98f9" />
+
+<small>Source: [IARC GLOBOCAN 2022](https://gco.iarc.who.int/today/en/dataviz/bars?mode=cancer&key=total&group_populations=1&types=0&sort_by=value1&populations=900&multiple_populations=0&values_position=out&cancers_h=15)</small>
+
+#### Estimating the Non-Small Cell Lung Cancer (NSCLC) Burden
+General lung cancer statistics include both small cell (SCLC) and non-small cell (NSCLC) types. Based on data from the American Cancer Society, **NSCLC accounts for approximately 80% to 87% of all lung cancers cited from** **[American Cancer Society](https://www.cancer.org/cancer/types/lung-cancer/about/key-statistics.html)**. By applying this ratio to the total incidence, we can estimate the number of new NSCLC cases.
+
+**Estimated New NSCLC Cases in 2022**
+<table>
+  <tr>
+    <td><img width="514" alt="NSCLC Case Estimates Table" src="https://github.com/user-attachments/assets/9c79f6c1-ad90-4924-bd04-759d3db7b2fc" /></td>
+    <td><img width="539" alt="NSCLC Case Estimates Bar Chart" src="https://github.com/user-attachments/assets/276dc0db-4e73-4cc4-82a4-3881f9954673" /></td>
+  </tr>
+</table>
+
+*<small><b>Disclaimer:</b> Figures are estimates based on the methodology described. Actual case numbers may vary.</small>*
+</details>
+
+---
+
+<details>
+<summary>🔬 <strong>Paroxysmal Nocturnal Hemoglobinuria:</strong> Ravulizumab IV vs. Subcutaneous</summary>
+
+### Ravulizumab IV vs. Subcutaneous Administration
+
+* **Intravenous (IV) Ravulizumab:** A long-acting `C5 complement inhibitor` administered by a healthcare professional every 8 weeks.
+* **Subcutaneous (SC) Ravulizumab:** The same `C5 complement inhibitor` formulated for weekly self-administration at home using an on-body delivery device.
+
+> **Condition Context:** Both formulations are used for the long-term treatment of `Paroxysmal Nocturnal Hemoglobinuria (PNH)` to prevent hemolysis (red blood cell destruction). The standard IV infusion requires patients to visit a clinic every two months. The subcutaneous option offers greater convenience and autonomy by allowing patients to treat themselves at home. Clinical studies, like the one published in the *British Journal of Clinical Pharmacology*, have shown that the SC administration is non-inferior to the IV formulation in efficacy.
+
+#### 💰 Annual Treatment Cost Comparison (All Figures in USD)
+
+| Therapy | Details | Estimated Annual Cost (USD) | Notes |
+| :--- | :--- | ---: | :--- |
+| **IV Ravulizumab** | `Intravenous Infusion` every 8 weeks | **`~ $500,000+`** | Represents the standard of care. Cost is based on the high list price of the drug and includes administration/infusion service fees. |
+| **SC Ravulizumab** | `Subcutaneous Injection` every week | **`~ $500,000+`** | Drug acquisition cost is comparable to the IV version annually. Reduces costs associated with clinic visits and infusion services but adds costs for the delivery device. |
+
+#### 📊 Epidemiological Data & Visualizations
+
+</details>
+
+---
+
+<details>
+<summary>🔬 <strong>Blood Cancers:</strong> Standard CAR-T vs. Low-Cost "In-House" CAR-T</summary>
+
+### Standard CAR-T vs. Low-Cost "In-House" CAR-T
+
+* **Standard CAR-T (Kymriah®, Yescarta®):** Patient T-cells are collected, frozen, and shipped to a centralized corporate lab for genetic engineering (`viral vector` based). The process takes several weeks.
+* **Low-Cost "In-House" CAR-T:** Patient T-cells are engineered on-site at the hospital's lab (`non-viral vector` or simplified viral methods), often in a "closed system." The process can be completed in a few days.
+
+> **Condition Context:** Both models produce `Chimeric Antigen Receptor (CAR) T-cells` to treat aggressive blood cancers like `Multiple Myeloma`, `Non-Hodgkin's Lymphoma`, and `Acute Lymphoblastic Leukemia`. Standard CAR-T is the established, FDA-approved method but suffers from extremely high costs and long production times. As highlighted in the *MIT Technology Review*, the "in-house" or "point-of-care" model aims to solve these issues, making CAR-T therapy faster, radically cheaper, and more accessible to patients.
+
+#### 💰 Cost per Treatment Course Comparison (All Figures in USD)
+
+| Therapy | Details | Estimated Cost per Treatment (USD) | Notes |
+| :--- | :--- | ---: | :--- |
+| **Standard CAR-T** | Centralized, commercial manufacturing | **`~ $400,000 - $600,000`** | This is the drug acquisition list price only. The total cost of care including hospitalization and other services can exceed $1 million. |
+| **"In-House" CAR-T** | Decentralized, point-of-care manufacturing | **`~ $50,000 - $100,000`** | An emerging, more affordable model still in limited use. Cost reflects the streamlined process and elimination of commercial logistics and profit margins. |
+
+#### 📊 Epidemiological Data & Visualizations
+
+</details>
+
