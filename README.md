@@ -242,53 +242,73 @@ A summary comparing originator drugs with their lower-cost alternatives for key 
 ---
 
 <details>
-<summary>🔬 <strong>Urea Cycle Disorders:</strong> Ravicti® vs. ATX-018</summary>
+<summary>🔄 <strong>Urea Cycle Disorders:</strong> Ravicti® vs. ATX-018</summary>
 
-### Ravicti® (glycerol phenylbutyrate) vs. ATX-018 (mRNA Therapy)
+## 🔬 Comparative Analysis: Ravicti® vs. ATX-018 for Urea Cycle Disorders
 
-* **Ravicti®:** A nitrogen-scavenging agent, `glycerol phenylbutyrate`, that provides an alternative pathway for the body to remove toxic ammonia.
-* **ATX-018:** An investigational messenger RNA (mRNA) therapeutic designed to enable a patient's liver cells to produce the correct, functioning enzyme they are genetically missing.
-
-> **Condition Context:** Both are therapies for Urea Cycle Disorders (UCDs), a group of rare genetic diseases that cause life-threatening hyperammonemia (high ammonia levels in the blood). The long-standing first-line therapy is dietary protein restriction combined with older nitrogen-scavenging drugs like generic `sodium phenylbutyrate`. Ravicti is a newer-generation scavenger, while ATX-018 represents a potential future gene-based therapy to correct the underlying problem rather than just managing symptoms.
-
-#### 💰 Annual Treatment Cost Comparison (All Figures in USD)
-
-| Therapy | Details | Estimated Annual Cost (USD) | Notes |
-| :--- | :--- | ---: | :--- |
-| **ATX-018** | Investigational mRNA Therapy | **`N/A`** | Currently in clinical development. As a potential gene-based therapy for a rare disease, it is expected to have an extremely high cost if approved. |
-| **Ravicti®** | Branded Nitrogen Scavenger | **`~$500,000 - $800,000+`** | The advanced, branded standard of care. Extremely high cost for a chronic, lifelong medication. |
-| **Sodium Phenylbutyrate** | Generic Nitrogen Scavenger | **`~$100,000 - $250,000`** | The older, generic standard of care. Significantly less expensive but is known for its high pill burden, very unpleasant taste, and high sodium content. |
-
-#### 📊 Epidemiological Data & Visualizations
-<img width="2048" height="2048" alt="Gemini_Generated_Image_cvu7bzcvu7bzcvu7" src="https://github.com/user-attachments/assets/eb8289da-cdea-499f-a621-21a83a3a1531" />
-Source：https://www.transparencymarketresearch.com/urea-cycle-disorder-treatment-market.html
-https://dataintelo.com/report/global-ravicti-market
-Ravicti® (Current Market): According to Dataintelo, the global market size of Ravicti® in 2023 is approximately $600 million. This value represents its current market value as a single leading product.
-ATX-018 (Potential Market): Since ATX-018 is an investigational drug that has not yet been launched, its market size is represented by the total size of the entire urea cycle disorder (UCD) treatment market. According to The Business Research Company, the total size of this market in 2024 is $1.33 billion. This represents the largest market space that new therapies like ATX-018 can compete for in the future.
-
-Urea Cycle Disorders (UCDs) are a group of rare genetic diseases with an estimated incidence of 1 in 8,500 births. [cite_start]However, the exact incidence rate is unknown and considered an underestimate, as many cases go undiagnosed or infants with the condition die before a definitive diagnosis is made[cite: 1].
-
-Among the different types, Ornithine Transcarbamylase Deficiency (OTCD) is the most common UCD. [cite_start]According to a literature review on pregnancies in women with UCDs, the authors noted the following distribution of cases[cite: 2]:
-* **Ornithine Transcarbamylase Deficiency (OTCD)**: 59.6% of cases
-* **Argininosuccinate Synthetase Deficiency (ASSD)**: 25.0% of cases
-* **Carbamoyl Phosphate Synthetase I Deficiency (CPSD)**: 9.6% of cases
-* **Argininosuccinate Lyase Deficiency (ASLD)**: 5.8% of cases
-
-[cite_start]The authors explicitly state that OTCD is the most common UCD, followed by ASLD[cite: 2].
+This document outlines a comparison between **Ravicti® (glycerol phenylbutyrate)**, an established nitrogen-scavenging agent, and **ATX-018**, an investigational mRNA therapeutic for the treatment of **Urea Cycle Disorders (UCDs)**. UCDs are a group of rare genetic diseases that cause life-threateningly high ammonia levels in the blood (hyperammonemia). While Ravicti® helps manage the symptoms by providing an alternative pathway to remove ammonia, ATX-018 is designed to correct the underlying genetic cause.
 
 ---
-**Sources:**
 
-[1] National Urea Cycle Disorders Foundation. (n.d.). *What is a UCD?* Retrieved from https://nucdf.org/about-ucd/what-is-a-ucd/
+### Mechanism of Action
 
-[2] Stepien, K. M., Langendonk, J. G., Dao, M., et al. (2024). *The management and clinical outcomes of pregnancies in women with urea cycle disorders: A review of the literature and results of an international survey*. Journal of Inherited Metabolic Disease, 47(6), 1239-1259. https://doi.org/10.1002/jimd.12695
+| Therapy | Type | How It Works |
+| :--- | :--- | :--- |
+| **Ravicti®** | Nitrogen Scavenger | Provides an alternative metabolic pathway for the body to excrete nitrogen, effectively removing toxic ammonia. It manages symptoms rather than curing the disease. |
+| **ATX-018** | mRNA Therapy (Investigational) | Delivers messenger RNA (mRNA) to the patient's liver, enabling the cells to produce the correct, functional enzyme they are genetically missing. Aims to restore normal urea cycle function. |
+
+---
+
+### 💰 Annual Treatment Cost Comparison
+
+The cost landscape for UCD therapies shows a significant price difference between the older generic standard of care and newer, branded options. The cost of a potential gene-based therapy like ATX-018 is expected to be exceptionally high.
+
+| Therapy | Details | Estimated Annual Cost (USD) | Notes |
+| :--- | :--- | :--- | :--- |
+| **ATX-018** | Investigational mRNA Therapy | **N/A** | In clinical development. As a potential one-time or infrequent gene-based therapy, it is expected to have an extremely high upfront cost if approved. |
+| **Ravicti®** | Branded Nitrogen Scavenger | **~$500,000 - $800,000+** | The advanced, branded standard of care. Represents a very high, lifelong medication cost. |
+| **Sodium Phenylbutyrate** | Generic Nitrogen Scavenger | **~$100,000 - $250,000** | The older generic standard. Significantly cheaper but associated with a high pill burden and poor palatability. |
+
+---
+
+### 📊 Epidemiology & Market Context
+
+#### Market Size Analysis
+
+The market for UCD treatments is dominated by high-cost therapies, with significant potential for new entrants that can address the underlying cause of the disease.
+
+![UCD Market Size](https://github.com/user-attachments/assets/e851a92f-bf00-48bb-a251-efdea2fd8405)
+
+
+* **Ravicti® (Current Market):** The global market for Ravicti® was approximately **$600 million** in 2023. This reflects its value as a leading single-product therapy.
+* **ATX-018 (Potential Market):** As an investigational drug, its potential market is the entire UCD treatment space, which was estimated at **$1.33 billion** in 2024. This represents the total market new therapies can compete for.
+
+*Sources: [Transparency Market Research](https://www.transparencymarketresearch.com/urea-cycle-disorder-treatment-market.html), [Dataintelo](https://dataintelo.com/report/global-ravicti-market)*
+
+#### Prevalence & Subtypes
+
+Urea Cycle Disorders (UCDs) have an estimated incidence of 1 in 8,500 births. However, this figure is considered an underestimate, as many cases may go undiagnosed [1].
+
+Ornithine Transcarbamylase Deficiency (OTCD) is the most common subtype. A literature review of pregnancies in women with UCDs reported the following distribution of cases [2]:
+
+* **Ornithine Transcarbamylase Deficiency (OTCD):** 59.6%
+* **Argininosuccinate Synthetase Deficiency (ASSD):** 25.0%
+* **Carbamoyl Phosphate Synthetase I Deficiency (CPSD):** 9.6%
+* **Argininosuccinate Lyase Deficiency (ASLD):** 5.8%
+
+---
+
+### References
+
+1.  National Urea Cycle Disorders Foundation. (n.d.). *What is a UCD?* Retrieved from https://nucdf.org/about-ucd/what-is-a-ucd/
+2.  Stepien, K. M., Langendonk, J. G., Dao, M., et al. (2024). *The management and clinical outcomes of pregnancies in women with urea cycle disorders: A review of the literature and results of an international survey*. Journal of Inherited Metabolic Disease, 47(6), 1239-1259. https://doi.org/10.1002/jimd.12695
 
 </details>
 
 ---
 
 <details>
-<summary>🔬 <strong>Non-Small Cell Lung Cancer:</strong> Standard-Dose vs. Low-Dose Pembrolizumab</summary>
+<summary>🫁 <strong>Non-Small Cell Lung Cancer:</strong> Standard-Dose vs. Low-Dose Pembrolizumab</summary>
 
 ## 💊 Pembrolizumab: Standard vs. Low-Dose Regimens
 
@@ -348,7 +368,7 @@ General lung cancer statistics include both small cell (SCLC) and non-small cell
 ---
 
 <details>
-<summary>🔬 <strong>Paroxysmal Nocturnal Hemoglobinuria:</strong> Ravulizumab IV vs. Subcutaneous</summary>
+<summary>💉 <strong>Paroxysmal Nocturnal Hemoglobinuria:</strong> Ravulizumab IV vs. Subcutaneous</summary>
 
 ### Ravulizumab IV vs. Subcutaneous Administration
 
@@ -390,7 +410,7 @@ The following data outlines the financial outlook for the global PNH treatment m
 ---
 
 <details>
-<summary>🔬 <strong>Blood Cancers:</strong> Standard CAR-T vs. Low-Cost "In-House" CAR-T</summary>
+<summary>🩸 <strong>Blood Cancers:</strong> Standard CAR-T vs. Low-Cost "In-House" CAR-T</summary>
 
 ### Standard CAR-T vs. Low-Cost "In-House" CAR-T
 
@@ -416,27 +436,37 @@ This section presents a comparative analysis of the incidence rates for several 
 
 ### Multiple Myeloma
 
-Below are visualizations of the global incidence of Multiple Myeloma. The data includes a world heatmap of the Age-Standardized Rate (ASR) and a bar chart comparing rates among major economies.
+Below are visualizations of the global incidence of Multiple Myeloma. The primary visual is a bar chart comparing rates among major economies, followed by a global heatmap of the Age-Standardized Rate (ASR).
 
-| Global Heatmap (ASR) | Comparison of Major Economies |
-| :---: | :---: |
-| ![Global heatmap showing the Age-Standardized Incidence Rate for Multiple Myeloma in 2022](https://github.com/user-attachments/assets/78515b48-ed6f-4282-a7af-a64b77c18cfc) | ![Bar chart comparing the incidence rates of Multiple Myeloma in major economies](https://github.com/user-attachments/assets/7b45de54-9074-4ce2-8b28-b3264f34a707) |
+**Comparison of Major Economies (Multiple Myeloma)**
+![Bar chart comparing the incidence rates of Multiple Myeloma in major economies](https://github.com/user-attachments/assets/7b45de54-9074-4ce2-8b28-b3264f34a707)
+
+**Global Heatmap (ASR)**
+![Global heatmap showing the Age-Standardized Incidence Rate for Multiple Myeloma in 2022](https://github.com/user-attachments/assets/78515b48-ed6f-4282-a7af-a64b77c18cfc)
+
+---
 
 ### Non-Hodgkin Lymphoma
 
-This section visualizes the global incidence of Non-Hodgkin Lymphoma, featuring a world heatmap and a detailed bar chart comparing major economies.
+This section visualizes the global incidence of Non-Hodgkin Lymphoma, led by a detailed bar chart and supplemented by a world heatmap.
 
-| Global Heatmap (ASR) | Comparison of Major Economies |
-| :---: | :---: |
-| ![Global heatmap showing the Age-Standardized Incidence Rate for Non-Hodgkin Lymphoma in 2022](https://github.com/user-attachments/assets/d7e8a1d4-83d2-44d3-9372-b5a764a97ae8) | ![Bar chart comparing the incidence rates of Non-Hodgkin Lymphoma in major economies](https://github.com/user-attachments/assets/7ee9c3af-3590-4a5b-a31e-afd65389c1c1) |
+**Comparison of Major Economies (Non-Hodgkin Lymphoma)**
+![Bar chart comparing the incidence rates of Non-Hodgkin Lymphoma in major economies](https://github.com/user-attachments/assets/7ee9c3af-3590-4a5b-a31e-afd65389c1c1)
+
+**Global Heatmap (ASR)**
+![Global heatmap showing the Age-Standardized Incidence Rate for Non-Hodgkin Lymphoma in 2022](https://github.com/user-attachments/assets/d7e8a1d4-83d2-44d3-9372-b5a764a97ae8)
+
+---
 
 ### Leukemia
 
-This section visualizes the global incidence of Leukemia, with a world heatmap displaying the Age-Standardized Rate (ASR) and a bar chart for economic comparison.
+This section visualizes the global incidence of Leukemia, with the primary focus on the bar chart comparison, followed by the global heatmap.
 
-| Global Heatmap (ASR) | Comparison of Major Economies |
-| :---: | :---: |
-| ![Global heatmap showing the Age-Standardized Incidence Rate for Leukemia in 2022](https://github.com/user-attachments/assets/259994a6-ce77-4880-8275-f12d94b443bf) | ![Bar chart comparing the incidence rates of Leukemia in major economies](https://github.com/user-attachments/assets/6afa6f12-a427-4c19-adc2-cc0376b2d464) |
+**Comparison of Major Economies (Leukemia)**
+![Bar chart comparing the incidence rates of Leukemia in major economies](https://github.com/user-attachments/assets/6afa6f12-a427-4c19-adc2-cc0376b2d464)
+
+**Global Heatmap (ASR)**
+![Global heatmap showing the Age-Standardized Incidence Rate for Leukemia in 2022](https://github.com/user-attachments/assets/259994a6-ce77-4880-8275-f12d94b443bf)
 
 ---
 
