@@ -364,8 +364,26 @@ General lung cancer statistics include both small cell (SCLC) and non-small cell
 | **IV Ravulizumab** | `Intravenous Infusion` every 8 weeks | **`~ $500,000+`** | Represents the standard of care. Cost is based on the high list price of the drug and includes administration/infusion service fees. |
 | **SC Ravulizumab** | `Subcutaneous Injection` every week | **`~ $500,000+`** | Drug acquisition cost is comparable to the IV version annually. Reduces costs associated with clinic visits and infusion services but adds costs for the delivery device. |
 
-Product differentiation: When there are multiple competing drugs with similar effects, a more convenient way of administration is a huge competitive advantage.
-#### 📊 Epidemiological Data & Visualizations
+### Key Driver: Product Differentiation
+> In a market with multiple competing drugs of similar efficacy, a more convenient method of administration is a core differentiating factor and provides a significant competitive advantage.
+
+### Epidemiological Data: A Look at the U.S.
+According to a report by the U.S. Census Bureau, the epidemiological data for PNH in the United States is as follows[1]:
+
+* **Prevalence:** Approximately **12 to 13 cases** per million people.
+* **Incidence:** An estimated **5.7 cases** per million person-years.
+
+### 📊 Market Size & Growth
+The following data outlines the financial outlook for the global PNH treatment market[1]:
+
+* 💰 **Current Market Value (2023):** `$3.9 Billion`
+* 📈 **Projected Market Value (2032):** `$10.1 Billion`
+* 🚀 **Compound Annual Growth Rate (CAGR):** `11.2%`
+* 🗓️ **Forecast Period:** `2024 – 2032`
+
+
+*<small><b>[1]:<b> Data cited from the Global Market Insights industry analysis report: [Paroxysmal Nocturnal Hemoglobinuria (PNH) Treatment Market](https://www.gminsights.com/industry-analysis/paroxysmal-nocturnal-hemoglobinuria-treatment-market)
+
 
 </details>
 
@@ -379,16 +397,52 @@ Product differentiation: When there are multiple competing drugs with similar ef
 * **Standard CAR-T (Kymriah®, Yescarta®):** Patient T-cells are collected, frozen, and shipped to a centralized corporate lab for genetic engineering (`viral vector` based). The process takes several weeks.
 * **Low-Cost "In-House" CAR-T:** Patient T-cells are engineered on-site at the hospital's lab (`non-viral vector` or simplified viral methods), often in a "closed system." The process can be completed in a few days.
 
-> **Condition Context:** Both models produce `Chimeric Antigen Receptor (CAR) T-cells` to treat aggressive blood cancers like `Multiple Myeloma`, `Non-Hodgkin's Lymphoma`, and `Acute Lymphoblastic Leukemia`. Standard CAR-T is the established, FDA-approved method but suffers from extremely high costs and long production times. As highlighted in the *MIT Technology Review*, the "in-house" or "point-of-care" model aims to solve these issues, making CAR-T therapy faster, radically cheaper, and more accessible to patients.
+> **Condition Context:** Both models produce `Chimeric Antigen Receptor (CAR) T-cells` to treat aggressive blood cancers like `Multiple Myeloma`, `Non-Hodgkin's Lymphoma`, and `Acute Lymphoblastic Leukemia`. Standard CAR-T is the established, FDA-approved method but suffers from extremely high costs and long production times. As highlighted in the [*MIT Technology Review*](https://www.technologyreview.com/2024/04/12/1091161/car-t-cancer-therapy-treatment-expense/), the "in-house" or "point-of-care" model aims to solve these issues, making CAR-T therapy faster, radically cheaper, and more accessible to patients.
 
 #### 💰 Cost per Treatment Course Comparison (All Figures in USD)
 
-| Therapy | Details | Estimated Cost per Treatment (USD) | Notes |
-| :--- | :--- | ---: | :--- |
-| **Standard CAR-T** | Centralized, commercial manufacturing | **`~ $400,000 - $600,000`** | This is the drug acquisition list price only. The total cost of care including hospitalization and other services can exceed $1 million. |
-| **"In-House" CAR-T** | Decentralized, point-of-care manufacturing | **`~ $50,000 - $100,000`** | An emerging, more affordable model still in limited use. Cost reflects the streamlined process and elimination of commercial logistics and profit margins. |
+| Region/Country | Standard CAR-T (Kymriah®, Yescarta®) | Low-Cost "In-House" CAR-T (Estimated) | Key Considerations |
+| :--- | :--- | :--- | :--- |
+| **USA** | ~ $370,000 - $530,000+ | Significantly lower than commercial prices, but specific data varies by institution. | As the main market for commercial CAR-T, the US has the highest prices, which do not include additional medical costs such as hospitalization and management of side effects. |
+| **Europe** | Prices vary by country due to national health insurance negotiations, generally slightly lower than in the US. | Academic centers are actively developing to significantly reduce costs. | The bargaining power of national health systems with pharmaceutical companies is key to price differences. |
+| **China** | ~ $150,000 - $180,000 (RMB 1.2 - 1.29 million) | Costs for some clinical trials or local production may be lower. | Several CAR-T products are already on the market domestically, and competition has led to prices lower than in Europe and the US, but they are still considered "sky-high" drugs. |
+| **India** | N/A (Commercial products are not yet widely available) | ~ $30,000 - $40,000 | The indigenously developed NexCAR19 shows a very competitive price, aiming to improve accessibility for patients in low and middle-income countries. |
 
-#### 📊 Epidemiological Data & Visualizations
+## 📊 Epidemiological Data & Visualizations
 
+This section presents a comparative analysis of the incidence rates for several types of cancer across the globe, focusing on major economies.
+
+---
+
+### Multiple Myeloma
+
+Below are visualizations of the global incidence of Multiple Myeloma. The data includes a world heatmap of the Age-Standardized Rate (ASR) and a bar chart comparing rates among major economies.
+
+| Global Heatmap (ASR) | Comparison of Major Economies |
+| :---: | :---: |
+| ![Global heatmap showing the Age-Standardized Incidence Rate for Multiple Myeloma in 2022](https://github.com/user-attachments/assets/78515b48-ed6f-4282-a7af-a64b77c18cfc) | ![Bar chart comparing the incidence rates of Multiple Myeloma in major economies](https://github.com/user-attachments/assets/7b45de54-9074-4ce2-8b28-b3264f34a707) |
+
+### Non-Hodgkin Lymphoma
+
+This section visualizes the global incidence of Non-Hodgkin Lymphoma, featuring a world heatmap and a detailed bar chart comparing major economies.
+
+| Global Heatmap (ASR) | Comparison of Major Economies |
+| :---: | :---: |
+| ![Global heatmap showing the Age-Standardized Incidence Rate for Non-Hodgkin Lymphoma in 2022](https://github.com/user-attachments/assets/d7e8a1d4-83d2-44d3-9372-b5a764a97ae8) | ![Bar chart comparing the incidence rates of Non-Hodgkin Lymphoma in major economies](https://github.com/user-attachments/assets/7ee9c3af-3590-4a5b-a31e-afd65389c1c1) |
+
+### Leukemia
+
+This section visualizes the global incidence of Leukemia, with a world heatmap displaying the Age-Standardized Rate (ASR) and a bar chart for economic comparison.
+
+| Global Heatmap (ASR) | Comparison of Major Economies |
+| :---: | :---: |
+| ![Global heatmap showing the Age-Standardized Incidence Rate for Leukemia in 2022](https://github.com/user-attachments/assets/259994a6-ce77-4880-8275-f12d94b443bf) | ![Bar chart comparing the incidence rates of Leukemia in major economies](https://github.com/user-attachments/assets/6afa6f12-a427-4c19-adc2-cc0376b2d464) |
+
+---
+
+**Data Source**
+
+All data and original visualizations are from the **IARC Global Cancer Observatory**. For more details, please visit:
+[https://gco.iarc.who.int/today/en/dataviz/maps-heatmap](https://gco.iarc.who.int/today/en/dataviz/maps-heatmap?mode=population&cancers=39)
 </details>
 
