@@ -35,7 +35,7 @@ Build a web application that allows users to enter a chemical compound (SMILES s
 ## 3. Backend Requirements  
 
 ### Framework  
-- Flask or FastAPI (interns may use either based on skill level)  
+- Flask or FastAPI (one may use either based on skill level)  
 
 ### Chemical Input Handling  
 - Convert names/tradenames to SMILES using ChEMBL lookup  
