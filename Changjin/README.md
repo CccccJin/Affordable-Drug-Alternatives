@@ -37,12 +37,10 @@ The project's code structure follows the principle of separation of concerns, or
    cd /path/to/prj.internship_202507/Changjin/
    ```
 
-2. Create and activate Conda environment (recommended):
+2. Create and activate environment (recommended):
    ```bash
-   conda create -n chemapi -c conda-forge \
-     python=3.11 rdkit duckdb fastapi uvicorn pydantic pandas chembl_webresource_client
-   conda activate chemapi
-   pip install watchfiles  # for auto-reload during development
+   python3 -m venv venv
+   source venv/bin/activate
    ```
 
 ### Running the Application
