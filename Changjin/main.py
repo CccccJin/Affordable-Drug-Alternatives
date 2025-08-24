@@ -30,6 +30,11 @@ async def startup_event():
     print(">>> http://127.0.0.1:8000/docs <<<")
     print("---")
 
+@app.get("/health", tags=["system"], summary="Health check", include_in_schema=True)
+def health_check():
+    """Lightweight health check endpoint."""
+    return {"status": "ok"}
+
 # --- Endpoints ---
 
 @app.post("/search", response_model=SearchResponse)
