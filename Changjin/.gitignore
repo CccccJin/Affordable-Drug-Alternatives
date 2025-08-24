@@ -1,0 +1,17 @@
+# Python Virtual Environment
+venv/
+__pycache__/
+
+# IDE/Editor specific files
+.idea/
+.vscode/
+
+# Large data files
+# 建议不要将大型数据文件上传到Git。如果必须上传，请了解 Git LFS。
+*.tar.gz
+*.duckdb
+*.csv
+
+# Operating System files
+.DS_Store
+Thumbs.db
