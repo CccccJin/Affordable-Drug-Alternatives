@@ -1,14 +1,30 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from chembl_webresource_client.new_client import new_client
-from typing import List
+from typing import List, AsyncIterator
 from models import *
 from db import get_db_connection
 from chem import smiles_to_fingerprint, calculate_similarity
 
+def print_startup_message():
+    print("---")
+    print("🚀 FastAPI application has started successfully! 🚀")
+    print("---")
+    print("Your interactive API docs are available at:")
+    print(">>> http://127.0.0.1:8000/docs <<<")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Code to run on startup
+    print_startup_message()
+    yield
+    # Code to run on shutdown (if any)
+
 app = FastAPI(
     title="Chemical Similarity Search API",
     description="An API to search for similar chemical compounds using RDKit and DuckDB.",
+    lifespan=lifespan,
 )
 
 # --- Endpoints ---
@@ -18,17 +34,7 @@ app = FastAPI(
 def root():
     return FileResponse("index.html")
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    Prints a welcome message with useful links when the application starts.
-    """
-    print("---")
-    print("🚀 FastAPI application has started successfully! 🚀")
-    print("---")
-    print("Your interactive API docs are available at:")
-    print(">>> http://127.0.0.1:8000/docs <<<")
-    print("---")
+# The startup message is now handled by the lifespan context manager
 
 @app.get("/health", tags=["system"], summary="Health check", include_in_schema=True)
 def health_check():
