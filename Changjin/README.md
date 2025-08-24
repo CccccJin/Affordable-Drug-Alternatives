@@ -25,54 +25,80 @@ The project's code structure follows the principle of separation of concerns, or
 | `sample_chembl.csv`  | The original sample data source                                  |
 | `requirements.txt`   | The project's Python dependency list  
 
-## Development Logic & Setup Steps
+## Setup and Run
 
-The project is designed to be run in two main phases: a **one-time data preprocessing step** and **launching the API service**.
+Because RDKit is not reliably available from PyPI on macOS, we recommend a Conda environment.
 
-### Phase 1: Data Preprocessing & Database Creation (One-Time Operation)
+### Option A: Conda (recommended)
 
-This step is required when running the project for the first time or when the data source is updated. This process reads the raw data file (e.g., `sample_chembl.csv`), uses RDKit to calculate descriptors (like molecular weight, LogP) and Morgan fingerprints for each molecule, and then stores this processed, structured data into a DuckDB database (`chembl_data.duckdb`).
+1. Create and activate environment (one time):
+   ```bash
+   conda create -n chemapi -c conda-forge \
+     python=3.11 rdkit duckdb fastapi uvicorn pydantic pandas chembl_webresource_client
+   conda activate chemapi
+   pip install watchfiles  # for --reload
+   ```
 
-## Development Logic & Setup Steps
+2. Start the API (from `prj.internship_202507/Changjin/`):
+   ```bash
+   uvicorn main:app --reload
+   ```
 
-The project is designed to be run in two main phases: a **one-time data preprocessing step** and **launching the API service**.
+3. Open:
+   - Home page: http://127.0.0.1:8000/
+   - API docs: http://127.0.0.1:8000/docs
 
-### Phase 1: Data Preprocessing & Database Creation (One-Time Operation)
+### Option B: venv + pip (not guaranteed for RDKit on macOS)
 
-This step reads the raw data file, calculates molecular properties using RDKit, and stores the processed data into a DuckDB database.
+If you cannot use Conda, you can try:
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+# RDKit wheels may not be available; prefer Conda if this fails.
+```
 
-1.  **Set up the Environment**
-    ```bash
-    # Create and activate a Python virtual environment
-    python -m venv venv
-    source venv/bin/activate  # on Windows: venv\Scripts\activate
+## Database: creating or using data
 
-    # Install all dependencies
-    pip install -r requirements.txt
-    ```
+The API queries a DuckDB file `chembl_data.duckdb` with a table `compounds` containing:
+`chembl_id, smiles, fingerprint_hex, mw, logp, hbd, hba`.
 
-2.  **Run the Data Import Script**
-    Execute the script from the project root to build the database.
+- If the DB file already exists, you can directly start the API.
+- To (re)create the DB with sample data, either:
+  - Run the preprocessing script:
     ```bash
     python import_chembl.py
     ```
-    After the script runs successfully, you will see a `chembl_data.duckdb` file in the project's root directory. This step **only needs to be performed once**.
-
-### Phase 2: Launch the API Service
-
-Once the database is built, you can start the FastAPI application.
-
-1.  **Start the Server**
-    Run the following command from the project's root directory:
+  - Or use the initialization function in `app.py`:
     ```bash
-    # main: The `main.py` file in the root directory
-    # app: The FastAPI instance `app = FastAPI()` defined in `main.py`
-    uvicorn main:app --reload
+    python -c "from app import setup_database; setup_database()"
     ```
 
-2.  **Access the API**
-    Once the service is running, you can access the following URLs:
-    * **Interactive API Docs (Swagger UI)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-    * **Alternative API Docs (ReDoc)**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+## Endpoints
 
-    You can use the interactive documentation to test all API endpoints.
+- `GET /` — serves `index.html` (simple front-end)
+- `GET /properties` — returns filterable fields
+- `POST /search` — similarity search by SMILES with optional filters
+  - Example body:
+    ```json
+    {
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "threshold": 0.7,
+      "filters": {"mw": {"lt": 500}}
+    }
+    ```
+- `POST /resolve_name` — resolve common name to SMILES via ChEMBL
+  - Example body:
+    ```json
+    { "name": "Aspirin" }
+    ```
+
+## Troubleshooting
+
+- **ModuleNotFoundError: rdkit**: Install via Conda as shown above and ensure you start Uvicorn from the same Conda env.
+- **ChEMBL `pkg_resources` deprecation warning**: Harmless; can be ignored. Updating the package in the future may silence it.
+- **404 at `/`**: Ensure the root route exists in `main.py` (this repo includes it and serves `index.html`).
+
+## License
+
+See `LICENSE`.

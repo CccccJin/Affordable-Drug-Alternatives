@@ -1,0 +1,15 @@
+name: chemapi
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - rdkit
+  - duckdb
+  - fastapi
+  - uvicorn
+  - pandas
+  - pydantic
+  - chembl_webresource_client
+  - pip
+  - pip:
+      - watchfiles

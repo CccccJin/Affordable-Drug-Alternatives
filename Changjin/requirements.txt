@@ -1,3 +1,7 @@
+# NOTE: RDKit is NOT listed here because reliable wheels are not available on PyPI (especially on macOS arm64).
+# Please create the Conda env using `environment.yml` to install RDKit and other deps:
+#   conda env create -f environment.yml && conda activate chemapi
+# This requirements.txt is a fallback for pip-only workflows that do not need RDKit.
 fastapi
 uvicorn[standard]
 duckdb
