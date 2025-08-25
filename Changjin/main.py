@@ -50,34 +50,108 @@ def search_similar_compounds(request: SearchRequest):
     """
     # 1. Generate a fingerprint for the input molecule.
     input_fp = smiles_to_fingerprint(request.smiles)
-    if not input_fp:
-        raise HTTPException(status_code=400, detail="Invalid input SMILES string.")
+    if input_fp is None or input_fp.size == 0:
+        raise HTTPException(status_code=400, detail="Invalid input SMILES string or could not generate fingerprint.")
 
-    # 2. Build the base SQL query and prepare for filters.
-    sql_query = "SELECT chembl_id, smiles, fingerprint_hex FROM compounds WHERE 1=1"
-    params = []
-    
-    # Safely add property filters to the query if they exist.
-    if request.filters:
-        for prop, conditions in request.filters.items():
-            for op, value in conditions.items():
-                # Map API operators to SQL operators to prevent SQL injection.
-                op_map = {'gt': '>', 'lt': '<', 'gte': '>=', 'lte': '<='}
-                if op in op_map:
-                    sql_query += f" AND {prop} {op_map[op]} ?"
-                    params.append(value)
-    
-    # 3. Fetch candidate molecules from the DuckDB database.
+    # 2. Get all compounds with their SMILES from the database
     con = get_db_connection()
-    candidates = con.execute(sql_query, params).fetchall()
-    con.close()
-
-    # 4. Compute similarity scores in memory against the candidates.
+    
+    # First, get the total count of compounds for progress tracking
+    total_compounds = con.execute("""
+        SELECT COUNT(*) 
+        FROM compound_structures cs
+        JOIN molecule_dictionary md ON cs.molregno = md.molregno
+        WHERE cs.canonical_smiles IS NOT NULL
+    """).fetchone()[0]
+    
+    print(f"Found {total_compounds} total compounds in the database")
+    
+    # Fetch compounds in batches to handle large datasets
+    batch_size = 1000
     results = []
-    for chembl_id, smiles, fp_hex in candidates:
-        similarity = calculate_similarity(input_fp, fp_hex)
-        if similarity >= request.threshold:
-            results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=similarity))
+    
+    for offset in range(0, total_compounds, batch_size):
+        # Get a batch of compounds with their properties
+        candidates = con.execute("""
+            SELECT 
+                md.chembl_id,
+                cs.canonical_smiles,
+                CAST(COALESCE(cp.mw_freebase, '0') AS FLOAT) as mw,
+                CAST(COALESCE(cp.alogp, '0') AS FLOAT) as logp,
+                COALESCE(cp.hba, 0) as hba,
+                COALESCE(cp.hbd, 0) as hbd,
+                CAST(COALESCE(cp.psa, '0') AS FLOAT) as psa,
+                COALESCE(cp.rtb, 0) as rtb,
+                COALESCE(cp.heavy_atoms, 0) as heavy_atoms,
+                COALESCE(cp.aromatic_rings, 0) as aromatic_rings
+            FROM compound_structures cs
+            JOIN molecule_dictionary md ON cs.molregno = md.molregno
+            LEFT JOIN compound_properties cp ON cs.molregno = cp.molregno
+            WHERE cs.canonical_smiles IS NOT NULL
+            LIMIT ? OFFSET ?
+        """, (batch_size, offset)).fetchall()
+        
+        # Process each compound in the batch
+        for row in candidates:
+            chembl_id, smiles, mw, logp, hba, hbd, psa, rtb, heavy_atoms, aromatic_rings = row
+            
+            if not smiles:  # Skip if no SMILES
+                continue
+                
+            # Calculate fingerprint and similarity
+            fp = smiles_to_fingerprint(smiles)
+            if fp is None or fp.size == 0:  # Skip if fingerprint generation fails
+                continue
+                
+            similarity = calculate_similarity(input_fp, fp)
+            if similarity >= request.threshold:
+                # Create property dictionary for filtering
+                prop_dict = {
+                    'mw': mw,
+                    'logp': logp,
+                    'hba': hba,
+                    'hbd': hbd,
+                    'psa': psa,
+                    'rtb': rtb,
+                    'heavy_atoms': heavy_atoms,
+                    'aromatic_rings': aromatic_rings
+                }
+                
+                # Apply filters if any
+                if request.filters:
+                    match = True
+                    for prop, conditions in request.filters.items():
+                        if prop not in prop_dict or prop_dict[prop] is None:
+                            match = False
+                            break
+                        for op, value in conditions.items():
+                            prop_value = prop_dict[prop]
+                            try:
+                                if op == 'gt' and not (float(prop_value) > float(value)):
+                                    match = False
+                                    break
+                                elif op == 'lt' and not (float(prop_value) < float(value)):
+                                    match = False
+                                    break
+                                elif op == 'gte' and not (float(prop_value) >= float(value)):
+                                    match = False
+                                    break
+                                elif op == 'lte' and not (float(prop_value) <= float(value)):
+                                    match = False
+                                    break
+                            except (ValueError, TypeError):
+                                match = False
+                                break
+                        if not match:
+                            break
+                    if not match:
+                        continue
+                
+                results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=float(similarity)))
+        
+        print(f"Processed {min(offset + len(candidates), total_compounds)}/{total_compounds} compounds...")
+    
+    con.close()
 
     # 5. Sort the results by similarity in descending order and return.
     results.sort(key=lambda x: x.similarity, reverse=True)
