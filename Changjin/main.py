@@ -6,6 +6,7 @@ from typing import List, AsyncIterator
 from models import *
 from db import get_db_connection
 from chem import smiles_to_fingerprint, calculate_similarity
+from rdkit import DataStructs
 
 def print_startup_message():
     print("---")
@@ -43,119 +44,89 @@ def health_check():
 
 # --- Endpoints ---
 
+# Copy this complete function and replace the existing one in main.py
+
 @app.post("/search", response_model=SearchResponse)
 def search_similar_compounds(request: SearchRequest):
     """
-    Search for compounds similar to the input SMILES, with optional property filters.
+    Search for compounds similar to the input SMILES, using pre-calculated fingerprints.
     """
-    # 1. Generate a fingerprint for the input molecule.
+    # 1. Generate fingerprint for the user's input molecule
     input_fp = smiles_to_fingerprint(request.smiles)
-    if input_fp is None or input_fp.size == 0:
+    if input_fp is None or len(input_fp) == 0:
         raise HTTPException(status_code=400, detail="Invalid input SMILES string or could not generate fingerprint.")
 
-    # 2. Get all compounds with their SMILES from the database
+    # 2. Connect to the database
     con = get_db_connection()
     
-    # First, get the total count of compounds for progress tracking
-    total_compounds = con.execute("""
-        SELECT COUNT(*) 
+    # 3. Prepare the SQL query
+    sql_query = """
+        SELECT 
+            md.chembl_id,
+            cs.canonical_smiles,
+            cs.fingerprint_hex,
+            CAST(COALESCE(cp.mw_freebase, '0') AS FLOAT) as mw,
+            CAST(COALESCE(cp.alogp, '0') AS FLOAT) as logp,
+            COALESCE(cp.hba, 0) as hba,
+            COALESCE(cp.hbd, 0) as hbd,
+            CAST(COALESCE(cp.psa, '0') AS FLOAT) as psa,
+            COALESCE(cp.rtb, 0) as rtb,
+            COALESCE(cp.heavy_atoms, 0) as heavy_atoms,
+            COALESCE(cp.aromatic_rings, 0) as aromatic_rings
         FROM compound_structures cs
         JOIN molecule_dictionary md ON cs.molregno = md.molregno
-        WHERE cs.canonical_smiles IS NOT NULL
-    """).fetchone()[0]
+        LEFT JOIN compound_properties cp ON cs.molregno = cp.molregno
+        WHERE cs.fingerprint_hex IS NOT NULL
+    """
     
-    print(f"Found {total_compounds} total compounds in the database")
+    print("Executing database query...")
+    # Prepare the query for execution
+    cursor = con.execute(sql_query)
     
-    # Fetch compounds in batches to handle large datasets
-    batch_size = 1000
+    print("Starting similarity calculation in batches...")
     results = []
-    
-    for offset in range(0, total_compounds, batch_size):
-        # Get a batch of compounds with their properties
-        candidates = con.execute("""
-            SELECT 
-                md.chembl_id,
-                cs.canonical_smiles,
-                CAST(COALESCE(cp.mw_freebase, '0') AS FLOAT) as mw,
-                CAST(COALESCE(cp.alogp, '0') AS FLOAT) as logp,
-                COALESCE(cp.hba, 0) as hba,
-                COALESCE(cp.hbd, 0) as hbd,
-                CAST(COALESCE(cp.psa, '0') AS FLOAT) as psa,
-                COALESCE(cp.rtb, 0) as rtb,
-                COALESCE(cp.heavy_atoms, 0) as heavy_atoms,
-                COALESCE(cp.aromatic_rings, 0) as aromatic_rings
-            FROM compound_structures cs
-            JOIN molecule_dictionary md ON cs.molregno = md.molregno
-            LEFT JOIN compound_properties cp ON cs.molregno = cp.molregno
-            WHERE cs.canonical_smiles IS NOT NULL
-            LIMIT ? OFFSET ?
-        """, (batch_size, offset)).fetchall()
-        
-        # Process each compound in the batch
-        for row in candidates:
-            chembl_id, smiles, mw, logp, hba, hbd, psa, rtb, heavy_atoms, aromatic_rings = row
+    batch_size = 50000 # Process 50,000 rows at a time
+
+    # 4. *** This is the corrected fetching logic ***
+    while True:
+        # Fetch a manageable chunk of rows
+        chunk = cursor.fetchmany(batch_size)
+        if not chunk:
+            # No more rows to fetch, exit the loop
+            break
+
+        # Process each row in the current chunk
+        for row in chunk:
+            chembl_id, smiles, fingerprint_hex, mw, logp, hba, hbd, psa, rtb, heavy_atoms, aromatic_rings = row
             
-            if not smiles:  # Skip if no SMILES
-                continue
-                
-            # Calculate fingerprint and similarity
-            fp = smiles_to_fingerprint(smiles)
-            if fp is None or fp.size == 0:  # Skip if fingerprint generation fails
-                continue
-                
-            similarity = calculate_similarity(input_fp, fp)
+            db_fp = DataStructs.CreateFromBitString(bytes.fromhex(fingerprint_hex).decode('utf-8'))
+            similarity = DataStructs.TanimotoSimilarity(input_fp, db_fp)
+            
             if similarity >= request.threshold:
-                # Create property dictionary for filtering
-                prop_dict = {
-                    'mw': mw,
-                    'logp': logp,
-                    'hba': hba,
-                    'hbd': hbd,
-                    'psa': psa,
-                    'rtb': rtb,
-                    'heavy_atoms': heavy_atoms,
-                    'aromatic_rings': aromatic_rings
-                }
-                
-                # Apply filters if any
+                # Property filtering logic remains the same
+                prop_dict = {'mw': mw, 'logp': logp, 'hba': hba, 'hbd': hbd, 'psa': psa, 'rtb': rtb, 'heavy_atoms': heavy_atoms, 'aromatic_rings': aromatic_rings}
                 if request.filters:
                     match = True
                     for prop, conditions in request.filters.items():
-                        if prop not in prop_dict or prop_dict[prop] is None:
-                            match = False
-                            break
+                        if prop not in prop_dict or prop_dict[prop] is None: match = False; break
                         for op, value in conditions.items():
                             prop_value = prop_dict[prop]
                             try:
-                                if op == 'gt' and not (float(prop_value) > float(value)):
-                                    match = False
-                                    break
-                                elif op == 'lt' and not (float(prop_value) < float(value)):
-                                    match = False
-                                    break
-                                elif op == 'gte' and not (float(prop_value) >= float(value)):
-                                    match = False
-                                    break
-                                elif op == 'lte' and not (float(prop_value) <= float(value)):
-                                    match = False
-                                    break
-                            except (ValueError, TypeError):
-                                match = False
-                                break
-                        if not match:
-                            break
-                    if not match:
-                        continue
+                                if op == 'gt' and not (float(prop_value) > float(value)): match = False; break
+                                elif op == 'lt' and not (float(prop_value) < float(value)): match = False; break
+                                elif op == 'gte' and not (float(prop_value) >= float(value)): match = False; break
+                                elif op == 'lte' and not (float(prop_value) <= float(value)): match = False; break
+                            except (ValueError, TypeError): match = False; break
+                        if not match: break
+                    if not match: continue
                 
                 results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=float(similarity)))
-        
-        print(f"Processed {min(offset + len(candidates), total_compounds)}/{total_compounds} compounds...")
-    
-    con.close()
 
-    # 5. Sort the results by similarity in descending order and return.
+    con.close()
+    print(f"Calculation complete. Found {len(results)} similar compounds.")
+
+    # 5. Sort and return the results
     results.sort(key=lambda x: x.similarity, reverse=True)
-    
     return SearchResponse(count=len(results), results=results)
 
 

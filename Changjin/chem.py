@@ -1,36 +1,22 @@
 from rdkit import Chem, DataStructs
-from rdkit.Chem import AllChem, rdFingerprintGenerator
-from typing import Optional, Union, Any
+from rdkit.Chem import AllChem
+from typing import Optional, Union
 import numpy as np
 
-def smiles_to_fingerprint(smiles: str, radius: int = 2, n_bits: int = 2048) -> Optional[np.ndarray]:
+def smiles_to_fingerprint(smiles: str, n_bits: int = 1024):
     """
-    Convert a SMILES string to a Morgan fingerprint.
-    
-    Args:
-        smiles: Input SMILES string
-        radius: Radius for Morgan fingerprint
-        n_bits: Number of bits in the fingerprint
-        
-    Returns:
-        NumPy array containing the fingerprint or None if conversion fails
+    Generates a Morgan fingerprint from a SMILES string and returns it
+    as an RDKit ExplicitBitVect object.
     """
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if not mol:
-            return None
-        
-        # Generate Morgan fingerprint using the recommended generator
-        mfp_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
-        fp = mfp_generator.GetFingerprint(mol)
-        
-        # Convert to numpy array
-        arr = np.zeros((0,), dtype=np.uint8)
-        DataStructs.ConvertToNumpyArray(fp, arr)
-        return arr
-    except Exception as e:
-        print(f"Error generating fingerprint: {str(e)}")
+    if not smiles:
         return None
+    mol = Chem.MolFromSmiles(smiles)
+    if not mol:
+        return None
+    
+    # This function specifically returns the ExplicitBitVect object we need
+    fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=n_bits)
+    return fp
 
 def calculate_similarity(
     fp1: np.ndarray, 

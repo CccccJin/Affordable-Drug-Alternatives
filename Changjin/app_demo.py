@@ -4,7 +4,7 @@ import pandas as pd
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, AsyncIterator
 
 # --- RDKit Imports ---
 # Add a check in case RDKit is not installed
@@ -106,12 +106,28 @@ class ResolveResponse(BaseModel):
 # ==============================================================================
 # 4. FastAPI Application
 # ==============================================================================
+
+def print_startup_message():
+    """打印清晰的启动信息"""
+    print("\n---")
+    print("🚀 FastAPI application has started successfully! 🚀")
+    print("---")
+    print("Your interactive API docs are available at:")
+    print(">>> http://127.0.0.1:8000/docs <<<\n")
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Code to run on startup
-    setup_database()
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """
+    Manages the application's startup and shutdown events.
+    """
+    # --- Code to run on startup ---
+    setup_database()         # 1. 设置数据库
+    print_startup_message()  # 2. 打印启动信息
+    
     yield
-    # Code to run on shutdown (if needed)
+    
+    # --- Code to run on shutdown (if any) ---
+    # print("Application is shutting down...")
 
 app = FastAPI(
     title="Chemical Similarity Search API",
