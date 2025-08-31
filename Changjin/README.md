@@ -39,8 +39,8 @@ The project's code structure follows the principle of separation of concerns, or
 
 2. Create and activate environment (recommended):
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate
+   conda create -n chem_api_ebv python=3.6
+   source activate chem_api_ebv
    ```
 
 ### Running the Application

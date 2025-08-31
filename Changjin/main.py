@@ -1,8 +1,13 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from chembl_webresource_client.new_client import new_client
 from typing import List, AsyncIterator
+
+# Optional ChEMBL client import; app should still run if not installed
+try:
+    from chembl_webresource_client.new_client import new_client
+except ImportError:
+    new_client = None
 from models import *
 from db import get_db_connection
 from chem import smiles_to_fingerprint, calculate_similarity
@@ -135,6 +140,9 @@ def resolve_chemical_name(request: ResolveRequest):
     """
     Resolves a chemical name or trade name to its SMILES representation using the ChEMBL API.
     """
+    if new_client is None:
+        # ChEMBL client not available; inform the caller
+        raise HTTPException(status_code=501, detail="ChEMBL client not installed. Cannot resolve name.")
     try:
         # Search for the molecule by name using the ChEMBL client.
         res = new_client.molecule.search(request.name)
@@ -159,3 +167,8 @@ def get_filterable_properties():
     """
     # This list can be hard-coded or retrieved dynamically from the database schema.
     return ["mw", "logp", "hbd", "hba"]
+
+
+
+# chek conda environment list:
+# conda env list
