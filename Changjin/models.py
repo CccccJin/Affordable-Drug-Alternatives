@@ -10,7 +10,7 @@ class SearchRequest(BaseModel):
     smiles: str = Field(..., description="Input SMILES string for similarity search.")
     # Similarity threshold now applies to the selected metric (Tanimoto or Cosine)
     threshold: float = Field(0.7, gt=0, le=1, description="Similarity threshold (applies to selected metric).")
-    filters: Optional[Dict[str, Dict[str, float]]] = Field(None, description="Property filters, e.g., {'mw': {'lt': 500}}")
+    # filters: Optional[Dict[str, Dict[str, float]]] = Field(None, description="Property filters, e.g., {'mw': {'lt': 500}}")
     # New: allow clients to choose the similarity metric. Limited to 'tanimoto' or 'cosine'.
     # Using typing.Literal ensures only the specified values are accepted.
     metric: Literal['tanimoto', 'cosine'] = Field('tanimoto', description="Similarity metric to use: 'tanimoto' (default) or 'cosine'.")

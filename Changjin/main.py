@@ -196,28 +196,6 @@ class EmbedResponse(BaseModel):
     nonzeros: int
     embedding: List[float]
 
-@app.post("/chemberta/embed", response_model=EmbedResponse, tags=["chemberta"], summary="Get molecular embedding")
-def cddd_embed(req: EmbedRequest):
-    vec = get_molecular_embedding(req.smiles)
-    # vec is a numpy array; convert to list for JSON
-    arr = vec.tolist()
-    nonzeros = int(sum(1 for x in arr if x != 0))
-    return EmbedResponse(length=len(arr), nonzeros=nonzeros, embedding=arr)
-
-class GenerateRequest(BaseModel):
-    smiles: str = Field(..., description="Input SMILES to use as seed")
-    num_samples: int = Field(5, gt=0, description="How many molecules to generate")
-    temp: float = Field(1.0, gt=0, description="Diversity temperature (used by CDDD; ignored for fallback tautomer/randomization)")
-
-class GenerateResponse(BaseModel):
-    count: int
-    molecules: List[str]
-
-@app.post("/chemberta/generate", response_model=GenerateResponse, tags=["chemberta"], summary="Generate molecules similar to input")
-def cddd_generate(req: GenerateRequest):
-    mols = generate_new_molecules(req.smiles, num_samples=req.num_samples, temp=req.temp)
-    return GenerateResponse(count=len(mols), molecules=mols)
-
 @app.post("/search_ai", response_model=SearchResponse, tags=["AI Search_ChemBERTa"])
 def search_ai_demo(request: SearchRequest):
     """
