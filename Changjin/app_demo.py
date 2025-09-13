@@ -108,7 +108,7 @@ class ResolveResponse(BaseModel):
 # ==============================================================================
 
 def print_startup_message():
-    """打印清晰的启动信息"""
+    """Print a clear startup message."""
     print("\n---")
     print("🚀 FastAPI application has started successfully! 🚀")
     print("---")
@@ -121,8 +121,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Manages the application's startup and shutdown events.
     """
     # --- Code to run on startup ---
-    setup_database()         # 1. 设置数据库
-    print_startup_message()  # 2. 打印启动信息
+    setup_database()         # 1. Set up database
+    print_startup_message()  # 2. Print startup message
     
     yield
     

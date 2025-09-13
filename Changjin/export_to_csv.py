@@ -1,26 +1,28 @@
 import os
 import duckdb
 import csv
+from typing import Optional
 
-# --- 配置 ---
-# 确保这里的路径与您的项目结构匹配
+# --- Configuration ---
+# Ensure this path matches your project structure
 DB_FILE = os.path.join("chembl_35", "chembl_35.duckdb")
 OUTPUT_CSV_FILE = "chembl_export.csv"
-ROW_LIMIT = None  # 设置要导出的行数限制，如果想导出全部数据，请设置为 None
+ROW_LIMIT = None  # Set a row limit to export. Use None to export all rows.
 
-def export_data_to_csv(limit: int | None = ROW_LIMIT):
+def export_data_to_csv(limit: Optional[int] = ROW_LIMIT):
     """
-    连接到ChEMBL DuckDB数据库，查询分子信息，并将结果导出为CSV文件。
+    Connect to the ChEMBL DuckDB database, query molecule information,
+    and export the results to a CSV file.
     """
     if not os.path.exists(DB_FILE):
-        print(f"错误：数据库文件未找到，请检查路径：{DB_FILE}")
+        print(f"Error: Database file not found. Please check path: {DB_FILE}")
         return
 
-    # 1. 构建SQL查询语句
-    # - 使用 JOIN 连接三个关键表：molecule_dictionary, compound_structures, molecule_synonyms
-    # - 使用 LEFT JOIN 来确保即使没有别名的分子也会被包含进来
-    # - 使用 string_agg 函数将一个分子的多个别名用分号合并成一个字符串
-    # - 使用 GROUP BY 来为每个分子聚合其别名
+    # 1) Build the SQL query
+    # - JOIN three key tables: molecule_dictionary, compound_structures, molecule_synonyms
+    # - Use LEFT JOIN so molecules without synonyms are still included
+    # - Use string_agg to combine multiple synonyms separated by semicolons
+    # - GROUP BY each molecule to aggregate its synonyms
     sql_query = """
     SELECT
         md.chembl_id,
@@ -44,34 +46,34 @@ def export_data_to_csv(limit: int | None = ROW_LIMIT):
     if limit is not None:
         sql_query += f" LIMIT {limit}"
 
-    print(f"准备连接到数据库: {DB_FILE}")
+    print(f"Preparing to connect to database: {DB_FILE}")
     con = duckdb.connect(database=DB_FILE, read_only=True)
     
-    print("正在执行SQL查询... (如果数据量大，可能需要一些时间)")
+    print("Executing SQL query... (may take some time for large datasets)")
     results = con.execute(sql_query).fetchall()
     con.close()
     
     if not results:
-        print("查询没有返回任何结果。")
+        print("The query returned no results.")
         return
 
-    print(f"查询完成，共获取 {len(results)} 条记录。")
-    print(f"正在写入到文件: {OUTPUT_CSV_FILE}")
+    print(f"Query finished. Retrieved {len(results)} records.")
+    print(f"Writing to file: {OUTPUT_CSV_FILE}")
 
-    # 2. 使用csv模块写入文件，以正确处理特殊字符和逗号
+    # 2) Write to CSV using the csv module to handle special chars and commas
     try:
         with open(OUTPUT_CSV_FILE, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             
-            # 写入表头
+            # Header
             writer.writerow(['molecule_chembl_id', 'canonical_smiles', 'molecule_synonyms'])
             
-            # 写入数据行
+            # Rows
             writer.writerows(results)
             
-        print(f"\n✅ 成功！数据已成功导出到 {OUTPUT_CSV_FILE}")
+        print(f"\n✅ Success! Data exported to {OUTPUT_CSV_FILE}")
     except IOError as e:
-        print(f"\n❌ 失败：写入文件时发生错误: {e}")
+        print(f"\n❌ Failed: Error writing file: {e}")
 
 
 if __name__ == "__main__":

@@ -7,3 +7,7 @@ uvicorn[standard]
 duckdb
 pandas
 chembl_webresource_client
+# Dependencies for ChemBERTa-based service
+torch>=1.9.0
+numpy>=1.21.0
+transformers>=4.30.0

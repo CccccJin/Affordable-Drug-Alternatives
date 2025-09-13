@@ -4,20 +4,20 @@ import duckdb
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-# --- 推荐的路径设置方法 ---
-# 1. 获取当前脚本所在的目录
+# --- Recommended path setup ---
+# 1. Get the directory of this script
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
-# 2. 使用 os.path.join 来安全地构建路径
-# 这会把脚本目录和后面的路径部分智能地连接起来
+# 2. Use os.path.join to safely construct paths
+# This joins the script directory with the following path parts robustly
 DB_FILE = os.path.join(script_directory, "chembl_35", "chembl_35.duckdb")
 
-print(f"Attempting to connect to database at: {DB_FILE}") # 打印路径方便调试
-# --- 路径设置结束 ---
-TABLE_NAME = "compound_structures" # 假设你的表名是这个，请根据实际情况修改
+print(f"Attempting to connect to database at: {DB_FILE}")  # Print path for debugging
+# --- End path setup ---
+TABLE_NAME = "compound_structures"  # Update to your actual table name if different
 
 def smiles_to_fingerprint_hex(smiles: str, n_bits: int = 1024):
-    """计算指纹并返回可储存的十六进制字符串"""
+    """Compute fingerprint and return a storable hex string."""
     if not smiles: return None
     mol = Chem.MolFromSmiles(smiles)
     if not mol: return None
@@ -26,18 +26,19 @@ def smiles_to_fingerprint_hex(smiles: str, n_bits: int = 1024):
     fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=n_bits)
     
     return fp.ToBitString().encode('utf-8').hex()
+    
 def run_preprocessing():
     con = duckdb.connect(DB_FILE)
     
-    # 1. 检查指纹列是否存在，如果不存在则添加
+    # 1. Ensure the fingerprint column exists; add it if missing
     try:
         con.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN fingerprint_hex VARCHAR;")
         print("Column 'fingerprint_hex' added.")
     except Exception as e:
         print(f"Could not add column (maybe it already exists?): {e}")
 
-    # 2. 获取所有需要处理的分子
-    # 注意：只选择那些还没有计算指纹的行
+    # 2. Fetch all molecules that need processing
+    # Note: only select rows where fingerprints are not yet computed
     rows_to_process = con.execute(
         f"SELECT molregno, canonical_smiles FROM {TABLE_NAME} WHERE canonical_smiles IS NOT NULL AND fingerprint_hex IS NULL"
     ).fetchall()
@@ -45,13 +46,13 @@ def run_preprocessing():
     total_rows = len(rows_to_process)
     print(f"Found {total_rows} molecules to process.")
 
-    # 3. 逐一计算并更新指纹
+    # 3. Compute and update fingerprints one by one
     for i, (molregno, smiles) in enumerate(rows_to_process):
         fp_hex = smiles_to_fingerprint_hex(smiles)
         if fp_hex:
             con.execute(f"UPDATE {TABLE_NAME} SET fingerprint_hex = ? WHERE molregno = ?", (fp_hex, molregno))
         
-        if (i + 1) % 1000 == 0: # 每处理1000个打印一次进度
+        if (i + 1) % 1000 == 0:  # Print progress every 1000 rows
             print(f"Processed {i + 1}/{total_rows}...")
             
     con.close()

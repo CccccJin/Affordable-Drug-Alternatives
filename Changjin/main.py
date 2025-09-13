@@ -1,7 +1,9 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from typing import List, AsyncIterator
+from typing import List
+from pydantic import BaseModel, Field
+from models import SearchRequest, SearchResponse 
+from chemberta_service import get_molecular_embedding, generate_new_molecules, search_similar_chemberta
 
 # Optional ChEMBL client import; app should still run if not installed
 try:
@@ -9,7 +11,6 @@ try:
 except ImportError:
     new_client = None
 from models import *
-from db import get_db_connection
 from chem import smiles_to_fingerprint, calculate_similarity
 from rdkit import DataStructs
 
@@ -20,18 +21,16 @@ def print_startup_message():
     print("Your interactive API docs are available at:")
     print(">>> http://127.0.0.1:8000/docs <<<")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Code to run on startup
-    print_startup_message()
-    yield
-    # Code to run on shutdown (if any)
-
 app = FastAPI(
     title="Chemical Similarity Search API",
     description="An API to search for similar chemical compounds using RDKit and DuckDB.",
-    lifespan=lifespan,
 )
+
+# Python 3.6-compatible startup hook (no asynccontextmanager support in 3.6)
+@app.on_event("startup")
+def on_startup():
+    # Code to run on startup
+    print_startup_message()
 
 # --- Endpoints ---
 
@@ -40,7 +39,7 @@ app = FastAPI(
 def root():
     return FileResponse("index.html")
 
-# The startup message is now handled by the lifespan context manager
+# The startup message is handled by the startup event
 
 @app.get("/health", tags=["system"], summary="Health check", include_in_schema=True)
 def health_check():
@@ -56,6 +55,11 @@ def search_similar_compounds(request: SearchRequest):
     """
     Search for compounds similar to the input SMILES, using pre-calculated fingerprints.
     """
+    # Lazy import to avoid import error at startup on Python 3.6 (duckdb not available)
+    try:
+        from db import get_db_connection  # type: ignore
+    except Exception as e:
+        raise HTTPException(status_code=501, detail="DuckDB backend is not available in this environment: " + str(e))
     # 1. Generate fingerprint for the user's input molecule
     input_fp = smiles_to_fingerprint(request.smiles)
     if input_fp is None or len(input_fp) == 0:
@@ -88,6 +92,14 @@ def search_similar_compounds(request: SearchRequest):
     # Prepare the query for execution
     cursor = con.execute(sql_query)
     
+    # Choose similarity function once based on the requested metric to avoid per-row branching.
+    # Default remains Tanimoto if not provided.
+    # We rely on RDKit's built-in implementations for ExplicitBitVect fingerprints.
+    if getattr(request, 'metric', 'tanimoto') == 'cosine':
+        similarity_fn = DataStructs.CosineSimilarity
+    else:
+        similarity_fn = DataStructs.TanimotoSimilarity
+    
     print("Starting similarity calculation in batches...")
     results = []
     batch_size = 50000 # Process 50,000 rows at a time
@@ -105,7 +117,8 @@ def search_similar_compounds(request: SearchRequest):
             chembl_id, smiles, fingerprint_hex, mw, logp, hba, hbd, psa, rtb, heavy_atoms, aromatic_rings = row
             
             db_fp = DataStructs.CreateFromBitString(bytes.fromhex(fingerprint_hex).decode('utf-8'))
-            similarity = DataStructs.TanimotoSimilarity(input_fp, db_fp)
+            # Compute similarity using the selected metric (Tanimoto or Cosine)
+            similarity = similarity_fn(input_fp, db_fp)
             
             if similarity >= request.threshold:
                 # Property filtering logic remains the same
@@ -172,3 +185,55 @@ def get_filterable_properties():
 
 # chek conda environment list:
 # conda env list
+
+# ---------------- ChemBERTa Endpoints (fallback-friendly) ----------------
+
+class EmbedRequest(BaseModel):
+    smiles: str = Field(..., description="Input SMILES to embed")
+
+class EmbedResponse(BaseModel):
+    length: int
+    nonzeros: int
+    embedding: List[float]
+
+@app.post("/chemberta/embed", response_model=EmbedResponse, tags=["chemberta"], summary="Get molecular embedding")
+def cddd_embed(req: EmbedRequest):
+    vec = get_molecular_embedding(req.smiles)
+    # vec is a numpy array; convert to list for JSON
+    arr = vec.tolist()
+    nonzeros = int(sum(1 for x in arr if x != 0))
+    return EmbedResponse(length=len(arr), nonzeros=nonzeros, embedding=arr)
+
+class GenerateRequest(BaseModel):
+    smiles: str = Field(..., description="Input SMILES to use as seed")
+    num_samples: int = Field(5, gt=0, description="How many molecules to generate")
+    temp: float = Field(1.0, gt=0, description="Diversity temperature (used by CDDD; ignored for fallback tautomer/randomization)")
+
+class GenerateResponse(BaseModel):
+    count: int
+    molecules: List[str]
+
+@app.post("/chemberta/generate", response_model=GenerateResponse, tags=["chemberta"], summary="Generate molecules similar to input")
+def cddd_generate(req: GenerateRequest):
+    mols = generate_new_molecules(req.smiles, num_samples=req.num_samples, temp=req.temp)
+    return GenerateResponse(count=len(mols), molecules=mols)
+
+@app.post("/search_ai", response_model=SearchResponse, tags=["AI Search_ChemBERTa"])
+def search_ai_demo(request: SearchRequest):
+    """
+    Performs AI-powered similarity search using a small, pre-calculated demo dataset.
+    """
+    try:
+        # Call the function we created in the service
+        results = search_similar_chemberta(request.smiles, top_k=50) # top_k can be customized
+        
+        # The `Compound` model might need conversion from the results dictionary
+        # For simplicity, we directly construct SearchResponse
+        from models import Compound # Ensure import
+        response_results = [Compound(**res) for res in results]
+
+        return SearchResponse(count=len(response_results), results=response_results)
+    except RuntimeError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not process SMILES: {str(e)}")

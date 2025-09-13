@@ -7,6 +7,7 @@ This project is a high-performance cheminformatics API built with FastAPI, RDKit
 * **Web Framework**: [FastAPI](https://fastapi.tiangolo.com/) - For building high-performance, easy-to-use APIs.
 * **Database**: [DuckDB](https://duckdb.org/) - A fast, in-process analytical database, perfect for handling and querying the data in this project.
 * **Cheminformatics**: [RDKit](https://www.rdkit.org/) - The industry-standard open-source cheminformatics toolkit for processing molecules, calculating fingerprints, and similarity.
+* **Embeddings (optional)**: [Transformers](https://huggingface.co/docs/transformers) + [PyTorch](https://pytorch.org/) using the `seyonec/ChemBERTa-zinc-base-v1` model to compute learned molecular embeddings.
 * **Data Validation**: [Pydantic](https://docs.pydantic.dev/) - Used to define clear, robust data models and handle data validation and documentation automatically.
 
 ## Project Structure
@@ -27,7 +28,7 @@ The project's code structure follows the principle of separation of concerns, or
 ## Setup and Run
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.11 (recommended)
 - Conda (recommended for RDKit installation)
 
 ### Installation
@@ -39,8 +40,14 @@ The project's code structure follows the principle of separation of concerns, or
 
 2. Create and activate environment (recommended):
    ```bash
-   conda create -n chem_api_ebv python=3.6
-   source activate chem_api_ebv
+   conda create -n chem_api_env python=3.11
+   conda activate chem_api_env
+   ```
+
+   Or use the provided setup script (includes ChemBERTa dependencies):
+   ```bash
+   bash setup_chemberta_env.sh
+   conda activate chemberta_api_env
    ```
 
 ### Running the Application
@@ -66,9 +73,9 @@ The API queries a DuckDB file `chembl_data.duckdb` with a table `compounds` cont
     ```bash
     python import_chembl.py
     ```
-  - Or use the initialization function in `app.py`:
+  - Or use the initialization function in `app_demo.py`:
     ```bash
-    python -c "from app import setup_database; setup_database()"
+    python -c "from app_demo import setup_database; setup_database()"
     ```
 
 ## API Endpoints
@@ -87,7 +94,7 @@ The API queries a DuckDB file `chembl_data.duckdb` with a table `compounds` cont
   ```
 
 ### Chemical Resolution
-- `POST /resolve` - Resolve chemical name to SMILES
+- `POST /resolve_name` - Resolve chemical name to SMILES
   ```json
   { "name": "Aspirin" }
   ```
@@ -95,7 +102,14 @@ The API queries a DuckDB file `chembl_data.duckdb` with a table `compounds` cont
 ### System
 - `GET /` - Serve web interface
 - `GET /health` - Health check endpoint
-- `GET /filterable-properties` - List available filterable properties
+- `GET /properties` - List available filterable properties
+
+### ChemBERTa (Embeddings & Generation)
+- `POST /chemberta/embed` — Compute ChemBERTa embedding for an input SMILES.
+- `POST /chemberta/generate` — Generate related valid SMILES (tautomer/randomized) for demos.
+
+Notes:
+- The ChemBERTa service uses Hugging Face Transformers and PyTorch. If these are not installed or unavailable on your platform, the service falls back to RDKit-based embeddings to stay functional.
 
 ## Troubleshooting
 
