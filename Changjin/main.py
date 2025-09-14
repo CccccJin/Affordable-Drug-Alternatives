@@ -181,10 +181,84 @@ def get_filterable_properties():
     # This list can be hard-coded or retrieved dynamically from the database schema.
     return ["mw", "logp", "hbd", "hba"]
 
+class PropertyCalculationRequest(BaseModel):
+    """Request model for calculating properties."""
+    smiles: str = Field(..., example="O=C(C)Oc1ccccc1C(=O)O", description="SMILES string of the molecule to analyze.")
+
+class CalculatedProperties(BaseModel):
+    """Response model for calculated molecular properties."""
+    mw: float = Field(..., description="Molecular Weight (e.g., g/mol)")
+    logp: float = Field(..., description="Octanol-water partition coefficient (ALOGP)")
+    hbd: int = Field(..., description="Number of Hydrogen Bond Donors")
+    hba: int = Field(..., description="Number of Hydrogen Bond Acceptors")
+    psa: float = Field(..., description="Topological Polar Surface Area (TPSA)")
+    rtb: int = Field(..., description="Number of Rotatable Bonds")
+    heavy_atoms: int = Field(..., description="Number of Heavy (non-hydrogen) Atoms")
+    aromatic_rings: int = Field(..., description="Number of Aromatic Rings")
 
 
-# chek conda environment list:
-# conda env list
+@app.post("/properties/calculate", response_model=CalculatedProperties, tags=["Properties"])
+def calculate_molecule_properties(request: PropertyCalculationRequest):
+    """
+    Calculate key molecular properties for a given SMILES string.
+    
+    This endpoint takes a SMILES string and uses RDKit to compute
+    a standard set of physicochemical properties, which are essential
+    for drug discovery and molecular analysis.
+    """
+    try:
+        # Lazy import RDKit modules inside the function
+        from rdkit import Chem
+        from rdkit.Chem import Descriptors, Lipinski
+    except ImportError:
+        raise HTTPException(status_code=501, detail="RDKit is not available in this environment.")
+
+    mol = Chem.MolFromSmiles(request.smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid SMILES string provided. Could not parse molecule.")
+
+    # Calculate all properties and create a dictionary
+    properties = {
+        "mw": Descriptors.MolWt(mol),
+        "logp": Descriptors.MolLogP(mol),
+        "hbd": Lipinski.NumHDonors(mol),
+        "hba": Lipinski.NumHAcceptors(mol),
+        "psa": Descriptors.TPSA(mol),
+        "rtb": Lipinski.NumRotatableBonds(mol),
+        "heavy_atoms": Lipinski.HeavyAtomCount(mol),
+        "aromatic_rings": Lipinski.NumAromaticRings(mol),
+    }
+    # Return the Pydantic model populated with the calculated values
+    return CalculatedProperties(**properties)
+
+
+@app.get("/visualize", tags=["Utilities"], summary="Generate 2D molecule image (SVG)")
+def visualize_molecule(smiles: str):
+    """
+    Generates a 2D SVG image of a molecule from a SMILES string.
+    
+    Provide a SMILES via a query parameter, and this endpoint will return
+    a scalable vector graphic (SVG) of the molecule's structure.
+    This is perfect for rendering chemical structures in a web frontend.
+    """
+    try:
+        from rdkit import Chem
+        from rdkit.Chem.Draw import MolToSVG
+        from fastapi.responses import Response # Import here
+    except ImportError:
+        raise HTTPException(status_code=501, detail="RDKit is not available in this environment.")
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid SMILES string provided.")
+    
+    # Generate the SVG content for the molecule
+    svg_content = MolToSVG(mol)
+    
+    # Return the SVG as a proper HTTP response with the correct media type
+    return Response(content=svg_content, media_type="image/svg+xml")
+
+
 
 # ---------------- ChemBERTa Endpoints (fallback-friendly) ----------------
 
@@ -215,3 +289,9 @@ def search_ai_demo(request: SearchRequest):
         raise HTTPException(status_code=501, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not process SMILES: {str(e)}")
+
+
+
+
+# chek conda environment list:
+# conda env list
