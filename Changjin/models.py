@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any, Union
 try:
     # Python 3.8+ provides Literal in typing
     from typing import Literal  # type: ignore
@@ -8,12 +8,11 @@ except ImportError:  # Python 3.6 fallback
 
 class SearchRequest(BaseModel):
     smiles: str = Field(..., description="Input SMILES string for similarity search.")
-    # Similarity threshold now applies to the selected metric (Tanimoto or Cosine)
     threshold: float = Field(0.7, gt=0, le=1, description="Similarity threshold (applies to selected metric).")
-    # filters: Optional[Dict[str, Dict[str, float]]] = Field(None, description="Property filters, e.g., {'mw': {'lt': 500}}")
-    # New: allow clients to choose the similarity metric. Limited to 'tanimoto' or 'cosine'.
-    # Using typing.Literal ensures only the specified values are accepted.
     metric: Literal['tanimoto', 'cosine'] = Field('tanimoto', description="Similarity metric to use: 'tanimoto' (default) or 'cosine'.")
+    enable_post_processing: bool = Field(True, description="Whether to enable advanced post-processing of results.")
+    filters: Optional[Dict[str, Dict[str, float]]] = Field(None, description="Property filters, e.g., {'mw': {'lt': 500}, 'logp': {'gt': 1.0}}")
+    max_results: int = Field(100, ge=1, le=1000, description="Maximum number of results to return.")
 
 class Compound(BaseModel):
     chembl_id: str
@@ -23,6 +22,10 @@ class Compound(BaseModel):
 class SearchResponse(BaseModel):
     count: int
     results: List[Compound]
+    post_processed: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Advanced post-processing results including ranked candidates, clusters, and recommendations."
+    )
 
 class ResolveRequest(BaseModel):
     name: str

@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from typing import List
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import FileResponse, JSONResponse
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from models import SearchRequest, SearchResponse 
 from chemberta_service import get_molecular_embedding, generate_new_molecules, search_similar_chemberta
+from post_processing import DrugPostProcessor, CandidateMolecule
+import logging
 
 # Optional ChEMBL client import; app should still run if not installed
 try:
@@ -23,8 +25,20 @@ def print_startup_message():
 
 app = FastAPI(
     title="Chemical Similarity Search API",
-    description="An API to search for similar chemical compounds using RDKit and DuckDB.",
+    description="An API to search for similar chemical compounds using RDKit and DuckDB with advanced post-processing.",
+    version="1.1.0"
 )
+
+# Initialize the post-processor with default settings
+post_processor = DrugPostProcessor(
+    min_similarity=0.6,
+    max_mw=600.0,
+    max_rotatable_bonds=10
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Python 3.6-compatible startup hook (no asynccontextmanager support in 3.6)
 @app.on_event("startup")
@@ -54,12 +68,14 @@ def health_check():
 def search_similar_compounds(request: SearchRequest):
     """
     Search for compounds similar to the input SMILES, using pre-calculated fingerprints.
+    Returns both basic and post-processed results with advanced filtering and ranking.
     """
     # Lazy import to avoid import error at startup on Python 3.6 (duckdb not available)
     try:
         from db import get_db_connection  # type: ignore
     except Exception as e:
         raise HTTPException(status_code=501, detail="DuckDB backend is not available in this environment: " + str(e))
+    
     # 1. Generate fingerprint for the user's input molecule
     input_fp = smiles_to_fingerprint(request.smiles)
     if input_fp is None or len(input_fp) == 0:
@@ -88,63 +104,97 @@ def search_similar_compounds(request: SearchRequest):
         WHERE cs.fingerprint_hex IS NOT NULL
     """
     
-    print("Executing database query...")
+    logger.info("Executing database query...")
     # Prepare the query for execution
     cursor = con.execute(sql_query)
     
-    # Choose similarity function once based on the requested metric to avoid per-row branching.
-    # Default remains Tanimoto if not provided.
-    # We rely on RDKit's built-in implementations for ExplicitBitVect fingerprints.
-    if getattr(request, 'metric', 'tanimoto') == 'cosine':
-        similarity_fn = DataStructs.CosineSimilarity
-    else:
-        similarity_fn = DataStructs.TanimotoSimilarity
+    # Choose similarity function based on the requested metric
+    similarity_fn = DataStructs.CosineSimilarity if getattr(request, 'metric', 'tanimoto') == 'cosine' else DataStructs.TanimotoSimilarity
     
-    print("Starting similarity calculation in batches...")
+    logger.info("Starting similarity calculation in batches...")
     results = []
-    batch_size = 50000 # Process 50,000 rows at a time
+    candidate_dicts = []  # For post-processing
+    batch_size = 50000  # Process 50,000 rows at a time
 
-    # 4. *** This is the corrected fetching logic ***
+    # 4. Process database results in batches
     while True:
-        # Fetch a manageable chunk of rows
         chunk = cursor.fetchmany(batch_size)
         if not chunk:
-            # No more rows to fetch, exit the loop
             break
 
-        # Process each row in the current chunk
         for row in chunk:
             chembl_id, smiles, fingerprint_hex, mw, logp, hba, hbd, psa, rtb, heavy_atoms, aromatic_rings = row
             
-            db_fp = DataStructs.CreateFromBitString(bytes.fromhex(fingerprint_hex).decode('utf-8'))
-            # Compute similarity using the selected metric (Tanimoto or Cosine)
-            similarity = similarity_fn(input_fp, db_fp)
-            
-            if similarity >= request.threshold:
-                # Property filtering logic remains the same
-                prop_dict = {'mw': mw, 'logp': logp, 'hba': hba, 'hbd': hbd, 'psa': psa, 'rtb': rtb, 'heavy_atoms': heavy_atoms, 'aromatic_rings': aromatic_rings}
-                if request.filters:
-                    match = True
-                    for prop, conditions in request.filters.items():
-                        if prop not in prop_dict or prop_dict[prop] is None: match = False; break
-                        for op, value in conditions.items():
-                            prop_value = prop_dict[prop]
-                            try:
-                                if op == 'gt' and not (float(prop_value) > float(value)): match = False; break
-                                elif op == 'lt' and not (float(prop_value) < float(value)): match = False; break
-                                elif op == 'gte' and not (float(prop_value) >= float(value)): match = False; break
-                                elif op == 'lte' and not (float(prop_value) <= float(value)): match = False; break
-                            except (ValueError, TypeError): match = False; break
-                        if not match: break
-                    if not match: continue
+            try:
+                db_fp = DataStructs.CreateFromBitString(bytes.fromhex(fingerprint_hex).decode('utf-8'))
+                similarity = similarity_fn(input_fp, db_fp)
                 
-                results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=float(similarity)))
+                if similarity >= request.threshold:
+                    # Create a candidate dictionary for post-processing
+                    candidate = {
+                        'smiles': smiles,
+                        'similarity_tanimoto': similarity,
+                        'similarity_embedding': similarity,  # Using same as tanimoto for now
+                        'mw': mw,
+                        'cns_mpo': 4.5,  # Placeholder - would come from DB or calculation
+                        'cost': 100.0,   # Placeholder - would come from DB
+                        'toxicity_flag': False,  # Placeholder
+                        'indications': [],  # Would come from DB
+                        'name': chembl_id,
+                        'num_rotatable_bonds': rtb,
+                        'logp': logp,
+                        'hba': hba,
+                        'hbd': hbd,
+                        'psa': psa,
+                        'aromatic_rings': aromatic_rings
+                    }
+                    candidate_dicts.append(candidate)
+                    
+                    # Add to basic results
+                    results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=float(similarity)))
+                    
+            except Exception as e:
+                logger.warning(f"Error processing molecule {chembl_id}: {str(e)}")
+                continue
 
     con.close()
-    print(f"Calculation complete. Found {len(results)} similar compounds.")
+    logger.info(f"Found {len(results)} similar compounds before post-processing.")
 
-    # 5. Sort and return the results
+    # 5. Sort basic results
     results.sort(key=lambda x: x.similarity, reverse=True)
+    
+    # 6. Apply advanced post-processing
+    try:
+        # Process with the post-processor
+        post_processed = post_processor.process_results(
+            query_drug=request.smiles,
+            candidates=candidate_dicts,
+            top_n=min(50, len(candidate_dicts))  # Top 50 or all if fewer
+        )
+        
+        # Add post-processed results to the response
+        response = {
+            'count': len(results),
+            'results': [r.dict() for r in results],
+            'post_processed': post_processed
+        }
+        
+        return JSONResponse(content=response)
+        
+    except Exception as e:
+        logger.error(f"Error in post-processing: {str(e)}", exc_info=True)
+        # Return basic results if post-processing fails
+        return {
+            'count': len(results),
+            'results': [r.dict() for r in results],
+            'post_processed': {
+                'error': f"Post-processing failed: {str(e)}",
+                'ranked_candidates': [],
+                'filtered_out': [],
+                'clusters': [],
+                'recommendations': []
+            }
+        }
     return SearchResponse(count=len(results), results=results)
 
 
@@ -264,6 +314,22 @@ def visualize_molecule(smiles: str):
 
 class EmbedRequest(BaseModel):
     smiles: str = Field(..., description="Input SMILES to embed")
+
+class SearchRequest(BaseModel):
+    smiles: str = Field(..., description="Input SMILES string for similarity search.")
+    threshold: float = Field(0.7, gt=0, le=1, description="Similarity threshold (applies to selected metric).")
+    metric: Literal['tanimoto', 'cosine'] = Field('tanimoto', description="Similarity metric to use: 'tanimoto' (default) or 'cosine'.")
+    enable_post_processing: bool = Field(True, description="Whether to enable advanced post-processing of results.")
+    filters: Optional[Dict[str, Dict[str, float]]] = Field(None, description="Property filters, e.g., {'mw': {'lt': 500}, 'logp': {'gt': 1.0}}")
+    max_results: int = Field(100, ge=1, le=1000, description="Maximum number of results to return.")
+
+class SearchResponse(BaseModel):
+    count: int
+    results: List[Compound]
+    post_processed: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Advanced post-processing results including ranked candidates, clusters, and recommendations."
+    )
 
 class EmbedResponse(BaseModel):
     length: int
