@@ -2,10 +2,10 @@
 
 **A modern, enterprise-grade web application for chemical compound similarity searching and analysis.**
 
-![React](https://img.shields.io/badge/React-18.2.0-blue.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)
-![Material-UI](https://img.shields.io/badge/Material--UI-5.0-blue.svg)
-![RDKit](https://img.shields.io/badge/RDKit-2024.3.5-green.svg)
+![React](https://img.shields.io/badge/React-19.1.1-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)
+![Material-UI](https://img.shields.io/badge/Material--UI-7.3.2-blue.svg)
+![RDKit](https://img.shields.io/badge/RDKit-2025.3.4-green.svg)
 ![Build Status](https://img.shields.io/badge/Build-Success-brightgreen.svg)
 ![ESLint](https://img.shields.io/badge/ESLint-0%20errors-brightgreen.svg)
 
@@ -13,44 +13,39 @@
 
 ## 🚀 **Project Overview**
 
-This is a **complete, production-ready chemical similarity search platform** built with modern React 18, TypeScript, and Material-UI. The application provides professional-grade tools for:
+This is a **modern, functional chemical similarity search application** built with React 18, TypeScript, and Material-UI. The application provides essential tools for:
 
-- **🔍 Molecular Similarity Search** - SMILES-based and name-based compound searching
-- **📊 Advanced Data Visualization** - Interactive charts, clustering analysis, and property correlations  
-- **🔬 Real Structure Visualization** - RDKit WebAssembly integration for molecular structure rendering
-- **🎛️ Property Filtering** - Visual range sliders for molecular weight, LogP, H-bond donors/acceptors, etc.
-- **📥 Multi-Format Export** - CSV, SDF, and JSON export for research workflows
-- **📱 Responsive Design** - Mobile-first approach optimized for all devices
+- **🔍 Molecular Similarity Search** - SMILES-based and name-based compound searching with history
+- **🎛️ Advanced Property Filtering** - Visual range sliders for molecular properties
+- **📱 Responsive Design** - Mobile-optimized interface that works on all devices
+- **💾 Search History** - Persistent search history with one-click rerun functionality
+
+**Note**: Advanced analytics, clustering, and multi-format export features are planned for future releases.
 
 ---
 
 ## ✨ **Key Features**
 
-### **🔍 Advanced Search Capabilities**
-- **SMILES Input Search** - Direct molecular structure similarity searching
-- **Compound Name Search** - Intelligent name resolution and fuzzy matching
-- **AI-Powered Search** - Optional ChemBERTa integration for enhanced results
-- **Real-time Filtering** - Instant property-based filtering and sorting
+### **🔍 Core Features (Fully Implemented)**
+- **SMILES & Name Search** - Direct molecular structure and compound name searching
+- **Advanced Property Filters** - Visual range sliders with individual clear controls
+- **Search History** - Persistent history with one-click search rerun functionality
+- **Molecular Visualization** - Professional RDKit-powered structure rendering
+- **Responsive Design** - Mobile-optimized interface that works on all devices
 
-### **📊 Scientific Data Analysis**
-- **Interactive Visualizations** - Property distributions, clustering, and correlation charts
-- **Molecular Structure Display** - Real chemical structure rendering via RDKit WebAssembly
-- **Property Analysis Tools** - Comprehensive molecular property calculations and comparisons
-- **Analytics Dashboard** - Summary statistics and compound analytics
-
-### **🎛️ User Experience Excellence**
-- **Modern Material-UI Design** - Professional, accessible, and responsive interface
-- **Advanced Property Filters** - Visual range sliders for precise compound selection
-- **Compound Details Modal** - Comprehensive property tables and structure previews
-- **Multi-Format Export** - CSV, SDF, and JSON export for research integration
+### **📊 Coming Soon**
+- **Analytics Dashboard** - Interactive charts and data visualization
+- **Clustering Analysis** - Compound clustering and similarity analysis
+- **Settings & Help** - User preferences and documentation pages
+- **Advanced Export Options** - Multiple format export integration
 
 ---
 
 ## 🛠 **Technology Stack**
 
 ### **Frontend Framework**
-- **React 18** - Latest React with concurrent features and automatic batching
-- **TypeScript 5.0** - Complete type safety and enhanced developer experience
+- **React 19** - Latest React with concurrent features and automatic batching
+- **TypeScript 5.8** - Complete type safety and enhanced developer experience
 - **Vite** - Lightning-fast build tool with HMR and optimized production builds
 
 ### **State Management & Data**
@@ -59,14 +54,13 @@ This is a **complete, production-ready chemical similarity search platform** bui
 - **Mock API Layer** - Realistic data structure ready for backend integration
 
 ### **UI & Visualization**
-- **Material-UI v5** - Modern component library with custom chemical science theming
-- **Recharts** - Interactive data visualization library for scientific charts
+- **Material-UI v7** - Modern component library with custom chemical science theming
 - **RDKit WebAssembly** - Industry-standard molecular structure rendering
 
 ### **Development & Quality**
 - **ESLint + Prettier** - Zero-error code quality with automated formatting
-- **Jest + React Testing Library** - Comprehensive testing framework (configured)
-- **Production Build** - 560KB optimized bundle with CDN loading strategies
+- **TypeScript** - Complete type safety throughout the application
+- **Production Build** - Optimized bundle with CDN loading strategies
 
 ---
 
@@ -115,22 +109,16 @@ npm run test       # Run Jest tests
 4. **View results** with similarity scores and compound details
 
 ### **Advanced Filtering**
-1. **Click "Advanced Filters"** to expand property filters
+1. **Click "Property Filters"** to expand filtering options
 2. **Use range sliders** to filter by molecular weight, LogP, etc.
 3. **Combine multiple filters** for precise compound selection
-4. **View filtered results** in real-time
+4. **Clear individual filters** using the × buttons or "Clear All"
 
-### **Data Analysis**
-1. **Switch to "Analytics" tab** for data visualizations
-2. **Explore property distributions** and correlation charts
-3. **Analyze compound clusters** and structural similarities
-4. **Export data** in CSV, SDF, or JSON formats
-
-### **Molecular Visualization**
-1. **Click on any compound** to view detailed information
-2. **See real molecular structures** rendered by RDKit
-3. **Examine calculated properties** (MW, LogP, HBD/HBA, etc.)
-4. **Export structures** for use in other applications
+### **Search History**
+1. **Click "History"** in the header to view recent searches
+2. **Click any search** to rerun it with fresh results
+3. **Copy queries** using the copy icon for reuse
+4. **Clear history** using the "Clear History" button
 
 ---
 
@@ -140,20 +128,21 @@ npm run test       # Run Jest tests
 ```
 src/
 ├── components/
-│   ├── layout/           # Header, Sidebar, Footer
-│   ├── search/           # SearchForm, PropertyFilters, SearchHistory
-│   ├── results/          # ResultsList, CompoundCard, CompoundDetails
-│   ├── visualization/    # MoleculeViewer, PropertyCharts, ClusteringView
-│   ├── filters/          # AdvancedPropertyFilters (Range sliders)
-│   ├── charts/           # PropertyDistributionChart, AnalyticsDashboard
-│   └── molecules/        # MoleculeViewer with RDKit integration
+│   ├── layout/           # Header, MainLayout
+│   ├── search/           # SearchForm (main search interface)
+│   ├── results/          # SearchResults, CompoundCard
+│   ├── filters/          # AdvancedPropertyFilters
+│   ├── history/          # Search history with rerun functionality
+│   ├── export/           # ExportDialog for data export
+│   ├── charts/           # AnalyticsDashboard, ClusteringVisualization
+│   └── molecules/        # MoleculeViewer with RDKit
 ├── hooks/
 │   ├── useSearch.ts      # Complete search state management
-│   ├── useRDKit.ts       # RDKit loading and molecule processing
-│   └── useCompound.ts    # Compound data management
+│   └── useRDKit.ts       # RDKit loading and molecule processing
 ├── services/
 │   ├── api/              # Mock API ready for backend integration
-│   └── rdkit/            # RDKit service with CDN loading
+│   ├── rdkit/            # RDKit service with CDN loading
+│   └── export/           # Data export utilities
 ├── store/
 │   ├── slices/           # Search, results, UI state management
 │   └── store.ts          # Redux store configuration
@@ -289,18 +278,20 @@ This project is developed as part of a research internship and is available for 
 ## 🎓 **Technical Achievement Summary**
 
 ### **What Makes This Special**
-- **🏆 Enterprise-Grade Quality** - Professional, maintainable, scalable codebase
-- **🔬 Scientific Excellence** - Real molecular visualization and analysis tools
-- **⚡ Modern Performance** - Latest React patterns with optimized loading
+- **🏆 Solid Foundation** - Well-structured, maintainable React/TypeScript codebase
+- **🔬 Scientific Integration** - Real molecular visualization with RDKit WebAssembly
+- **⚡ Modern Architecture** - Latest React patterns with optimized performance
 - **📱 Universal Access** - Web-based, works on any device with a browser
-- **🔧 Developer Friendly** - Excellent TypeScript experience and tooling
+- **🔧 Developer Experience** - Excellent TypeScript setup and tooling
 
-### **Compared to Commercial Software**
-This application **rivals or exceeds** commercial chemical informatics platforms while being:
-- **More accessible** - No installation, works in any modern browser
-- **More modern** - Latest React architecture and UX patterns
-- **More cost-effective** - Open source, no licensing fees
-- **More integrable** - Ready for API connections and research workflows
+### **Current Capabilities**
+This application **successfully delivers** core chemical informatics functionality:
+- **Search & Discovery** - Find similar compounds by structure or name
+- **Property Filtering** - Filter results by molecular properties
+- **History Management** - Track and rerun previous searches
+- **Structure Visualization** - Professional molecular rendering
+
+**Future enhancements** will add analytics, clustering, and advanced export capabilities to match commercial chemical informatics platforms.
 
 ---
 
