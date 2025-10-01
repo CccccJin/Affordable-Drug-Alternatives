@@ -4,18 +4,16 @@ import {
   Toolbar,
   Typography,
   Button,
-  IconButton,
   Box,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
   Science as ScienceIcon,
   Search as SearchIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
-import { useDispatch } from 'react-redux';
-import { toggleSidebar } from '../../store/slices/uiSlice';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onSearchClick?: () => void;
@@ -24,24 +22,15 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const handleMenuClick = () => {
-    dispatch(toggleSidebar());
+  const handleHistoryClick = () => {
+    navigate('/history');
   };
 
   return (
     <AppBar position="static" elevation={1}>
       <Toolbar>
-        <IconButton
-          edge="start"
-          color="inherit"
-          onClick={handleMenuClick}
-          sx={{ mr: 2 }}
-        >
-          <MenuIcon />
-        </IconButton>
-
         <ScienceIcon sx={{ mr: 2 }} />
 
         <Typography
@@ -57,6 +46,21 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            color="inherit"
+            startIcon={<HistoryIcon />}
+            onClick={handleHistoryClick}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            }}
+          >
+            History
+          </Button>
+
           {!isMobile && (
             <Button
               color="inherit"
