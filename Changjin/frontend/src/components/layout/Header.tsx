@@ -74,18 +74,6 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
               New Search
             </Button>
           )}
-
-          <Button
-            color="inherit"
-            variant="outlined"
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              ml: 1,
-            }}
-          >
-            Help
-          </Button>
         </Box>
       </Toolbar>
     </AppBar>
