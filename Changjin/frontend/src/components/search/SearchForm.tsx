@@ -134,7 +134,7 @@ export const SearchForm: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AIIcon color={useAI ? 'primary' : 'disabled'} />
                   <Typography variant="body2">
-                    Use AI-Powered Search (ChemBERTa)
+                    Use AI-Powered Search
                   </Typography>
                 </Box>
               }
