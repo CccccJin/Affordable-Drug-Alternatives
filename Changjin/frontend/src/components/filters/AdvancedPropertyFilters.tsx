@@ -119,16 +119,24 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
 
   const handleSliderChange = (key: string, value: number[]) => {
     const [min, max] = value;
-    // Ensure we use the correct key format for the filters object
     const baseKey = key.replace(/Min|Max$/, '');
     handleFilterChange(`${baseKey}Min`, min);
     handleFilterChange(`${baseKey}Max`, max);
   };
-
   const clearAllFilters = () => {
     const clearedFilters: Record<string, number | undefined> = {};
     setLocalFilters(clearedFilters);
     onFiltersChange(clearedFilters);
+  };
+
+
+
+  const clearPropertyFilters = (property: string) => {
+    const newFilters = { ...localFilters };
+    delete newFilters[`${property}Min`];
+    delete newFilters[`${property}Max`];
+    setLocalFilters(newFilters);
+    onFiltersChange(newFilters);
   };
 
   const getFilterValue = (key: string): number[] => {
@@ -217,6 +225,7 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
     if (!range) return null;
 
     const value = getFilterValue(property);
+    const hasActiveFilter = localFilters[`${property}Min`] !== undefined || localFilters[`${property}Max`] !== undefined;
 
     return (
       <Box key={property} sx={{ mb: 2 }}>
@@ -224,9 +233,28 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
           <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
             {range.label}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {value[0]} - {value[1]} {range.unit}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              {value[0]} - {value[1]} {range.unit}
+            </Typography>
+            {hasActiveFilter && (
+              <IconButton
+                size="small"
+                onClick={() => clearPropertyFilters(property)}
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: 'error.main',
+                  '&:hover': {
+                    backgroundColor: 'error.light',
+                    opacity: 0.8,
+                  },
+                }}
+              >
+                <ClearIcon sx={{ fontSize: '0.75rem' }} />
+              </IconButton>
+            )}
+          </Box>
         </Box>
 
         <Slider
@@ -360,6 +388,7 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
           <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
             <Typography variant="body2" color="text.secondary">
               💡 <strong>Tip:</strong> Use the range sliders above to filter compounds by molecular properties.
+              Click the clear buttons (×) next to individual properties to remove specific filters, or use "Clear All" to remove all filters at once.
               Active filters are highlighted with colored borders.
             </Typography>
           </Box>
