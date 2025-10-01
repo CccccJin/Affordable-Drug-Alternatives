@@ -25,13 +25,30 @@ interface SearchState {
   history: SearchHistory[];
 }
 
+const loadHistoryFromStorage = (): SearchHistory[] => {
+  try {
+    const stored = localStorage.getItem('chemical-search-history');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveHistoryToStorage = (history: SearchHistory[]) => {
+  try {
+    localStorage.setItem('chemical-search-history', JSON.stringify(history));
+  } catch {
+    // Ignore localStorage errors
+  }
+};
+
 const initialState: SearchState = {
   query: '',
   searchType: 'smiles',
   filters: {},
   isLoading: false,
   error: null,
-  history: [],
+  history: loadHistoryFromStorage(),
 };
 
 export const searchSlice = createSlice({
@@ -72,6 +89,8 @@ export const searchSlice = createSlice({
       if (state.history.length > 10) {
         state.history = state.history.slice(0, 10);
       }
+      // Persist to localStorage
+      saveHistoryToStorage(state.history);
     },
     clearSearch: (state) => {
       state.query = '';
@@ -81,6 +100,8 @@ export const searchSlice = createSlice({
     },
     clearHistory: (state) => {
       state.history = [];
+      // Clear from localStorage
+      saveHistoryToStorage([]);
     },
     resetSearch: () => initialState,
   },
