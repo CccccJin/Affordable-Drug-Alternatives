@@ -216,6 +216,9 @@ __marimo__/
 # Large data files
 *.tar.gz
 *.duckdb
+*.db
+*.sqlite
+*.sqlite3
 *.csv
 chembl_35/
 
@@ -223,3 +226,6 @@ chembl_35/
 # Operating System specific files
 .DS_Store
 Thumbs.db
+
+# Local environment files
+.env.*
