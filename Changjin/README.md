@@ -69,6 +69,7 @@ python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
    - Interactive API Docs: http://127.0.0.1:8000/docs
    - Alternative API Docs: http://127.0.0.1:8000/redoc
 
+<<<<<<< HEAD
 3. Frontend
    ```bash
    cd frontend
@@ -90,6 +91,19 @@ Key tables/views expected by the app:
 - `chemberta_embeddings` (optional, for AI search)
 - `inn_list` (optional, INN synonyms)
 
+=======
+## Database: using and preparing data
+
+Primary database file: `chembl_35/chembl_35.duckdb`.
+Key tables/views expected by the app:
+- `compound_structures` (must include `canonical_smiles`, and precomputed `fingerprint_hex`)
+- `molecule_dictionary` (for `chembl_id`)
+- `compound_properties` (for MW/logP/HBD/HBA/PSA/RTB, etc.)
+- `rdkit_metrics` (optional, created by preprocessing) and view `compound_full`
+- `chemberta_embeddings` (optional, for AI search)
+- `inn_list` (optional, INN synonyms)
+
+>>>>>>> a71afea245f4fc79cadf3fc0c70ba3d928f3957a
 Prepare/augment database with provided scripts (resume-safe):
 - Compute Morgan fingerprints (hex) into `compound_structures`:
   ```bash
