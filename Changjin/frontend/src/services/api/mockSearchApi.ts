@@ -7,250 +7,253 @@ import type {
   CalculatedProperties,
   Compound,
   PostProcessingResult,
+  PropertyFilters,
 } from '../../types/api';
 
-// Mock compound database - realistic chemical data with accurate properties
-const MOCK_COMPOUNDS: Compound[] = [
-  {
-    chembl_id: 'CHEMBL25',
-    smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O',
-    similarity: 0.95,
-  },
-  {
-    chembl_id: 'CHEMBL50',
-    smiles: 'CCOC(=O)C1=CC=CC=C1C(=O)O',
-    similarity: 0.87,
-  },
-  {
-    chembl_id: 'CHEMBL100',
-    smiles: 'CN1C(=O)CC2=CC=CC=C21',
-    similarity: 0.82,
-  },
-  {
-    chembl_id: 'CHEMBL200',
-    smiles: 'O=C(O)C1=CC=CC=C1O',
-    similarity: 0.78,
-  },
-  {
-    chembl_id: 'CHEMBL300',
-    smiles: 'CC(=O)NC1=CC=CC=C1C(=O)O',
-    similarity: 0.75,
-  },
-  {
-    chembl_id: 'CHEMBL400',
-    smiles: 'OC(=O)C1=CC=CC=C1C(=O)O',
-    similarity: 0.71,
-  },
-  {
-    chembl_id: 'CHEMBL500',
-    smiles: 'CC1=CC=C(C=C1)S(=O)(=O)NC2=CC=CC=C2',
-    similarity: 0.68,
-  },
-  {
-    chembl_id: 'CHEMBL600',
-    smiles: 'CN(C)CCCN1C2=CC=CC=C2CCC3=CC=CC=C13',
-    similarity: 0.65,
-  },
-  {
-    chembl_id: 'CHEMBL700',
-    smiles: 'CC(=O)OC1=CC=C(C=C1)C(=O)O',
-    similarity: 0.62,
-  },
-  {
-    chembl_id: 'CHEMBL800',
-    smiles: 'O=C(NC1=CC=CC=C1)C2=CC=CC=C2',
-    similarity: 0.59,
-  },
-];
+type StaticCompoundRecord = Omit<Compound, 'similarity'>;
 
-// Realistic properties for each compound (matching typical RDKit calculations)
-const COMPOUND_PROPERTIES: Record<string, CalculatedProperties> = {
-  'CHEMBL25': {
-    mw: 180.16,
-    logp: 1.58,
-    hbd: 1,
-    hba: 4,
-    psa: 63.60,
-    rtb: 3,
-    heavy_atoms: 13,
-    aromatic_rings: 1,
-  },
-  'CHEMBL50': {
-    mw: 194.18,
-    logp: 1.92,
-    hbd: 1,
-    hba: 4,
-    psa: 63.60,
-    rtb: 4,
-    heavy_atoms: 14,
-    aromatic_rings: 1,
-  },
-  'CHEMBL100': {
-    mw: 146.19,
-    logp: 1.25,
-    hbd: 0,
-    hba: 2,
-    psa: 20.23,
-    rtb: 0,
-    heavy_atoms: 11,
-    aromatic_rings: 2,
-  },
-  'CHEMBL200': {
-    mw: 138.12,
-    logp: 1.15,
-    hbd: 2,
-    hba: 3,
-    psa: 60.69,
-    rtb: 1,
-    heavy_atoms: 10,
-    aromatic_rings: 1,
-  },
-  'CHEMBL300': {
-    mw: 179.17,
-    logp: 1.52,
-    hbd: 2,
-    hba: 3,
-    psa: 66.40,
-    rtb: 2,
-    heavy_atoms: 13,
-    aromatic_rings: 1,
-  },
+let compoundsCache: StaticCompoundRecord[] | null = null;
+
+const dataUrl = () => `${import.meta.env.BASE_URL}data/compounds.json`;
+
+const simulateDelay = (ms: number = 120): Promise<void> =>
+  new Promise(resolve => setTimeout(resolve, ms));
+
+const normalize = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const normalizeSmiles = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, '');
+
+const nameAliases: Record<string, string> = {
+  paracetamol: 'acetaminophen',
 };
 
-// Mock post-processing results
-const MOCK_POST_PROCESSING: PostProcessingResult = {
-  ranked_candidates: [
-    {
-      chembl_id: 'CHEMBL25',
-      smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O',
-      similarity: 0.95,
-      molecular_weight: 180.16,
-      logp: 1.58,
-      h_bond_donors: 1,
-      h_bond_acceptors: 4,
-      rotatable_bonds: 3,
-      aromatic_rings: 1,
-    },
-    {
-      chembl_id: 'CHEMBL50',
-      smiles: 'CCOC(=O)C1=CC=CC=C1C(=O)O',
-      similarity: 0.87,
-      molecular_weight: 194.18,
-      logp: 1.92,
-      h_bond_donors: 1,
-      h_bond_acceptors: 4,
-      rotatable_bonds: 4,
-      aromatic_rings: 1,
-    },
-  ],
-  filtered_out: [
-    {
-      chembl_id: 'CHEMBL999',
-      smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O',
-      reason: 'Molecular weight too high (>500)',
-    },
-  ],
+const loadCompounds = async (): Promise<StaticCompoundRecord[]> => {
+  if (compoundsCache) {
+    return compoundsCache;
+  }
+
+  const response = await fetch(dataUrl());
+  if (!response.ok) {
+    throw new Error(`Could not load static compound data (${response.status})`);
+  }
+
+  compoundsCache = await response.json() as StaticCompoundRecord[];
+  return compoundsCache;
+};
+
+const bounded = (value: number): number => Math.max(0, Math.min(1, value));
+
+const bigramSimilarity = (left: string, right: string): number => {
+  if (!left || !right) {
+    return 0;
+  }
+
+  const grams = (value: string) => {
+    const normalized = normalizeSmiles(value);
+    if (normalized.length <= 2) {
+      return new Set([normalized]);
+    }
+
+    const result = new Set<string>();
+    for (let i = 0; i < normalized.length - 1; i += 1) {
+      result.add(normalized.slice(i, i + 2));
+    }
+    return result;
+  };
+
+  const leftGrams = grams(left);
+  const rightGrams = grams(right);
+  let intersection = 0;
+  leftGrams.forEach(gram => {
+    if (rightGrams.has(gram)) {
+      intersection += 1;
+    }
+  });
+
+  return intersection / Math.max(leftGrams.size, rightGrams.size);
+};
+
+const scoreCompound = (compound: StaticCompoundRecord, query: string, aiMode = false): number => {
+  const querySmiles = normalizeSmiles(query);
+  const compoundSmiles = normalizeSmiles(compound.smiles);
+  const queryName = normalize(query);
+  const compoundName = normalize(compound.pref_name || '');
+  const compoundId = normalize(compound.chembl_id);
+
+  if (querySmiles && querySmiles === compoundSmiles) {
+    return 1;
+  }
+
+  if (queryName && (queryName === compoundName || queryName === compoundId)) {
+    return 1;
+  }
+
+  if (compoundName && compoundName.includes(queryName)) {
+    return 0.96;
+  }
+
+  if (compoundId.includes(queryName)) {
+    return 0.94;
+  }
+
+  if (querySmiles && (compoundSmiles.includes(querySmiles) || querySmiles.includes(compoundSmiles))) {
+    return 0.9;
+  }
+
+  const structureScore = bigramSimilarity(query, compound.smiles);
+  const aiBoost = aiMode ? 0.08 : 0;
+  return bounded(0.35 + structureScore * 0.55 + aiBoost);
+};
+
+const applyFilters = (compound: Compound, filters?: PropertyFilters): boolean => {
+  if (!filters) {
+    return true;
+  }
+
+  const checks: Array<[number | null | undefined, number | undefined, number | undefined]> = [
+    [compound.molecular_weight, filters.molWeightMin, filters.molWeightMax],
+    [compound.logp, filters.logpMin, filters.logpMax],
+    [compound.h_bond_donors, filters.hbdMin, filters.hbdMax],
+    [compound.h_bond_acceptors, filters.hbaMin, filters.hbaMax],
+    [compound.polar_surface_area, filters.psaMin, filters.psaMax],
+    [compound.rotatable_bonds, filters.rtbMin, filters.rtbMax],
+  ];
+
+  return checks.every(([value, min, max]) => {
+    if (value == null) {
+      return true;
+    }
+    if (min != null && value < min) {
+      return false;
+    }
+    if (max != null && value > max) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const buildPostProcessing = (results: Compound[]): PostProcessingResult => ({
+  ranked_candidates: results.slice(0, 20).map(compound => ({
+    ...compound,
+    molecular_weight: compound.molecular_weight || 0,
+    logp: compound.logp || 0,
+    h_bond_donors: compound.h_bond_donors || 0,
+    h_bond_acceptors: compound.h_bond_acceptors || 0,
+    rotatable_bonds: compound.rotatable_bonds || 0,
+    aromatic_rings: compound.aromatic_rings || 0,
+  })),
+  filtered_out: [],
   clusters: [
     {
       cluster_id: 1,
-      centroid: 'CHEMBL25',
-      members: ['CHEMBL25', 'CHEMBL50', 'CHEMBL100'],
-      similarity_threshold: 0.8,
+      centroid: results[0]?.chembl_id || '',
+      members: results.slice(0, 10).map(compound => compound.chembl_id),
+      similarity_threshold: 0.7,
     },
-  ],
-  recommendations: [
-    {
-      chembl_id: 'CHEMBL25',
-      reason: 'High structural similarity and optimal drug-like properties',
-      score: 0.95,
-    },
-  ],
-};
+  ].filter(cluster => cluster.centroid),
+  recommendations: results.slice(0, 5).map(compound => ({
+    chembl_id: compound.chembl_id,
+    reason: 'Highest ranked match in the static processed ChEMBL export',
+    score: compound.similarity,
+  })),
+});
 
-// Simulate API delay for realistic UX
-const simulateDelay = (ms: number = 800): Promise<void> =>
-  new Promise(resolve => setTimeout(resolve, ms));
+const toProperties = (compound: StaticCompoundRecord): CalculatedProperties => ({
+  mw: compound.molecular_weight || 0,
+  logp: compound.logp || 0,
+  hbd: compound.h_bond_donors || 0,
+  hba: compound.h_bond_acceptors || 0,
+  psa: compound.polar_surface_area || 0,
+  rtb: compound.rotatable_bonds || 0,
+  heavy_atoms: compound.heavy_atoms || 0,
+  aromatic_rings: compound.aromatic_rings || 0,
+});
 
 export class MockSearchApi {
   static async search(request: SearchRequest): Promise<SearchResponse> {
     await simulateDelay();
+    const compounds = await loadCompounds();
+    const threshold = request.threshold ?? 0.7;
+    const maxResults = request.max_results ?? 50;
 
-    // Filter compounds based on similarity threshold
-    const filteredCompounds = MOCK_COMPOUNDS
-      .filter(compound => compound.similarity >= (request.threshold || 0.7))
-      .slice(0, request.max_results || 20);
+    const results = compounds
+      .map(compound => ({
+        ...compound,
+        similarity: scoreCompound(compound, request.smiles),
+      }))
+      .filter(compound => compound.similarity >= threshold)
+      .filter(compound => applyFilters(compound, request.filters))
+      .sort((left, right) => right.similarity - left.similarity || left.chembl_id.localeCompare(right.chembl_id))
+      .slice(0, maxResults);
 
-    // Apply post-processing if requested
-    const response: SearchResponse = {
-      count: filteredCompounds.length,
-      results: filteredCompounds,
+    return {
+      count: results.length,
+      results,
+      post_processed: request.enable_post_processing ? buildPostProcessing(results) : undefined,
     };
-
-    if (request.enable_post_processing) {
-      response.post_processed = MOCK_POST_PROCESSING;
-    }
-
-    return response;
   }
 
   static async searchAI(request: SearchRequest): Promise<SearchResponse> {
-    await simulateDelay(1200); // AI search takes longer
+    await simulateDelay(180);
+    const compounds = await loadCompounds();
+    const threshold = Math.max(0.5, (request.threshold ?? 0.7) - 0.1);
+    const maxResults = request.max_results ?? 50;
 
-    // Return similar results but with different similarity scores
-    const aiCompounds = MOCK_COMPOUNDS.map(compound => ({
-      ...compound,
-      similarity: Math.max(0.5, compound.similarity + (Math.random() - 0.5) * 0.3),
-    })).slice(0, request.max_results || 20);
+    const results = compounds
+      .map(compound => ({
+        ...compound,
+        similarity: scoreCompound(compound, request.smiles, true),
+      }))
+      .filter(compound => compound.similarity >= threshold)
+      .filter(compound => applyFilters(compound, request.filters))
+      .sort((left, right) => right.similarity - left.similarity || left.chembl_id.localeCompare(right.chembl_id))
+      .slice(0, maxResults);
 
-    const response: SearchResponse = {
-      count: aiCompounds.length,
-      results: aiCompounds,
-      post_processed: request.enable_post_processing ? MOCK_POST_PROCESSING : undefined,
+    return {
+      count: results.length,
+      results,
+      post_processed: request.enable_post_processing ? buildPostProcessing(results) : undefined,
     };
-
-    return response;
   }
 
   static async resolveName(request: ResolveRequest): Promise<ResolveResponse> {
-    await simulateDelay(300);
+    await simulateDelay();
+    const compounds = await loadCompounds();
+    const requestedName = normalize(nameAliases[normalize(request.name)] || request.name);
 
-    // Mock name to SMILES resolution
-    const nameMappings: Record<string, string> = {
-      'aspirin': 'CC(=O)OC1=CC=CC=C1C(=O)O',
-      'paracetamol': 'CC(=O)NC1=CC=C(O)C=C1',
-      'ibuprofen': 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O',
-      'caffeine': 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
-    };
+    const compound = compounds.find(item => normalize(item.pref_name || '') === requestedName)
+      || compounds.find(item => normalize(item.pref_name || '').includes(requestedName))
+      || compounds.find(item => normalize(item.chembl_id) === requestedName);
 
-    const smiles = nameMappings[request.name.toLowerCase()];
-
-    if (smiles) {
-      return {
-        name: request.name,
-        smiles,
-        chembl_id: `CHEMBL_${Math.floor(Math.random() * 1000)}`,
-      };
+    if (!compound) {
+      throw new Error(`Could not resolve chemical name from static data: ${request.name}`);
     }
 
-    throw new Error(`Could not resolve chemical name: ${request.name}`);
+    return {
+      name: compound.pref_name || request.name,
+      smiles: compound.smiles,
+      chembl_id: compound.chembl_id,
+    };
   }
 
   static async calculateProperties(request: PropertyCalculationRequest): Promise<CalculatedProperties> {
-    await simulateDelay(500);
+    await simulateDelay();
+    const compounds = await loadCompounds();
+    const compound = compounds.find(item => normalizeSmiles(item.smiles) === normalizeSmiles(request.smiles));
 
-    // Return realistic properties for the SMILES
-    const compound = MOCK_COMPOUNDS.find(c => c.smiles === request.smiles);
-    if (compound && COMPOUND_PROPERTIES[compound.chembl_id]) {
-      return COMPOUND_PROPERTIES[compound.chembl_id];
+    if (compound) {
+      return toProperties(compound);
     }
 
-    // Default properties for unknown compounds
     return {
       mw: 150 + (request.smiles.length * 2),
-      logp: -1 + (Math.random() * 4),
+      logp: 1,
       hbd: Math.floor(request.smiles.length / 20),
       hba: Math.floor(request.smiles.length / 15) + 1,
-      psa: 50 + (Math.random() * 100),
+      psa: 50,
       rtb: Math.floor(request.smiles.length / 25),
       heavy_atoms: Math.floor(request.smiles.length / 3) + 5,
       aromatic_rings: Math.floor(request.smiles.length / 30),
@@ -258,7 +261,7 @@ export class MockSearchApi {
   }
 
   static async getFilterableProperties(): Promise<string[]> {
-    await simulateDelay(200);
+    await simulateDelay();
 
     return [
       'molecular_weight',
@@ -272,9 +275,8 @@ export class MockSearchApi {
   }
 
   static async visualizeMolecule(smiles: string): Promise<string> {
-    await simulateDelay(400);
+    await simulateDelay();
 
-    // Return a simple placeholder SVG that looks like a molecule structure
     const width = 250;
     const height = 200;
 
@@ -289,13 +291,13 @@ export class MockSearchApi {
         ${smiles.length > 20 ? smiles.substring(0, 20) + '...' : smiles}
       </text>
       <text x="125" y="160" text-anchor="middle" font-family="Arial" font-size="10" fill="#6c757d">
-        Mock Structure (RDKit pending)
+        Static data preview
       </text>
     </svg>`;
   }
 
   static async healthCheck(): Promise<{ status: string }> {
-    await simulateDelay(100);
+    await simulateDelay();
 
     return {
       status: 'healthy',

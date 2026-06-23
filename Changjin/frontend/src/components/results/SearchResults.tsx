@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Container, Box, Typography, Alert, Paper, Tabs, Tab } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,7 +7,8 @@ import { setSelectedCompound } from '../../store/slices/resultsSlice';
 import { ResultsList } from './ResultsList';
 import { CompoundDetails } from './CompoundDetails';
 import { AnalyticsDashboard } from '../charts/AnalyticsDashboard';
-import type { Compound } from '../../types/api';
+import { MockSearchApi } from '../../services/api/mockSearchApi';
+import type { Compound, SearchResponse } from '../../types/api';
 
 export const SearchResults: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,9 @@ export const SearchResults: React.FC = () => {
   const [sortBy, setSortBy] = useState('similarity');
   const [filterQuery, setFilterQuery] = useState('');
   const [activeTab, setActiveTab] = useState(0);
+  const [results, setResults] = useState<SearchResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const handleViewDetails = (compound: Compound) => {
     dispatch(setSelectedCompound(compound));
@@ -40,31 +44,84 @@ export const SearchResults: React.FC = () => {
 
   const handleSortChange = (newSortBy: string) => {
     setSortBy(newSortBy);
-    // TODO: Implement sorting
   };
 
-  // Mock results for demonstration
-  const mockResults = {
-    count: 10,
-    results: [
-      { chembl_id: 'CHEMBL25', smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O', similarity: 0.95 },
-      { chembl_id: 'CHEMBL50', smiles: 'CCOC(=O)C1=CC=CC=C1C(=O)O', similarity: 0.87 },
-      { chembl_id: 'CHEMBL100', smiles: 'CN1C(=O)CC2=CC=CC=C21', similarity: 0.82 },
-      { chembl_id: 'CHEMBL200', smiles: 'O=C(O)C1=CC=CC=C1O', similarity: 0.78 },
-      { chembl_id: 'CHEMBL300', smiles: 'CC(=O)NC1=CC=CC=C1C(=O)O', similarity: 0.75 },
-      { chembl_id: 'CHEMBL400', smiles: 'OC(=O)C1=CC=CC=C1C(=O)O', similarity: 0.71 },
-      { chembl_id: 'CHEMBL500', smiles: 'CC1=CC=C(C=C1)S(=O)(=O)NC2=CC=CC=C2', similarity: 0.68 },
-      { chembl_id: 'CHEMBL600', smiles: 'CN(C)CCCN1C2=CC=CC=C2CCC3=CC=CC=C13', similarity: 0.65 },
-      { chembl_id: 'CHEMBL700', smiles: 'CC(=O)OC1=CC=C(C=C1)C(=O)O', similarity: 0.62 },
-      { chembl_id: 'CHEMBL800', smiles: 'O=C(NC1=CC=CC=C1)C2=CC=CC=C2', similarity: 0.59 },
-    ],
-    post_processed: {
-      ranked_candidates: [],
-      filtered_out: [],
-      clusters: [],
-      recommendations: [],
-    },
-  };
+  useEffect(() => {
+    const runSearch = async () => {
+      if (!query) {
+        setResults(null);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        let searchQuery = query;
+        if (searchType === 'name') {
+          const resolved = await MockSearchApi.resolveName({ name: query });
+          searchQuery = resolved.smiles;
+        }
+
+        const response = useAI
+          ? await MockSearchApi.searchAI({
+              smiles: searchQuery,
+              threshold: 0.7,
+              max_results: 50,
+              enable_post_processing: true,
+              filters: searchState.filters,
+            })
+          : await MockSearchApi.search({
+              smiles: searchQuery,
+              threshold: 0.7,
+              max_results: 50,
+              enable_post_processing: true,
+              filters: searchState.filters,
+            });
+
+        setResults(response);
+      } catch (searchError) {
+        setError(searchError instanceof Error ? searchError : new Error('Search failed'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    runSearch();
+  }, [query, searchType, useAI, searchState.filters]);
+
+  const visibleResults = React.useMemo(() => {
+    if (!results) {
+      return null;
+    }
+
+    const normalizedFilter = filterQuery.trim().toLowerCase();
+    const filtered = normalizedFilter
+      ? results.results.filter(compound =>
+          compound.chembl_id.toLowerCase().includes(normalizedFilter)
+          || (compound.pref_name || '').toLowerCase().includes(normalizedFilter)
+          || compound.smiles.toLowerCase().includes(normalizedFilter)
+        )
+      : results.results;
+
+    const sorted = [...filtered].sort((left, right) => {
+      if (sortBy === 'name') {
+        return (left.pref_name || left.chembl_id).localeCompare(right.pref_name || right.chembl_id);
+      }
+
+      if (sortBy === 'molecular_weight') {
+        return (left.molecular_weight || 0) - (right.molecular_weight || 0);
+      }
+
+      return right.similarity - left.similarity;
+    });
+
+    return {
+      ...results,
+      count: sorted.length,
+      results: sorted,
+    };
+  }, [filterQuery, results, sortBy]);
 
   return (
     <Container maxWidth="xl">
@@ -111,7 +168,7 @@ export const SearchResults: React.FC = () => {
             variant="fullWidth"
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
-            <Tab label={`Results (${mockResults.count})`} />
+            <Tab label={`Results (${visibleResults?.count || 0})`} />
             <Tab label="Analytics Dashboard" />
           </Tabs>
         </Paper>
@@ -120,12 +177,12 @@ export const SearchResults: React.FC = () => {
         {activeTab === 0 ? (
           /* Results Tab */
           <ResultsList
-            results={mockResults}
-            isLoading={false}
-            error={null}
+            results={visibleResults}
+            isLoading={isLoading}
+            error={error}
             onViewDetails={handleViewDetails}
             currentPage={currentPage}
-            totalPages={Math.ceil(mockResults.count / 20)}
+            totalPages={Math.ceil((visibleResults?.count || 0) / 20)}
             onPageChange={handlePageChange}
             onSortChange={handleSortChange}
             sortBy={sortBy}
@@ -134,7 +191,7 @@ export const SearchResults: React.FC = () => {
           />
         ) : (
           /* Analytics Tab */
-          <AnalyticsDashboard compounds={mockResults.results} />
+          <AnalyticsDashboard compounds={visibleResults?.results || []} />
         )}
 
         {/* Compound Details Modal */}
@@ -144,15 +201,12 @@ export const SearchResults: React.FC = () => {
           onClose={handleCloseDetails}
         />
 
-        {/* Development Note */}
-        {process.env.NODE_ENV === 'development' && (
-          <Alert severity="info" sx={{ mt: 4 }}>
-            <Typography variant="body2">
-              <strong>Development Mode:</strong> Currently displaying mock data that matches the real API structure.
-              When the backend is available, simply replace the MockSearchApi with SearchApi in the hooks.
-            </Typography>
-          </Alert>
-        )}
+        <Alert severity="info" sx={{ mt: 4 }}>
+          <Typography variant="body2">
+            Results are loaded from static files in <strong>public/data</strong> for GitHub Pages deployment.
+            Full-database dynamic similarity search still requires a backend API and database.
+          </Typography>
+        </Alert>
       </Box>
     </Container>
   );

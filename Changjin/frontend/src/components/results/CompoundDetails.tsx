@@ -54,6 +54,19 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
     }
 
     const loadProperties = async () => {
+      if (compound.molecular_weight != null || compound.logp != null) {
+        setCalculatedProperties({
+          molecularWeight: compound.molecular_weight || 0,
+          logP: compound.logp || 0,
+          hBondDonors: compound.h_bond_donors || 0,
+          hBondAcceptors: compound.h_bond_acceptors || 0,
+          rotatableBonds: compound.rotatable_bonds || 0,
+          ringCount: compound.aromatic_rings || 0,
+          aromaticRingCount: compound.aromatic_rings || 0,
+        });
+        return;
+      }
+
       setPropertiesLoading(true);
       try {
         const properties = await getMoleculeProperties(compound.smiles);
@@ -97,9 +110,14 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
     >
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h5" component="span">
-            {compound.chembl_id}
-          </Typography>
+            <Typography variant="h5" component="span">
+              {compound.chembl_id}
+            </Typography>
+            {compound.pref_name && (
+              <Typography variant="body1" color="text.secondary" component="span">
+                {compound.pref_name}
+              </Typography>
+            )}
           <Chip
             label={formatSimilarity(compound.similarity)}
             color="primary"

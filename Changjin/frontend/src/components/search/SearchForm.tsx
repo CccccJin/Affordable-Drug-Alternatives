@@ -53,9 +53,9 @@ export const SearchForm: React.FC = () => {
       let results;
       
       if (localSearchType === 'smiles') {
-        results = await searchBySMILES(localQuery, useAI);
+        results = await searchBySMILES(localQuery, useAI, localFilters);
       } else {
-        results = await searchByName(localQuery, useAI);
+        results = await searchByName(localQuery, useAI, localFilters);
       }
 
       // Update Redux state with results

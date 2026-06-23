@@ -7,6 +7,7 @@ import type {
   ResolveResponse,
   PropertyCalculationRequest,
   CalculatedProperties,
+  PropertyFilters,
 } from '../types/api';
 
 // Query keys for React Query caching
@@ -103,12 +104,13 @@ export const useCompoundSearch = () => {
   const aiSearch = useAISearch();
   const resolveName = useResolveName();
 
-  const searchBySMILES = async (smiles: string, useAI: boolean = false) => {
+  const searchBySMILES = async (smiles: string, useAI: boolean = false, filters?: PropertyFilters) => {
     const searchRequest: SearchRequest = {
       smiles,
       threshold: 0.7,
       max_results: 50,
       enable_post_processing: true,
+      filters,
     };
 
     if (useAI) {
@@ -118,7 +120,7 @@ export const useCompoundSearch = () => {
     }
   };
 
-  const searchByName = async (name: string, useAI: boolean = false) => {
+  const searchByName = async (name: string, useAI: boolean = false, filters?: PropertyFilters) => {
     try {
       const resolveResult = await resolveName.mutateAsync({ name });
 
@@ -126,7 +128,7 @@ export const useCompoundSearch = () => {
         throw new Error('Could not resolve chemical name to SMILES');
       }
 
-      return await searchBySMILES(resolveResult.smiles, useAI);
+      return await searchBySMILES(resolveResult.smiles, useAI, filters);
     } catch (error) {
       throw new Error(`Name resolution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

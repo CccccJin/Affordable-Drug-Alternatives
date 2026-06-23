@@ -1,0 +1,23 @@
+{
+  "source": "Local ChEMBL 35 DuckDB export",
+  "records": 42231,
+  "fields": [
+    "chembl_id",
+    "pref_name",
+    "smiles",
+    "molecular_weight",
+    "logp",
+    "polar_surface_area",
+    "h_bond_donors",
+    "h_bond_acceptors",
+    "rotatable_bonds",
+    "aromatic_rings",
+    "heavy_atoms",
+    "cns_mpo"
+  ],
+  "notes": [
+    "Static export for GitHub Pages; no local database or API required.",
+    "Contains public compound identifiers, preferred names, canonical SMILES, and processed RDKit descriptor fields.",
+    "This file does not include full database fingerprints, embeddings, prices, or private data."
+  ]
+}

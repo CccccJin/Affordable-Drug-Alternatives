@@ -50,6 +50,9 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
     return 'default' as const;
   }, [compound.similarity]);
 
+  const formatNumber = (value: number | null | undefined, decimals: number = 2): string =>
+    value == null ? 'N/A' : value.toFixed(decimals);
+
   return (
     <Card
       elevation={2}
@@ -93,6 +96,15 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
             >
               {compound.chembl_id}
             </Typography>
+            {compound.pref_name && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: '0.75rem', lineHeight: 1.2, wordBreak: 'break-word' }}
+              >
+                {compound.pref_name}
+              </Typography>
+            )}
           </Box>
 
           <Box sx={{ 
@@ -214,7 +226,7 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                       Mol. Weight
                     </Typography>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      ~180 g/mol
+                      {formatNumber(compound.molecular_weight)} g/mol
                     </Typography>
                   </Box>
                   <Box>
@@ -222,7 +234,7 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                       LogP
                     </Typography>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      ~1.6
+                      {formatNumber(compound.logp)}
                     </Typography>
                   </Box>
                   <Box>
@@ -230,7 +242,7 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                       HBD
                     </Typography>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      1
+                      {compound.h_bond_donors ?? 'N/A'}
                     </Typography>
                   </Box>
                   <Box>
@@ -238,7 +250,7 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                       HBA
                     </Typography>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      4
+                      {compound.h_bond_acceptors ?? 'N/A'}
                     </Typography>
                   </Box>
                   <Box>
@@ -246,7 +258,7 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                       Rotatable Bonds
                     </Typography>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      3
+                      {compound.rotatable_bonds ?? 'N/A'}
                     </Typography>
                   </Box>
                   <Box>
@@ -254,7 +266,7 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                       Aromatic Rings
                     </Typography>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      1
+                      {compound.aromatic_rings ?? 'N/A'}
                     </Typography>
                   </Box>
                 </Box>
