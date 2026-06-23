@@ -222,20 +222,35 @@ const rdkitService = {
 
 ## 🚀 **Production Deployment**
 
-### **Ready for Deployment**
-The application is **immediately ready** for:
+### **GitHub Pages Static Mode**
+The frontend is configured to run on GitHub Pages without a local database,
+local API, or `localhost` service.
 
-- **Static hosting** (Netlify, Vercel, GitHub Pages)
-- **Container deployment** (Docker, Kubernetes)
-- **CDN integration** for global performance
-- **Backend API connection** (FastAPI, Flask, Django)
+- Static compound data is loaded from `public/data/compounds.json`
+- The export file `public/data/compounds.csv` is included for inspection or download
+- Vite uses relative asset paths so the app can run from a GitHub Pages project path
+- React Router uses hash routing so page refreshes do not require server rewrites
 
-### **Environment Configuration**
+Build the static site with:
+
 ```bash
-# Production environment variables
+npm run build
+```
+
+Deploy the generated `dist/` directory to GitHub Pages.
+
+### **When a Backend Is Required**
+GitHub Pages cannot run DuckDB, FastAPI, RDKit server-side similarity searches,
+login, mutations, real-time updates, or long-running model inference. For full
+dynamic ChEMBL search, use this deployment shape:
+
+- Frontend: GitHub Pages
+- Backend API: Render, Railway, or Vercel
+- Database: Supabase, Neon, MongoDB Atlas, or another managed database
+- Configuration: expose the API URL to the frontend with an environment variable
+
+```bash
 VITE_API_BASE_URL=https://your-api.com/api
-VITE_ENABLE_ANALYTICS=true
-VITE_CDN_URL=https://your-cdn.com
 ```
 
 ---

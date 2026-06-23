@@ -7,8 +7,8 @@ import { setSelectedCompound } from '../../store/slices/resultsSlice';
 import { ResultsList } from './ResultsList';
 import { CompoundDetails } from './CompoundDetails';
 import { AnalyticsDashboard } from '../charts/AnalyticsDashboard';
-import type { Compound, SearchResponse, SearchRequest } from '../../types/api';
-import { SearchApi } from '../../services/api/searchApi';
+import { MockSearchApi } from '../../services/api/mockSearchApi';
+import type { Compound, SearchResponse } from '../../types/api';
 
 export const SearchResults: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -25,10 +25,9 @@ export const SearchResults: React.FC = () => {
   const [sortBy, setSortBy] = useState('similarity');
   const [filterQuery, setFilterQuery] = useState('');
   const [activeTab, setActiveTab] = useState(0);
-
-  const [data, setData] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<SearchResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const handleViewDetails = (compound: Compound) => {
     dispatch(setSelectedCompound(compound));
@@ -45,40 +44,84 @@ export const SearchResults: React.FC = () => {
 
   const handleSortChange = (newSortBy: string) => {
     setSortBy(newSortBy);
-    // TODO: Implement sorting
   };
 
-  // Always fetch fresh results when query/type/ai change
   useEffect(() => {
-    setError(null);
-    const fetchData = async () => {
+    const runSearch = async () => {
       if (!query) {
-        setData({ count: 0, results: [] });
+        setResults(null);
         return;
       }
-      setLoading(true);
+
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const request: SearchRequest = {
-          smiles: query,
-          threshold: 0.7,
-          max_results: 50,
-          enable_post_processing: true,
-        };
-        let result: SearchResponse;
+        let searchQuery = query;
         if (searchType === 'name') {
-          const resolved = await SearchApi.resolveName({ name: query });
-          request.smiles = resolved.smiles;
+          const resolved = await MockSearchApi.resolveName({ name: query });
+          searchQuery = resolved.smiles;
         }
-        result = useAI ? await SearchApi.searchAI(request) : await SearchApi.search(request);
-        setData(result);
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load search results');
+
+        const response = useAI
+          ? await MockSearchApi.searchAI({
+              smiles: searchQuery,
+              threshold: 0.7,
+              max_results: 50,
+              enable_post_processing: true,
+              filters: searchState.filters,
+            })
+          : await MockSearchApi.search({
+              smiles: searchQuery,
+              threshold: 0.7,
+              max_results: 50,
+              enable_post_processing: true,
+              filters: searchState.filters,
+            });
+
+        setResults(response);
+      } catch (searchError) {
+        setError(searchError instanceof Error ? searchError : new Error('Search failed'));
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-    fetchData();
-  }, [query, searchType, useAI]);
+
+    runSearch();
+  }, [query, searchType, useAI, searchState.filters]);
+
+  const visibleResults = React.useMemo(() => {
+    if (!results) {
+      return null;
+    }
+
+    const normalizedFilter = filterQuery.trim().toLowerCase();
+    const filtered = normalizedFilter
+      ? results.results.filter(compound =>
+          compound.chembl_id.toLowerCase().includes(normalizedFilter)
+          || (compound.pref_name || '').toLowerCase().includes(normalizedFilter)
+          || compound.smiles.toLowerCase().includes(normalizedFilter)
+        )
+      : results.results;
+
+    const sorted = [...filtered].sort((left, right) => {
+      if (sortBy === 'name') {
+        return (left.pref_name || left.chembl_id).localeCompare(right.pref_name || right.chembl_id);
+      }
+
+      if (sortBy === 'molecular_weight') {
+        return (left.molecular_weight || 0) - (right.molecular_weight || 0);
+      }
+
+      return right.similarity - left.similarity;
+    });
+
+    return {
+      ...results,
+      count: sorted.length,
+      results: sorted,
+    };
+  }, [filterQuery, results, sortBy]);
 
   return (
     <Container maxWidth="xl">
@@ -125,7 +168,7 @@ export const SearchResults: React.FC = () => {
             variant="fullWidth"
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
-            <Tab label={`Results (${data?.count ?? 0})`} />
+            <Tab label={`Results (${visibleResults?.count || 0})`} />
             <Tab label="Analytics Dashboard" />
           </Tabs>
         </Paper>
@@ -134,12 +177,12 @@ export const SearchResults: React.FC = () => {
         {activeTab === 0 ? (
           /* Results Tab */
           <ResultsList
-            results={data || { count: 0, results: [] }}
-            isLoading={loading}
+            results={visibleResults}
+            isLoading={isLoading}
             error={error}
             onViewDetails={handleViewDetails}
             currentPage={currentPage}
-            totalPages={Math.ceil((data?.count ?? 0) / 20) || 1}
+            totalPages={Math.ceil((visibleResults?.count || 0) / 20)}
             onPageChange={handlePageChange}
             onSortChange={handleSortChange}
             sortBy={sortBy}
@@ -148,7 +191,7 @@ export const SearchResults: React.FC = () => {
           />
         ) : (
           /* Analytics Tab */
-          <AnalyticsDashboard compounds={data?.results || []} />
+          <AnalyticsDashboard compounds={visibleResults?.results || []} />
         )}
 
         {/* Compound Details Modal */}
@@ -158,14 +201,12 @@ export const SearchResults: React.FC = () => {
           onClose={handleCloseDetails}
         />
 
-        {process.env.NODE_ENV === 'development' && (
-          <Alert severity="info" sx={{ mt: 4 }}>
-            <Typography variant="body2">
-              <strong>Development Mode:</strong> Results are now loaded from the backend. If you still see mock data,
-              please reload the page.
-            </Typography>
-          </Alert>
-        )}
+        <Alert severity="info" sx={{ mt: 4 }}>
+          <Typography variant="body2">
+            Results are loaded from static files in <strong>public/data</strong> for GitHub Pages deployment.
+            Full-database dynamic similarity search still requires a backend API and database.
+          </Typography>
+        </Alert>
       </Box>
     </Container>
   );

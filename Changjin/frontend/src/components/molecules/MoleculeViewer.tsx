@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Alert, CircularProgress } from '@mui/material';
 import { useRDKit } from '../../hooks/useRDKit';
-import { SearchApi } from '../../services/api/searchApi';
 
 export interface MoleculeViewerProps {
   smiles: string;
@@ -35,40 +34,25 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!smiles) return;
+    if (!smiles || !isLoaded) return;
 
     const loadMolecule = async () => {
       setLoading(true);
       try {
-        // Route A: fetch server-side SVG first for stability
-        const serverSVG = await SearchApi.visualizeMolecule(smiles);
-        setSvgContent(serverSVG);
+        // Generate SVG
+        const svgOptions = {
+          width,
+          height,
+          bondLength: Math.min(width, height) / 8,
+        };
 
-        // Optional: if RDKit is ready, try client-side SVG and replace
-        if (isLoaded) {
-          const svgOptions = {
-            width,
-            height,
-            bondLength: Math.min(width, height) / 8,
-          };
-          try {
-            const rdkitSVG = await getMoleculeSVG(smiles, svgOptions);
-            if (rdkitSVG) setSvgContent(rdkitSVG);
-          } catch (e) {
-            // keep server SVG on failure
-            console.warn('RDKit SVG generation failed:', e);
-          }
-        }
+        const svg = await getMoleculeSVG(smiles, svgOptions);
+        setSvgContent(svg);
 
-        // Properties only if RDKit is available
-        // Properties (optional): only attempt if RDKit is loaded
-        if (showProperties && isLoaded) {
-          try {
-            const moleculeProps = await getMoleculeProperties(smiles);
-            setProperties(moleculeProps);
-          } catch (propErr) {
-            console.warn('RDKit properties calculation failed:', propErr);
-          }
+        // Get properties if requested
+        if (showProperties) {
+          const moleculeProps = await getMoleculeProperties(smiles);
+          setProperties(moleculeProps);
         }
       } catch (err) {
         console.error('Error loading molecule:', err);
@@ -104,8 +88,7 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
     );
   }
 
-  // Show spinner only if we don't have any SVG yet
-  if ((loading || isLoading) && !svgContent) {
+  if (loading || isLoading) {
     return (
       <Box
         sx={{

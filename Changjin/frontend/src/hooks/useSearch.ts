@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { SearchApi } from '../services/api/searchApi';
+import { MockSearchApi } from '../services/api/mockSearchApi';
 import type {
   SearchRequest,
   SearchResponse,
@@ -7,6 +7,7 @@ import type {
   ResolveResponse,
   PropertyCalculationRequest,
   CalculatedProperties,
+  PropertyFilters,
 } from '../types/api';
 
 // Query keys for React Query caching
@@ -24,7 +25,7 @@ export const useSearch = () => {
 
   return useMutation<SearchResponse, Error, SearchRequest>({
     mutationFn: async (request: SearchRequest) => {
-      return await SearchApi.search(request);
+      return await MockSearchApi.search(request);
     },
     onSuccess: (data) => {
       // Cache the search results
@@ -38,7 +39,7 @@ export const useAISearch = () => {
 
   return useMutation<SearchResponse, Error, SearchRequest>({
     mutationFn: async (request: SearchRequest) => {
-      return await SearchApi.searchAI(request);
+      return await MockSearchApi.searchAI(request);
     },
     onSuccess: (data) => {
       // Cache the AI search results
@@ -51,7 +52,7 @@ export const useAISearch = () => {
 export const useResolveName = () => {
   return useMutation<ResolveResponse, Error, ResolveRequest>({
     mutationFn: async (request: ResolveRequest) => {
-      return await SearchApi.resolveName(request);
+      return await MockSearchApi.resolveName(request);
     },
   });
 };
@@ -60,7 +61,7 @@ export const useResolveName = () => {
 export const useCalculateProperties = () => {
   return useMutation<CalculatedProperties, Error, PropertyCalculationRequest>({
     mutationFn: async (request: PropertyCalculationRequest) => {
-      return await SearchApi.calculateProperties(request);
+      return await MockSearchApi.calculateProperties(request);
     },
   });
 };
@@ -70,7 +71,7 @@ export const useFilterableProperties = () => {
   return useQuery<string[]>({
     queryKey: queryKeys.properties,
     queryFn: async () => {
-      return await SearchApi.getFilterableProperties();
+      return await MockSearchApi.getFilterableProperties();
     },
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
@@ -80,7 +81,7 @@ export const useFilterableProperties = () => {
 export const useVisualizeMolecule = () => {
   return useMutation<string, Error, string>({
     mutationFn: async (smiles: string) => {
-      return await SearchApi.visualizeMolecule(smiles);
+      return await MockSearchApi.visualizeMolecule(smiles);
     },
   });
 };
@@ -90,7 +91,7 @@ export const useHealthCheck = () => {
   return useQuery<{ status: string }>({
     queryKey: queryKeys.health,
     queryFn: async () => {
-      return await SearchApi.healthCheck();
+      return await MockSearchApi.healthCheck();
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 2,
@@ -103,12 +104,13 @@ export const useCompoundSearch = () => {
   const aiSearch = useAISearch();
   const resolveName = useResolveName();
 
-  const searchBySMILES = async (smiles: string, useAI: boolean = false) => {
+  const searchBySMILES = async (smiles: string, useAI: boolean = false, filters?: PropertyFilters) => {
     const searchRequest: SearchRequest = {
       smiles,
       threshold: 0.7,
       max_results: 50,
       enable_post_processing: true,
+      filters,
     };
 
     if (useAI) {
@@ -118,7 +120,7 @@ export const useCompoundSearch = () => {
     }
   };
 
-  const searchByName = async (name: string, useAI: boolean = false) => {
+  const searchByName = async (name: string, useAI: boolean = false, filters?: PropertyFilters) => {
     try {
       const resolveResult = await resolveName.mutateAsync({ name });
 
@@ -126,7 +128,7 @@ export const useCompoundSearch = () => {
         throw new Error('Could not resolve chemical name to SMILES');
       }
 
-      return await searchBySMILES(resolveResult.smiles, useAI);
+      return await searchBySMILES(resolveResult.smiles, useAI, filters);
     } catch (error) {
       throw new Error(`Name resolution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

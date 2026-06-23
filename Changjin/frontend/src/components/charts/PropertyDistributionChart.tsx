@@ -53,7 +53,7 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
 
     return ranges.map(range => {
       const compoundsInRange = compounds.filter(c => {
-        const mw = 150 + (c.smiles.length * 2); // Mock MW calculation
+        const mw = c.molecular_weight ?? 150 + (c.smiles.length * 2);
         return mw >= range.min && mw < range.max;
       });
 

@@ -40,8 +40,18 @@ export interface CalculatedProperties {
 
 export interface Compound {
   chembl_id: string;
+  pref_name?: string | null;
   smiles: string;
   similarity: number;
+  molecular_weight?: number | null;
+  logp?: number | null;
+  polar_surface_area?: number | null;
+  h_bond_donors?: number | null;
+  h_bond_acceptors?: number | null;
+  rotatable_bonds?: number | null;
+  aromatic_rings?: number | null;
+  heavy_atoms?: number | null;
+  cns_mpo?: number | null;
 }
 
 export interface PostProcessingResult {
