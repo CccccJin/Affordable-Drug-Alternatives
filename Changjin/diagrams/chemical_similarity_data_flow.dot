@@ -1,0 +1,103 @@
+digraph chemical_similarity_data_flow {
+    graph [
+        rankdir=LR,
+        nodesep=0.5,
+        ranksep=1.0,
+        pad=0.6,
+        margin=0.25,
+        labelloc=t,
+        labeljust=c,
+        label="",
+        splines=ortho,
+        overlap=false,
+        bgcolor="#F9FAFB"
+    ];
+
+    node [shape=rect, style="rounded,filled", fontname="Helvetica"];
+    edge [color="#37474F", penwidth=1.2, arrowsize=0.8];
+
+    subgraph cluster_sources {
+        label="Data Sources";
+        labelloc=b;
+        color="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=14;
+        penwidth=1.5;
+        rank=same;
+
+        A1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="320"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">S</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="272"><FONT POINT-SIZE="14"><B>ChEMBL SQLite</B><BR ALIGN="LEFT"/>chembl_35.db</FONT></TD></TR></TABLE>> fillcolor="#E3F2FD" color="#1565C0" fontcolor="#0D47A1" fontsize=16 penwidth=1.5 width=4.44];
+        A2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="320"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">S</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="272"><FONT POINT-SIZE="14"><B>WHO GPRM / NHS SCMD / GoodRx</B><BR ALIGN="LEFT"/>(价格增广)</FONT></TD></TR></TABLE>> fillcolor="#E3F2FD" color="#1565C0" fontcolor="#0D47A1" fontsize=16 penwidth=1.5 width=4.44];
+        SRC_HUB_CORE [shape=point, width=0.08, height=0.08, color="#1565C0", label=""];
+        SRC_HUB_PRICE [shape=point, width=0.08, height=0.08, color="#1565C0", label=""];
+    }
+
+    subgraph cluster_preprocessing {
+        label="Preprocessing & Data Augmentation";
+        labelloc=b;
+        color="#F9A825";
+        fontname="Helvetica-Bold";
+        fontsize=14;
+        penwidth=1.5;
+        rank=same;
+
+        P1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="360"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">P</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="312"><FONT POINT-SIZE="14"><B>preprocess_database.py</B><BR ALIGN="LEFT"/>→ compound_structures.fingerprint_hex<BR ALIGN="LEFT"/>Morgan Fingerprints</FONT></TD></TR></TABLE>> fillcolor="#FFF8E1" color="#F9A825" fontcolor="#6D4C41" fontsize=15 penwidth=1.5 width=5.00];
+        P2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="360"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">P</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="312"><FONT POINT-SIZE="14"><B>preprocess_properties.py</B><BR ALIGN="LEFT"/>→ rdkit_metrics + compound_full (VIEW)<BR ALIGN="LEFT"/>RDKit Descriptors &amp; CNS MPO</FONT></TD></TR></TABLE>> fillcolor="#FFF8E1" color="#F9A825" fontcolor="#6D4C41" fontsize=15 penwidth=1.5 width=5.00];
+        P3 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="360"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">P</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="312"><FONT POINT-SIZE="14"><B>preprocess_inn.py</B><BR ALIGN="LEFT"/>→ inn_list<BR ALIGN="LEFT"/>INN Synonyms from SQLite</FONT></TD></TR></TABLE>> fillcolor="#FFF8E1" color="#F9A825" fontcolor="#6D4C41" fontsize=15 penwidth=1.5 width=5.00];
+        P4 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="360"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">P</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="312"><FONT POINT-SIZE="14"><B>preprocess_chemberta.py</B><BR ALIGN="LEFT"/>→ chemberta_embeddings<BR ALIGN="LEFT"/>ChemBERTa Mean-Pooled Embeddings</FONT></TD></TR></TABLE>> fillcolor="#FFF8E1" color="#F9A825" fontcolor="#6D4C41" fontsize=15 penwidth=1.5 width=5.00];
+        P5 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="360"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">P</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="312"><FONT POINT-SIZE="14"><B>Aggregate_drug_price.py</B><BR ALIGN="LEFT"/>→ drug_prices (+ nhs_prices, goodrx_cache)<BR ALIGN="LEFT"/>价格抓取与匹配</FONT></TD></TR></TABLE>> fillcolor="#FFF8E1" color="#F9A825" fontcolor="#6D4C41" fontsize=15 penwidth=1.5 width=5.00];
+        PRE_HUB_CORE [shape=point, width=0.08, height=0.08, color="#F9A825", label=""];
+        PRE_HUB_PRICE [shape=point, width=0.08, height=0.08, color="#F9A825", label=""];
+    }
+
+    subgraph cluster_duckdb {
+        label="Analytical Storage\nchembl_35/chembl_35.duckdb";
+        labelloc=b;
+        color="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=14;
+        penwidth=1.5;
+        rank=same;
+
+        D1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="400"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">DB</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="352"><FONT POINT-SIZE="14"><B>DuckDB 数据文件</B><BR ALIGN="LEFT"/>chembl_35.duckdb</FONT></TD></TR></TABLE>> fillcolor="#E8F5E9" color="#2E7D32" fontcolor="#1B5E20" fontsize=16 penwidth=1.5 width=5.56];
+        D2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="400"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">DB</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="352"><FONT POINT-SIZE="14"><B>核心表 / 视图 (DuckDB)</B><BR ALIGN="LEFT"/>&#8226;&nbsp;compound_structures (fingerprint_hex)<BR ALIGN="LEFT"/>&#8226;&nbsp;rdkit_metrics / chemberta_embeddings<BR ALIGN="LEFT"/>&#8226;&nbsp;compound_full (view) / inn_list<BR ALIGN="LEFT"/>&#8226;&nbsp;drug_prices / nhs_prices / goodrx_cache</FONT></TD></TR></TABLE>> fillcolor="#E8F5E9" color="#2E7D32" fontcolor="#1B5E20" fontsize=16 penwidth=1.5 width=5.56];
+        STO_HUB [shape=point, width=0.08, height=0.08, color="#2E7D32", label=""];
+    }
+
+    subgraph cluster_api {
+        label="API & Services";
+        labelloc=b;
+        color="#C2185B";
+        fontname="Helvetica-Bold";
+        fontsize=14;
+        penwidth=1.5;
+        rank=same;
+
+        S1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="340"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">API</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="292"><FONT POINT-SIZE="14"><B>/search</B><BR ALIGN="LEFT"/>指纹相似 (Tanimoto / Cosine)<BR ALIGN="LEFT"/>数据: fingerprint_hex</FONT></TD></TR></TABLE>> fillcolor="#FCE4EC" color="#C2185B" fontcolor="#880E4F" fontsize=15 penwidth=1.5 width=4.72];
+        S2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="340"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">API</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="292"><FONT POINT-SIZE="14"><B>/search_ai</B><BR ALIGN="LEFT"/>ChemBERTa 相似 (Cosine)<BR ALIGN="LEFT"/>数据: chemberta_embeddings</FONT></TD></TR></TABLE>> fillcolor="#FCE4EC" color="#C2185B" fontcolor="#880E4F" fontsize=15 penwidth=1.5 width=4.72];
+        S3 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="340"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">API</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="292"><FONT POINT-SIZE="14"><B>/properties, /properties/calculate</B><BR ALIGN="LEFT"/>属性查询 + RDKit 计算</FONT></TD></TR></TABLE>> fillcolor="#FCE4EC" color="#C2185B" fontcolor="#880E4F" fontsize=15 penwidth=1.5 width=4.72];
+        S4 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="340"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">API</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="292"><FONT POINT-SIZE="14"><B>/resolve_name</B><BR ALIGN="LEFT"/>ChEMBL Web 客户端在线解析</FONT></TD></TR></TABLE>> fillcolor="#FCE4EC" color="#C2185B" fontcolor="#880E4F" fontsize=15 penwidth=1.5 width=4.72];
+        S5 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="340"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">API</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="292"><FONT POINT-SIZE="14"><B>/visualize</B><BR ALIGN="LEFT"/>SMILES → SVG</FONT></TD></TR></TABLE>> fillcolor="#FCE4EC" color="#C2185B" fontcolor="#880E4F" fontsize=15 penwidth=1.5 width=4.72];
+        PP [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="320"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">Svc</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="272"><FONT POINT-SIZE="14"><B>post_processing.py</B><BR ALIGN="LEFT"/>排序 / 过滤 / Butina 聚类</FONT></TD></TR></TABLE>> fillcolor="#F3E5F5" color="#7B1FA2" fontcolor="#4A148C" fontsize=13 penwidth=1.5 width=4.44];
+        B [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="6" WIDTH="320"><TR><TD ALIGN="CENTER" VALIGN="TOP" WIDTH="40"><FONT POINT-SIZE="20">Svc</FONT></TD><TD ALIGN="LEFT" BALIGN="LEFT" VALIGN="TOP" WIDTH="272"><FONT POINT-SIZE="14">ChEMBL Web Resource API</FONT></TD></TR></TABLE>> fillcolor="#F3E5F5" color="#7B1FA2" fontcolor="#4A148C" fontsize=13 penwidth=1.5 width=4.44];
+        API_HUB [shape=point, width=0.08, height=0.08, color="#C2185B", label=""];
+    }
+
+    # Source to preprocessing flows
+    A1 -> SRC_HUB_CORE [weight=3];
+    A2 -> SRC_HUB_PRICE [weight=3];
+    SRC_HUB_CORE -> PRE_HUB_CORE [weight=3];
+    SRC_HUB_PRICE -> PRE_HUB_PRICE [weight=3];
+    PRE_HUB_CORE -> {P1 P2 P3 P4} [weight=3];
+    PRE_HUB_PRICE -> P5 [weight=3];
+
+    # Preprocessing to storage
+    {P1 P2 P3 P4 P5} -> STO_HUB [weight=4];
+    STO_HUB -> D1 [weight=4];
+    D1 -> D2 [weight=5];
+
+    # Storage to API & services
+    D2 -> API_HUB [weight=4];
+    API_HUB -> {S1 S2 S3 S4 S5} [weight=3];
+    S1 -> PP [weight=2];
+    S4 -> B [style=dashed, label="Online Lookup", constraint=false];
+}
