@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Typography, Alert, Paper, Tabs, Tab } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Alert,
+  Chip,
+  Stack,
+  Tabs,
+  Tab,
+  useTheme,
+  alpha,
+} from '@mui/material';
+import { AutoAwesome as SparkleIcon } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
@@ -9,16 +20,21 @@ import { CompoundDetails } from './CompoundDetails';
 import { AnalyticsDashboard } from '../charts/AnalyticsDashboard';
 import { MockSearchApi } from '../../services/api/mockSearchApi';
 import type { Compound, SearchResponse } from '../../types/api';
+import { monoStack } from '../../styles/theme';
 
 export const SearchResults: React.FC = () => {
+  const theme = useTheme();
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
   const searchState = useSelector((state: RootState) => state.search);
-  const selectedCompound = useSelector((state: RootState) => state.results.selectedCompound);
+  const selectedCompound = useSelector(
+    (state: RootState) => state.results.selectedCompound
+  );
 
   // Get search parameters from URL or Redux state
   const query = searchParams.get('query') || searchState.query;
-  const searchType = (searchParams.get('type') as 'smiles' | 'name') || searchState.searchType;
+  const searchType =
+    (searchParams.get('type') as 'smiles' | 'name') || searchState.searchType;
   const useAI = searchParams.get('ai') === 'true';
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,16 +113,19 @@ export const SearchResults: React.FC = () => {
 
     const normalizedFilter = filterQuery.trim().toLowerCase();
     const filtered = normalizedFilter
-      ? results.results.filter(compound =>
-          compound.chembl_id.toLowerCase().includes(normalizedFilter)
-          || (compound.pref_name || '').toLowerCase().includes(normalizedFilter)
-          || compound.smiles.toLowerCase().includes(normalizedFilter)
+      ? results.results.filter(
+          (compound) =>
+            compound.chembl_id.toLowerCase().includes(normalizedFilter) ||
+            (compound.pref_name || '').toLowerCase().includes(normalizedFilter) ||
+            compound.smiles.toLowerCase().includes(normalizedFilter)
         )
       : results.results;
 
     const sorted = [...filtered].sort((left, right) => {
       if (sortBy === 'name') {
-        return (left.pref_name || left.chembl_id).localeCompare(right.pref_name || right.chembl_id);
+        return (left.pref_name || left.chembl_id).localeCompare(
+          right.pref_name || right.chembl_id
+        );
       }
 
       if (sortBy === 'molecular_weight') {
@@ -123,59 +142,74 @@ export const SearchResults: React.FC = () => {
     };
   }, [filterQuery, results, sortBy]);
 
+  const activeFilterEntries = Object.entries(searchState.filters);
+
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ py: 4 }}>
-        {/* Search Summary */}
-        <Paper elevation={1} sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h4" gutterBottom>
-            Search Results
-          </Typography>
+    <Box>
+      {/* Search summary */}
+      <Box className="anim-fade-up" sx={{ mb: 4 }}>
+        <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.5 }}>
+          Results
+        </Typography>
+        <Typography variant="h2" component="h1" sx={{ mb: 2 }}>
+          Similar compounds
+        </Typography>
 
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Typography variant="body1">
-              <strong>Query:</strong> {query}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Type:</strong> {searchType === 'smiles' ? 'SMILES String' : 'Compound Name'}
-            </Typography>
-            {useAI && (
-              <Typography variant="body1" color="primary">
-                <strong>Search Method:</strong> AI-Powered (ChemBERTa)
-              </Typography>
-            )}
-          </Box>
-
-          {Object.keys(searchState.filters).length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                <strong>Active Filters:</strong>
-                {Object.entries(searchState.filters).map(([key, value]) => (
-                  <span key={key} style={{ marginLeft: 8 }}>
-                    {key}: {value}
-                  </span>
-                ))}
-              </Typography>
-            </Box>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+          <Chip
+            label={query}
+            sx={{
+              fontFamily: searchType === 'smiles' ? monoStack : 'inherit',
+              fontWeight: 600,
+              maxWidth: 420,
+              backgroundColor: alpha(theme.palette.primary.main, 0.08),
+              color: 'primary.dark',
+            }}
+          />
+          <Chip
+            label={searchType === 'smiles' ? 'SMILES' : 'Name'}
+            size="small"
+            variant="outlined"
+          />
+          {useAI && (
+            <Chip
+              icon={<SparkleIcon sx={{ fontSize: 15 }} />}
+              label="AI-powered (ChemBERTa)"
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
           )}
-        </Paper>
+          {activeFilterEntries.map(([key, value]) => (
+            <Chip
+              key={key}
+              label={`${key}: ${value}`}
+              size="small"
+              variant="outlined"
+              sx={{ color: 'text.secondary' }}
+            />
+          ))}
+        </Stack>
+      </Box>
 
-        {/* Results Tabs */}
-        <Paper elevation={1} sx={{ mb: 4 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_event, newValue) => setActiveTab(newValue)}
-            variant="fullWidth"
-            sx={{ borderBottom: 1, borderColor: 'divider' }}
-          >
-            <Tab label={`Results (${visibleResults?.count || 0})`} />
-            <Tab label="Analytics Dashboard" />
-          </Tabs>
-        </Paper>
+      {/* Tabs */}
+      <Box
+        className="anim-fade-up anim-delay-1"
+        sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 4 }}
+      >
+        <Tabs
+          value={activeTab}
+          onChange={(_event, newValue) => setActiveTab(newValue)}
+          aria-label="Result views"
+        >
+          <Tab label={`Compounds (${visibleResults?.count || 0})`} />
+          <Tab label="Analytics" />
+        </Tabs>
+      </Box>
 
-        {/* Tab Content */}
+      {/* Tab content */}
+      <Box className="anim-fade-up anim-delay-2">
         {activeTab === 0 ? (
-          /* Results Tab */
           <ResultsList
             results={visibleResults}
             isLoading={isLoading}
@@ -190,24 +224,24 @@ export const SearchResults: React.FC = () => {
             onSearchQueryChange={setFilterQuery}
           />
         ) : (
-          /* Analytics Tab */
           <AnalyticsDashboard compounds={visibleResults?.results || []} />
         )}
-
-        {/* Compound Details Modal */}
-        <CompoundDetails
-          compound={selectedCompound}
-          open={!!selectedCompound}
-          onClose={handleCloseDetails}
-        />
-
-        <Alert severity="info" sx={{ mt: 4 }}>
-          <Typography variant="body2">
-            Results are loaded from static files in <strong>public/data</strong> for GitHub Pages deployment.
-            Full-database dynamic similarity search still requires a backend API and database.
-          </Typography>
-        </Alert>
       </Box>
-    </Container>
+
+      {/* Compound Details Modal */}
+      <CompoundDetails
+        compound={selectedCompound}
+        open={!!selectedCompound}
+        onClose={handleCloseDetails}
+      />
+
+      <Alert severity="info" sx={{ mt: 5 }}>
+        <Typography variant="body2">
+          Results are loaded from static files in <strong>public/data</strong> for
+          GitHub Pages deployment. Full-database dynamic similarity search still
+          requires a backend API and database.
+        </Typography>
+      </Alert>
+    </Box>
   );
 };

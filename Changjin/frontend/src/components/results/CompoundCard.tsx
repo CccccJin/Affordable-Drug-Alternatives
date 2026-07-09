@@ -9,6 +9,9 @@ import {
   IconButton,
   Collapse,
   Button,
+  Tooltip,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -19,6 +22,7 @@ import {
 import type { Compound } from '../../types/api';
 import { formatSimilarity } from '../../services/utils/rdkitUtils';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
+import { monoStack } from '../../styles/theme';
 
 interface CompoundCardProps {
   compound: Compound;
@@ -26,11 +30,30 @@ interface CompoundCardProps {
   showProperties?: boolean;
 }
 
+interface PropertyItemProps {
+  label: string;
+  value: string | number;
+}
+
+const PropertyItem: React.FC<PropertyItemProps> = ({ label, value }) => (
+  <Box>
+    <Typography
+      sx={{ fontSize: '0.68rem', color: 'text.secondary', fontWeight: 500, mb: 0.25 }}
+    >
+      {label}
+    </Typography>
+    <Typography sx={{ fontSize: '0.8rem', color: 'text.primary', fontWeight: 500 }}>
+      {value}
+    </Typography>
+  </Box>
+);
+
 export const CompoundCard: React.FC<CompoundCardProps> = ({
   compound,
   onViewDetails,
   showProperties = false,
 }) => {
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -44,113 +67,145 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
 
   const similarityColor = React.useMemo(() => {
     const sim = compound.similarity;
-    if (sim >= 0.8) return 'success' as const;
-    if (sim >= 0.6) return 'warning' as const;
-    if (sim >= 0.4) return 'error' as const;
-    return 'default' as const;
-  }, [compound.similarity]);
+    if (sim >= 0.8) return theme.palette.success.main;
+    if (sim >= 0.6) return theme.palette.warning.main;
+    return theme.palette.error.main;
+  }, [compound.similarity, theme]);
 
   const formatNumber = (value: number | null | undefined, decimals: number = 2): string =>
     value == null ? 'N/A' : value.toFixed(decimals);
 
   return (
     <Card
-      elevation={2}
+      elevation={0}
       sx={{
-        display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        transition:
+          'transform 0.28s cubic-bezier(0.22,1,0.36,1), box-shadow 0.28s ease, border-color 0.28s ease',
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-          '& .compound-card-header': {
-            background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.1) 0%, rgba(25, 118, 210, 0.05) 100%)',
-          },
+          boxShadow: '0 2px 4px rgba(16,16,24,0.06), 0 20px 44px rgba(16,16,24,0.12)',
+          borderColor: alpha(theme.palette.primary.main, 0.35),
+        },
+        '&:focus-within': {
+          borderColor: alpha(theme.palette.primary.main, 0.5),
         },
       }}
     >
-      <CardContent sx={{ 
-        flexGrow: 1,
-        p: 2,
-        pb: 1,
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        {/* Header */}
-        <Box sx={{
+      <CardContent
+        sx={{
+          flexGrow: 1,
+          p: 2.5,
+          pb: 1.5,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          mb: 1.5,
-          minHeight: '3rem',
-        }}>
-          <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
-            <Typography 
-              variant="h6" 
-              component="h3" 
-              sx={{ 
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                lineHeight: 1.2,
-                wordBreak: 'break-word',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            mb: 1.5,
+            gap: 1,
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle2"
+              component="h3"
+              sx={{ lineHeight: 1.3, wordBreak: 'break-word' }}
+            >
+              {compound.pref_name || compound.chembl_id}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                fontFamily: monoStack,
+                fontSize: '0.68rem',
               }}
             >
               {compound.chembl_id}
             </Typography>
-            {compound.pref_name && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: '0.75rem', lineHeight: 1.2, wordBreak: 'break-word' }}
-              >
-                {compound.pref_name}
-              </Typography>
-            )}
           </Box>
 
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            flexShrink: 0,
-          }}>
-            <Chip
-              label={formatSimilarity(compound.similarity)}
-              color={similarityColor}
-              size="small"
-              sx={{ 
-                fontWeight: 600, 
-                fontSize: '0.7rem',
-                height: '20px',
-              }}
-            />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
+            <Tooltip title={`Similarity: ${formatSimilarity(compound.similarity)}`}>
+              <Chip
+                label={formatSimilarity(compound.similarity)}
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.7rem',
+                  height: 22,
+                  color: similarityColor,
+                  backgroundColor: alpha(similarityColor, 0.1),
+                }}
+              />
+            </Tooltip>
             <IconButton
               size="small"
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
               onClick={(e) => {
                 e.stopPropagation();
                 handleFavoriteClick();
               }}
               sx={{
-                color: isFavorite ? 'error.main' : 'text.secondary',
+                color: isFavorite ? 'error.main' : 'text.disabled',
+                transition: 'transform 0.15s ease, color 0.15s ease',
                 '&:hover': {
                   color: 'error.main',
-                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  backgroundColor: alpha(theme.palette.error.main, 0.08),
+                  transform: 'scale(1.1)',
                 },
               }}
             >
-              {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              {isFavorite ? (
+                <FavoriteIcon fontSize="small" />
+              ) : (
+                <FavoriteBorderIcon fontSize="small" />
+              )}
             </IconButton>
           </Box>
+        </Box>
+
+        {/* Molecular Structure */}
+        <Box
+          sx={{
+            mb: 1.5,
+            height: 120,
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 3,
+            backgroundColor:
+              theme.palette.mode === 'light'
+                ? '#FBFBFA'
+                : alpha(theme.palette.common.white, 0.03),
+            border: `1px solid ${theme.palette.divider}`,
+            overflow: 'hidden',
+          }}
+        >
+          <MoleculeViewer smiles={compound.smiles} width={150} height={100} />
         </Box>
 
         {/* SMILES */}
         <Typography
           variant="body2"
-          color="text.secondary"
           sx={{
-            mb: 1.5,
-            fontFamily: 'monospace',
-            fontSize: '0.65rem',
-            lineHeight: 1.2,
+            mb: 1,
+            fontFamily: monoStack,
+            fontSize: '0.66rem',
+            lineHeight: 1.5,
+            color: 'text.secondary',
             wordBreak: 'break-all',
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -161,26 +216,6 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
           {compound.smiles}
         </Typography>
 
-        {/* Molecular Structure */}
-        <Box sx={{ 
-          mb: 1.5,
-          height: 100,
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          borderRadius: 1,
-          backgroundColor: 'grey.50',
-          border: '1px solid',
-          borderColor: 'grey.200',
-        }}>
-          <MoleculeViewer
-            smiles={compound.smiles}
-            width={120}
-            height={80}
-          />
-        </Box>
-
         {/* Expandable Properties */}
         {showProperties && (
           <>
@@ -189,137 +224,93 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
                 e.stopPropagation();
                 handleExpandClick();
               }}
-              startIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              endIcon={
+                expanded ? (
+                  <ExpandLessIcon fontSize="small" />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" />
+                )
+              }
               size="small"
-              sx={{ 
-                mb: 1,
+              aria-expanded={expanded}
+              sx={{
                 textTransform: 'none',
-                fontSize: '0.8rem',
-                fontWeight: 500,
+                fontSize: '0.78rem',
+                fontWeight: 600,
                 color: 'primary.main',
-                borderRadius: 1,
                 alignSelf: 'flex-start',
+                px: 1,
+                mx: -1,
               }}
             >
               Properties
             </Button>
 
             <Collapse in={expanded}>
-              <Box sx={{ mt: 1.5 }}>
-                <Typography sx={{ 
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  mb: 1.5,
-                }}>
-                  Predicted Properties:
-                </Typography>
-
-                <Box sx={{ 
-                  display: 'grid', 
+              <Box
+                sx={{
+                  mt: 1.5,
+                  p: 1.5,
+                  borderRadius: 2.5,
+                  backgroundColor:
+                    theme.palette.mode === 'light'
+                      ? alpha(theme.palette.primary.main, 0.04)
+                      : alpha(theme.palette.primary.main, 0.1),
+                  display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: 0.75,
-                  rowGap: 0.75,
-                }}>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
-                      Mol. Weight
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      {formatNumber(compound.molecular_weight)} g/mol
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
-                      LogP
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      {formatNumber(compound.logp)}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
-                      HBD
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      {compound.h_bond_donors ?? 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
-                      HBA
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      {compound.h_bond_acceptors ?? 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
-                      Rotatable Bonds
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      {compound.rotatable_bonds ?? 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
-                      Aromatic Rings
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
-                      {compound.aromatic_rings ?? 'N/A'}
-                    </Typography>
-                  </Box>
-                </Box>
+                  gap: 1.25,
+                }}
+              >
+                <PropertyItem
+                  label="Mol. weight"
+                  value={`${formatNumber(compound.molecular_weight)} g/mol`}
+                />
+                <PropertyItem label="LogP" value={formatNumber(compound.logp)} />
+                <PropertyItem label="H-bond donors" value={compound.h_bond_donors ?? 'N/A'} />
+                <PropertyItem
+                  label="H-bond acceptors"
+                  value={compound.h_bond_acceptors ?? 'N/A'}
+                />
+                <PropertyItem
+                  label="Rotatable bonds"
+                  value={compound.rotatable_bonds ?? 'N/A'}
+                />
+                <PropertyItem
+                  label="Aromatic rings"
+                  value={compound.aromatic_rings ?? 'N/A'}
+                />
               </Box>
             </Collapse>
           </>
         )}
       </CardContent>
 
-      <CardActions sx={{
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        px: 2,
-        py: 1.5,
-        borderTop: '1px solid',
-        borderColor: 'divider',
-        backgroundColor: 'grey.25',
-        gap: 1,
-      }}>
+      <CardActions
+        sx={{
+          justifyContent: 'flex-end',
+          px: 2.5,
+          py: 1.5,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          gap: 1,
+        }}
+      >
         <Button
           size="small"
+          variant="text"
+          onClick={(e) => e.stopPropagation()}
+          sx={{ color: 'text.secondary' }}
+        >
+          Export
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetails?.(compound);
           }}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.8rem',
-            fontWeight: 500,
-            borderRadius: 1,
-            px: 1.5,
-            py: 0.75,
-            minWidth: 'auto',
-          }}
         >
-          Details
-        </Button>
-
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={(e) => e.stopPropagation()}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.8rem',
-            fontWeight: 500,
-            borderRadius: 1,
-            px: 1.5,
-            py: 0.75,
-            minWidth: 'auto',
-          }}
-        >
-          Export
+          View details
         </Button>
       </CardActions>
     </Card>

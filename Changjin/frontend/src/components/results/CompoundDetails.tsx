@@ -108,34 +108,53 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
         sx: { minHeight: '70vh' },
       }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="h5" component="span">
+      <DialogTitle sx={{ pb: 1.5, pt: 3, px: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Box>
+            <Typography variant="h4" component="span" sx={{ display: 'block' }}>
+              {compound.pref_name || compound.chembl_id}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontFamily: 'ui-monospace, Menlo, monospace' }}
+            >
               {compound.chembl_id}
             </Typography>
-            {compound.pref_name && (
-              <Typography variant="body1" color="text.secondary" component="span">
-                {compound.pref_name}
-              </Typography>
-            )}
+          </Box>
           <Chip
-            label={formatSimilarity(compound.similarity)}
+            label={`Similarity ${formatSimilarity(compound.similarity)}`}
             color="primary"
             size="small"
-            sx={{ ml: 'auto' }}
+            sx={{ ml: 'auto', fontWeight: 600 }}
           />
         </Box>
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+      <DialogContent dividers sx={{ px: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 3,
+          }}
+        >
           {/* Left Column - Structure & Basic Info */}
           <Box>
             <Typography variant="h6" gutterBottom>
               Molecular Structure
             </Typography>
 
-            <Box sx={{ mb: 3 }}>
+            <Box
+              sx={{
+                mb: 3,
+                p: 1.5,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                display: 'inline-block',
+              }}
+            >
               <MoleculeViewer
                 smiles={compound.smiles}
                 width={300}
@@ -144,8 +163,19 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
               />
             </Box>
 
-            <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-              SMILES: {compound.smiles}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                fontFamily: 'ui-monospace, Menlo, monospace',
+                fontSize: '0.75rem',
+                wordBreak: 'break-all',
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: 'action.hover',
+              }}
+            >
+              {compound.smiles}
             </Typography>
           </Box>
 
@@ -240,15 +270,15 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>
+      <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+        <Button onClick={onClose} sx={{ mr: 'auto', color: 'text.secondary' }}>
           Close
         </Button>
-        <Button variant="contained" color="primary">
-          Export Data
-        </Button>
         <Button variant="outlined">
-          Add to Favorites
+          Add to favorites
+        </Button>
+        <Button variant="contained" color="primary">
+          Export data
         </Button>
       </DialogActions>
     </Dialog>

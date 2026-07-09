@@ -98,15 +98,12 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          bgcolor: 'grey.50',
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'grey.200',
+          borderRadius: 2,
         }}
       >
-        <CircularProgress size={40} sx={{ mb: 2 }} />
-        <Typography variant="body2" color="text.secondary">
-          Loading structure...
+        <CircularProgress size={28} sx={{ mb: 1.5 }} />
+        <Typography variant="caption" color="text.secondary">
+          Loading structure…
         </Typography>
       </Box>
     );
@@ -120,10 +117,7 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
         sx={{
           width,
           height,
-          bgcolor: 'grey.50',
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'grey.200',
+          borderRadius: 2,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

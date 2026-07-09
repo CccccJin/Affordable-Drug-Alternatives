@@ -16,7 +16,7 @@ import {
 import {
   ExpandMore as ExpandMoreIcon,
   Clear as ClearIcon,
-  Science as ScienceIcon,
+  TuneOutlined as TuneIcon,
 } from '@mui/icons-material';
 
 export interface PropertyFilters {
@@ -68,19 +68,16 @@ const FILTER_RANGES: Record<string, FilterRange> = {
 const FILTER_CATEGORIES = [
   {
     title: 'Basic Properties',
-    icon: '⚖️',
     properties: ['molWeight', 'logp'],
     description: 'Molecular weight & lipophilicity',
   },
   {
     title: 'Hydrogen Bonding',
-    icon: '🔗',
     properties: ['hbd', 'hba'],
     description: 'H-bond donors & acceptors',
   },
   {
     title: 'Structural Properties',
-    icon: '🔬',
     properties: ['psa', 'rtb'],
     description: 'Surface area & flexibility',
   },
@@ -179,24 +176,23 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
         }}
       >
         <Paper
-          elevation={activeFiltersInCategory ? 3 : 1}
+          elevation={0}
           sx={{
-            p: 2,
+            p: 2.5,
             height: '100%',
-            border: activeFiltersInCategory ? '2px solid' : '1px solid',
+            border: '1px solid',
             borderColor: activeFiltersInCategory ? 'primary.main' : 'divider',
-            borderRadius: 2,
-            transition: 'all 0.2s ease-in-out',
+            borderRadius: 3,
+            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            boxShadow: activeFiltersInCategory
+              ? '0 0 0 3px rgba(99,102,241,0.10)'
+              : 'none',
             '&:hover': {
-              elevation: 2,
               borderColor: 'primary.light',
             },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant="body2" sx={{ mr: 1 }}>
-              {category.icon}
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               {category.title}
             </Typography>
@@ -325,13 +321,13 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
   };
 
   return (
-    <Card className={className} elevation={1}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+    <Card className={className} elevation={0}>
+      <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ScienceIcon color={hasActiveFilters ? 'primary' : 'disabled'} />
+            <TuneIcon color={hasActiveFilters ? 'primary' : 'disabled'} fontSize="small" />
             <Typography variant="h6">
-              Property Filters
+              Property filters
             </Typography>
             {hasActiveFilters && (
               <Chip
@@ -358,9 +354,11 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
             <IconButton
               size="small"
               onClick={() => setExpanded(!expanded)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse property filters' : 'Expand property filters'}
               sx={{
                 transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s',
+                transition: 'transform 0.25s cubic-bezier(0.22,1,0.36,1)',
               }}
             >
               <ExpandMoreIcon />
@@ -385,22 +383,18 @@ export const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = (
             {FILTER_CATEGORIES.map(category => renderCompactFilterCard(category))}
           </Box>
 
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              💡 <strong>Tip:</strong> Use the range sliders above to filter compounds by molecular properties.
-              Click the clear buttons (×) next to individual properties to remove specific filters, or use "Clear All" to remove all filters at once.
-              Active filters are highlighted with colored borders.
-            </Typography>
-          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2.5 }}>
+            <strong>Tip:</strong> use the range sliders to filter compounds by molecular
+            properties. Clear individual properties with the × buttons, or remove
+            everything with "Clear All". Active filter groups are highlighted.
+          </Typography>
         </Collapse>
 
         {!expanded && !hasActiveFilters && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Click to expand and filter compounds by molecular properties, hydrogen bonding,
-              lipophilicity, and structural characteristics.
-            </Typography>
-          </Box>
+          <Typography variant="body2" color="text.secondary">
+            Expand to filter compounds by molecular properties, hydrogen bonding,
+            lipophilicity, and structural characteristics.
+          </Typography>
         )}
       </CardContent>
     </Card>

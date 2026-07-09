@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Card,
-  CardContent,
   List,
   ListItem,
   ListItemButton,
@@ -11,24 +10,28 @@ import {
   ListItemIcon,
   Chip,
   Button,
-  Alert,
   Divider,
   IconButton,
   CircularProgress,
+  Tooltip,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
-  History as HistoryIcon,
+  HistoryOutlined as HistoryIcon,
   Search as SearchIcon,
-  Clear as ClearIcon,
-  ContentCopy as CopyIcon,
+  DeleteOutline as ClearIcon,
+  ContentCopyOutlined as CopyIcon,
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import type { RootState } from '../../store/store';
 import { clearHistory } from '../../store/slices/searchSlice';
 import { useCompoundSearch } from '../../hooks/useSearch';
+import { monoStack } from '../../styles/theme';
 
 export const History: React.FC = () => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const searchHistory = useSelector((state: RootState) => state.search.history);
@@ -44,7 +47,7 @@ export const History: React.FC = () => {
     navigator.clipboard.writeText(query);
   };
 
-  const handleHistoryItemClick = async (entry: typeof searchHistory[0]) => {
+  const handleHistoryItemClick = async (entry: (typeof searchHistory)[0]) => {
     setSearchingItem(entry.id);
 
     try {
@@ -54,7 +57,6 @@ export const History: React.FC = () => {
         await searchByName(entry.query, false); // Use regular search for history
       }
 
-      // Navigate to results page with query parameters
       const params = new URLSearchParams({
         query: entry.query,
         type: entry.type,
@@ -62,10 +64,8 @@ export const History: React.FC = () => {
       });
 
       navigate(`/results?${params.toString()}`);
-
     } catch (error) {
       console.error('Error rerunning historical search:', error);
-      // Could add error handling here - show a toast or alert
     } finally {
       setSearchingItem(null);
     }
@@ -85,119 +85,196 @@ export const History: React.FC = () => {
     }
   };
 
-  const getSearchTypeColor = (type: 'smiles' | 'name') => {
-    return type === 'smiles' ? 'primary' : 'secondary';
-  };
+  const pageHeader = (
+    <Box
+      className="anim-fade-up"
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        flexWrap: 'wrap',
+        gap: 2,
+        mb: 4,
+      }}
+    >
+      <Box>
+        <Typography
+          variant="overline"
+          sx={{ color: 'primary.main', display: 'block', mb: 0.5 }}
+        >
+          Activity
+        </Typography>
+        <Typography variant="h2" component="h1" sx={{ mb: 1 }}>
+          Search history
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {searchHistory.length === 0
+            ? 'Your recent searches will appear here'
+            : `${searchHistory.length} recent ${searchHistory.length === 1 ? 'search' : 'searches'} — click any entry to rerun it`}
+        </Typography>
+      </Box>
 
-  const getSearchTypeLabel = (type: 'smiles' | 'name') => {
-    return type === 'smiles' ? 'SMILES' : 'Name';
-  };
+      {searchHistory.length > 0 && (
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<ClearIcon />}
+          onClick={handleClearHistory}
+        >
+          Clear history
+        </Button>
+      )}
+    </Box>
+  );
 
   if (searchHistory.length === 0) {
     return (
-      <Box>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Search History
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Your recent searches will appear here
-          </Typography>
-        </Box>
+      <Box sx={{ maxWidth: 880, mx: 'auto' }}>
+        {pageHeader}
 
-        <Card elevation={2}>
-          <CardContent>
-            <Box sx={{
+        <Card elevation={0} className="anim-fade-up anim-delay-1">
+          <Box
+            sx={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              py: 8,
+              py: 10,
+              px: 3,
               textAlign: 'center',
-            }}>
-              <HistoryIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No Search History
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Start searching for compounds to see your history here. Click on any previous search to rerun it!
-              </Typography>
+            }}
+          >
+            <Box
+              sx={{
+                width: 72,
+                height: 72,
+                borderRadius: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 3,
+                backgroundColor: alpha(theme.palette.primary.main, 0.07),
+                color: 'primary.main',
+              }}
+            >
+              <HistoryIcon sx={{ fontSize: 34 }} />
             </Box>
-          </CardContent>
+            <Typography variant="h5" gutterBottom>
+              No searches yet
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ maxWidth: 380, mb: 3 }}
+            >
+              Start searching for compounds and your ten most recent queries will
+              be saved here, ready to rerun with a single click.
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<SearchIcon />}
+              onClick={() => navigate('/search')}
+            >
+              Start searching
+            </Button>
+          </Box>
         </Card>
       </Box>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 3
-      }}>
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Search History
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {searchHistory.length} recent {searchHistory.length === 1 ? 'search' : 'searches'}
-          </Typography>
-        </Box>
+    <Box sx={{ maxWidth: 880, mx: 'auto' }}>
+      {pageHeader}
 
-        {searchHistory.length > 0 && (
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<ClearIcon />}
-            onClick={handleClearHistory}
-            size="small"
-          >
-            Clear History
-          </Button>
-        )}
-      </Box>
-
-      <Card elevation={2}>
-        <CardContent sx={{ p: 0 }}>
-          <List>
-            {searchHistory.map((entry, index) => (
-              <React.Fragment key={entry.id}>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    onClick={() => handleHistoryItemClick(entry)}
-                    disabled={searchingItem === entry.id}
-                    sx={{
-                      px: 3,
-                      py: 2,
-                      cursor: searchingItem === entry.id ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    <ListItemIcon>
-                      {searchingItem === entry.id ? (
-                        <CircularProgress size={20} color="primary" />
-                      ) : (
-                        <SearchIcon color="primary" />
-                      )}
-                    </ListItemIcon>
+      <Card elevation={0} className="anim-fade-up anim-delay-1">
+        <List disablePadding>
+          {searchHistory.map((entry, index) => (
+            <React.Fragment key={entry.id}>
+              <ListItem
+                disablePadding
+                secondaryAction={
+                  <Tooltip title="Copy query">
+                    <IconButton
+                      edge="end"
+                      size="small"
+                      aria-label="Copy query"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyQuery(entry.query);
+                      }}
+                      sx={{
+                        color: 'text.disabled',
+                        '&:hover': {
+                          color: 'primary.main',
+                          backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                        },
+                      }}
+                    >
+                      <CopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                }
+              >
+                <ListItemButton
+                  onClick={() => handleHistoryItemClick(entry)}
+                  disabled={searchingItem === entry.id}
+                  sx={{
+                    px: 3,
+                    py: 2,
+                    transition: 'background-color 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 44 }}>
+                    {searchingItem === entry.id ? (
+                      <CircularProgress size={20} color="primary" />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                          color: 'primary.main',
+                        }}
+                      >
+                        <SearchIcon sx={{ fontSize: 18 }} />
+                      </Box>
+                    )}
+                  </ListItemIcon>
 
                   <ListItemText
                     primary={
-                      <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mb: 0.5
-                      }}>
-                        <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                          "{entry.query}"
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          mb: 0.25,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: entry.type === 'smiles' ? monoStack : 'inherit',
+                            fontWeight: 600,
+                            wordBreak: 'break-all',
+                          }}
+                        >
+                          {entry.query}
                         </Typography>
                         <Chip
-                          label={getSearchTypeLabel(entry.type)}
-                          color={getSearchTypeColor(entry.type)}
+                          label={entry.type === 'smiles' ? 'SMILES' : 'Name'}
                           size="small"
                           variant="outlined"
+                          sx={{ height: 20, fontSize: '0.65rem' }}
                         />
                       </Box>
                     }
@@ -207,57 +284,22 @@ export const History: React.FC = () => {
                       </Typography>
                     }
                   />
-
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopyQuery(entry.query);
-                    }}
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': {
-                        color: 'primary.main',
-                        backgroundColor: 'primary.main',
-                        opacity: 0.1,
-                      },
-                    }}
-                  >
-                    <CopyIcon fontSize="small" />
-                  </IconButton>
                 </ListItemButton>
-                </ListItem>
-                {index < searchHistory.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
-        </CardContent>
+              </ListItem>
+              {index < searchHistory.length - 1 && <Divider component="li" />}
+            </React.Fragment>
+          ))}
+        </List>
       </Card>
 
-      <Alert severity="info" sx={{ mt: 3, textAlign: 'left' }}>
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Tips:
-          </Typography>
-          <Box component="ul" sx={{
-            mt: 0,
-            mb: 0,
-            pl: 2,
-            '& li': {
-              mb: 0.5,
-              lineHeight: 1.4,
-              fontSize: '0.875rem'
-            },
-            '& li:last-child': {
-              mb: 0
-            }
-          }}>
-            <li>Click on any search to rerun it and see results</li>
-            <li>Click the copy icon to copy queries for reuse</li>
-            <li>History is automatically saved and limited to your 10 most recent searches</li>
-          </Box>
-        </Box>
-      </Alert>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mt: 2.5, textAlign: 'center' }}
+        className="anim-fade-up anim-delay-2"
+      >
+        History is saved locally and limited to your 10 most recent searches.
+      </Typography>
     </Box>
   );
 };
