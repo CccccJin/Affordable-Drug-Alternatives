@@ -30,6 +30,7 @@ import {
 } from '../../store/slices/searchSlice';
 import { useCompoundSearch } from '../../hooks/useSearch';
 import { AdvancedPropertyFilters } from '../filters/AdvancedPropertyFilters';
+import { ResearchResults } from '../research/ResearchResults';
 import { brand, serifStack } from '../../styles/theme';
 
 const FEATURES = [
@@ -128,6 +129,7 @@ export const SearchForm: React.FC = () => {
   });
 
   return (
+    <>
     <Box sx={{ maxWidth: 880, mx: 'auto' }}>
       {/* Hero */}
       <Box className="anim-fade-up" sx={{ textAlign: 'center', mb: { xs: 4, md: 6 }, pt: { xs: 2, md: 5 } }}>
@@ -310,22 +312,14 @@ export const SearchForm: React.FC = () => {
         </Button>
       </Paper>
 
-      {/* Advanced Property Filters */}
-      <Box className="anim-fade-up anim-delay-2">
-        <AdvancedPropertyFilters
-          filters={localFilters}
-          onFiltersChange={handleFiltersChange}
-        />
-      </Box>
-
       {/* Feature cards */}
       <Box
-        className="anim-fade-up anim-delay-3"
+        className="anim-fade-up anim-delay-2"
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
           gap: 2,
-          mt: 3,
+          mb: 3,
         }}
       >
         {FEATURES.map((feature) => (
@@ -368,6 +362,20 @@ export const SearchForm: React.FC = () => {
           </Paper>
         ))}
       </Box>
+
+      {/* Advanced Property Filters */}
+      <Box className="anim-fade-up anim-delay-3">
+        <AdvancedPropertyFilters
+          filters={localFilters}
+          onFiltersChange={handleFiltersChange}
+        />
+      </Box>
     </Box>
+
+    {/* Research Results — directly below the property filter, wider column for charts */}
+    <Box sx={{ maxWidth: 1040, mx: 'auto' }}>
+      <ResearchResults />
+    </Box>
+    </>
   );
 };
