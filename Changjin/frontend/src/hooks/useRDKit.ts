@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { rdkitService, type MoleculeProperties } from '../services/rdkit/rdkitService';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { rdkitService, type MoleculeProperties, type RDKitSVGOptions } from '../services/rdkit/rdkitService';
+
+export type { RDKitSVGOptions };
 
 export interface UseRDKitReturn {
   isLoading: boolean;
@@ -10,92 +12,81 @@ export interface UseRDKitReturn {
   getMoleculeProperties: (smiles: string) => Promise<MoleculeProperties>;
 }
 
-export interface RDKitSVGOptions {
-  width?: number;
-  height?: number;
-  bondLength?: number;
-  atomColor?: string;
-  bondColor?: string;
-  backgroundColor?: string;
-}
-
 export const useRDKit = (): UseRDKitReturn => {
-  const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(rdkitService.isLoaded());
+  const [isLoading, setIsLoading] = useState(!rdkitService.isLoaded());
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const loadRDKit = useCallback(async () => {
-    if (isLoaded || isLoading) return;
+    if (rdkitService.isLoaded()) {
+      if (mountedRef.current) {
+        setIsLoaded(true);
+        setIsLoading(false);
+      }
+      return;
+    }
 
-    setIsLoading(true);
-    setError(null);
+    if (mountedRef.current) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
       await rdkitService.loadRDKit();
-      setIsLoaded(true);
-      console.log('RDKit loaded successfully in hook');
+      if (mountedRef.current) {
+        setIsLoaded(true);
+        setError(null);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load RDKit';
-      setError(errorMessage);
+      const message = err instanceof Error ? err.message : 'Failed to load RDKit';
       console.error('RDKit loading failed:', err);
+      if (mountedRef.current) setError(message);
     } finally {
-      setIsLoading(false);
+      // Always clear the spinner, success or failure — otherwise the molecule
+      // viewer spins forever.
+      if (mountedRef.current) setIsLoading(false);
     }
-  }, [isLoaded, isLoading]);
+  }, []);
 
-  const getMoleculeSVG = useCallback(async (
-    smiles: string,
-    options?: RDKitSVGOptions
-  ): Promise<string> => {
-    if (!isLoaded) {
-      await loadRDKit();
-    }
+  const getMoleculeSVG = useCallback(
+    async (smiles: string, options?: RDKitSVGOptions): Promise<string> => {
+      await rdkitService.loadRDKit();
 
-    try {
       const molecule = await rdkitService.getMolecule(smiles);
-      const svg = rdkitService.getSVG(molecule, options);
-
-      // Clean up molecule object
-      if (molecule && molecule.delete) {
+      try {
+        return rdkitService.getSVG(molecule, options);
+      } finally {
         molecule.delete();
       }
-
-      return svg;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate SVG';
-      setError(errorMessage);
-      throw new Error(`SVG generation failed: ${errorMessage}`);
-    }
-  }, [isLoaded, loadRDKit]);
+    },
+    []
+  );
 
   const getMoleculeProperties = useCallback(async (smiles: string): Promise<MoleculeProperties> => {
-    if (!isLoaded) {
-      await loadRDKit();
-    }
+    await rdkitService.loadRDKit();
 
+    const molecule = await rdkitService.getMolecule(smiles);
     try {
-      const molecule = await rdkitService.getMolecule(smiles);
-      const properties = rdkitService.getProperties(molecule);
-
-      // Clean up molecule object
-      if (molecule && molecule.delete) {
-        molecule.delete();
-      }
-
-      return properties;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get properties';
-      setError(errorMessage);
-      throw new Error(`Property calculation failed: ${errorMessage}`);
+      return rdkitService.getProperties(molecule);
+    } finally {
+      molecule.delete();
     }
-  }, [isLoaded, loadRDKit]);
+  }, []);
 
-  // Auto-load RDKit when hook is first used
+  // Kick off the (shared, de-duplicated) module load on first use.
   useEffect(() => {
-    if (!isLoaded && !isLoading) {
+    if (!rdkitService.isLoaded()) {
       loadRDKit();
     }
-  }, [isLoaded, isLoading, loadRDKit]);
+  }, [loadRDKit]);
 
   return {
     isLoading,

@@ -1,28 +1,28 @@
-// RDKit Service - Improved CDN loading with multiple fallbacks
+// RDKit Service - loads the RDKit WASM module and renders molecules.
+//
+// RDKit_minimal.js does NOT expose `window.RDKit` on its own: it defines a
+// factory `window.initRDKitModule()` that returns a promise resolving to the
+// module. The factory must be called (and awaited) before any molecule can be
+// built.
 declare global {
   interface Window {
-    RDKit: RDKitInstance;
+    RDKit?: RDKitInstance;
+    initRDKitModule?: (options?: { locateFile?: (file: string) => string }) => Promise<RDKitInstance>;
   }
 }
 
-// Define proper interfaces for RDKit objects
 interface RDKitInstance {
   get_mol(smiles: string): RDKitMolecule | null;
-  delete(): void;
+  version?: () => string;
 }
 
 interface RDKitMolecule {
-  get_svg_with_highlights(options: string): string;
-  get_prop(propName: string): string | null;
+  is_valid(): boolean;
+  get_svg(width: number, height: number): string;
+  get_descriptors(): string;
+  normalize_depiction?: (canonicalize?: number, scaleFactor?: number) => number;
+  straighten_depiction?: (minimizeRotation?: boolean) => void;
   delete(): void;
-}
-
-export interface RDKitService {
-  isLoaded(): boolean;
-  getMolecule(smiles: string): Promise<RDKitMolecule>;
-  getSVG(molecule: RDKitMolecule, options?: RDKitSVGOptions): string;
-  getProperties(molecule: RDKitMolecule): MoleculeProperties;
-  cleanup(): void;
 }
 
 export interface RDKitSVGOptions {
@@ -44,237 +44,224 @@ export interface MoleculeProperties {
   aromaticRingCount: number;
 }
 
-class RDKitServiceImpl implements RDKitService {
-  private rdkit: RDKitInstance | null = null;
-  private isLoading = false;
-  private loadPromise: Promise<RDKitInstance> | null = null;
+/** Raw descriptor payload returned by JSMol.get_descriptors(). */
+interface RDKitDescriptors {
+  amw?: number;
+  exactmw?: number;
+  CrippenClogP?: number;
+  lipinskiHBD?: number;
+  NumHBD?: number;
+  lipinskiHBA?: number;
+  NumHBA?: number;
+  NumRotatableBonds?: number;
+  NumRings?: number;
+  NumAromaticRings?: number;
+}
 
-  async loadRDKit(): Promise<RDKitInstance> {
-    if (this.rdkit) {
-      return this.rdkit;
-    }
+/** Where to fetch RDKit from: local copy first, CDNs only as a fallback. */
+const RDKIT_SOURCES: { js: string; wasmDir: string }[] = [
+  {
+    js: new URL('rdkit/RDKit_minimal.js', document.baseURI).href,
+    wasmDir: new URL('rdkit/', document.baseURI).href,
+  },
+  {
+    js: 'https://unpkg.com/@rdkit/rdkit@2025.3.4-1.0.0/dist/RDKit_minimal.js',
+    wasmDir: 'https://unpkg.com/@rdkit/rdkit@2025.3.4-1.0.0/dist/',
+  },
+  {
+    js: 'https://cdn.jsdelivr.net/npm/@rdkit/rdkit@2025.3.4-1.0.0/dist/RDKit_minimal.js',
+    wasmDir: 'https://cdn.jsdelivr.net/npm/@rdkit/rdkit@2025.3.4-1.0.0/dist/',
+  },
+];
 
-    if (this.isLoading && this.loadPromise) {
-      return this.loadPromise;
-    }
+/** Hard cap per source so a stalled request can never hang the spinner. */
+const SCRIPT_TIMEOUT_MS = 20000;
+const INIT_TIMEOUT_MS = 45000;
 
-    this.isLoading = true;
-
-    this.loadPromise = new Promise<RDKitInstance>((resolve, reject) => {
-      // Check if RDKit is already available globally
-      if (window.RDKit && typeof window.RDKit.get_mol === 'function') {
-        this.rdkit = window.RDKit;
-        console.log('RDKit already loaded globally');
-        resolve(window.RDKit);
-        return;
-      }
-
-      // Try multiple CDN URLs with fallbacks
-      this.loadRDKitWithFallbacks().then((rdkitInstance: RDKitInstance) => {
-        this.rdkit = rdkitInstance;
-        window.RDKit = rdkitInstance;
-        console.log('RDKit loaded from CDN successfully');
-        resolve(rdkitInstance);
-      }).catch((error: unknown) => {
-        console.error('Failed to load RDKit from all CDN sources:', error);
-        this.isLoading = false;
-        this.loadPromise = null;
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
         reject(error);
-      });
-    });
-
-    return this.loadPromise;
-  }
-
-  private async loadRDKitWithFallbacks(): Promise<RDKitInstance> {
-    // Try multiple CDN URLs in order of preference
-    const cdnUrls = [
-      'https://unpkg.com/@rdkit/rdkit@2024.3.5/dist/RDKit_minimal.js',
-      'https://cdn.jsdelivr.net/npm/@rdkit/rdkit@2024.3.5/dist/RDKit_minimal.js',
-      'https://unpkg.com/@rdkit/rdkit@latest/dist/RDKit_minimal.js',
-      'https://cdn.jsdelivr.net/npm/@rdkit/rdkit@latest/dist/RDKit_minimal.js'
-    ];
-
-    for (const url of cdnUrls) {
-      try {
-        console.log(`Trying to load RDKit from: ${url}`);
-        const result = await this.loadScript(url);
-        console.log(`Successfully loaded RDKit from: ${url}`);
-        return result;
-      } catch (error) {
-        console.warn(`Failed to load RDKit from ${url}:`, error);
-        // Continue to next URL
       }
-    }
+    );
+  });
+};
 
-    throw new Error('Failed to load RDKit from all CDN sources');
-  }
-
-  private async loadScript(url: string): Promise<RDKitInstance> {
-    return new Promise<RDKitInstance>((resolve, reject) => {
-      // Check if already loaded
-      if (window.RDKit && typeof window.RDKit.get_mol === 'function') {
-        resolve(window.RDKit);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = url;
-      script.crossOrigin = 'anonymous';
-      
-      script.onload = () => {
-        console.log(`Script loaded successfully: ${url}`);
-        // Wait for RDKit to be available globally
-        const checkRDKit = () => {
-          if (window.RDKit && typeof window.RDKit.get_mol === 'function') {
-            console.log('RDKit instance found in global scope');
-            resolve(window.RDKit);
-          } else if (window.RDKit) {
-            console.log('RDKit found but get_mol method not available yet, waiting...');
-            setTimeout(checkRDKit, 200);
-          } else {
-            console.log('RDKit not found in global scope yet, waiting...');
-            setTimeout(checkRDKit, 200);
-          }
-        };
-        
-        // Start checking immediately and then with longer intervals
-        setTimeout(checkRDKit, 100);
-      };
-      
-      script.onerror = (event) => {
-        console.error(`Script failed to load: ${url}`, event);
-        reject(new Error(`Failed to load RDKit from ${url}`));
-      };
-      
-      document.head.appendChild(script);
-    });
-  }
+class RDKitServiceImpl {
+  private rdkit: RDKitInstance | null = null;
+  private loadPromise: Promise<RDKitInstance> | null = null;
 
   isLoaded(): boolean {
     return this.rdkit !== null && typeof this.rdkit.get_mol === 'function';
   }
 
-  async getMolecule(smiles: string): Promise<RDKitMolecule> {
-    if (!this.rdkit) {
-      await this.loadRDKit();
-    }
+  async loadRDKit(): Promise<RDKitInstance> {
+    if (this.rdkit) return this.rdkit;
+    // De-duplicate concurrent callers: every MoleculeViewer on the page asks
+    // for RDKit at once, but only one download/init should happen.
+    if (this.loadPromise) return this.loadPromise;
 
-    if (!this.rdkit) {
-      throw new Error('RDKit not loaded');
-    }
-
-    try {
-      const molecule = this.rdkit.get_mol(smiles);
-      if (!molecule) {
-        throw new Error(`Invalid SMILES: ${smiles}`);
-      }
-      return molecule;
-    } catch (error) {
-      console.error('Error creating molecule:', error);
+    this.loadPromise = this.loadFromSources().catch((error) => {
+      // Allow a later retry instead of caching the rejection forever.
+      this.loadPromise = null;
       throw error;
+    });
+
+    return this.loadPromise;
+  }
+
+  private async loadFromSources(): Promise<RDKitInstance> {
+    if (window.RDKit && typeof window.RDKit.get_mol === 'function') {
+      this.rdkit = window.RDKit;
+      return this.rdkit;
     }
+
+    let lastError: unknown = new Error('No RDKit source configured');
+
+    for (const source of RDKIT_SOURCES) {
+      try {
+        await withTimeout(
+          this.loadScript(source.js),
+          SCRIPT_TIMEOUT_MS,
+          `Timed out loading ${source.js}`
+        );
+
+        if (typeof window.initRDKitModule !== 'function') {
+          throw new Error('initRDKitModule was not defined by the RDKit script');
+        }
+
+        const instance = await withTimeout(
+          window.initRDKitModule({ locateFile: (file: string) => `${source.wasmDir}${file}` }),
+          INIT_TIMEOUT_MS,
+          'Timed out initialising the RDKit WASM module'
+        );
+
+        if (!instance || typeof instance.get_mol !== 'function') {
+          throw new Error('RDKit module initialised without get_mol()');
+        }
+
+        this.rdkit = instance;
+        window.RDKit = instance;
+        return instance;
+      } catch (error) {
+        console.warn(`RDKit unavailable from ${source.js}:`, error);
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
+
+  private loadScript(url: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (typeof window.initRDKitModule === 'function') {
+        resolve();
+        return;
+      }
+
+      const existing = document.querySelector<HTMLScriptElement>(`script[data-rdkit-src="${url}"]`);
+      if (existing) {
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(new Error(`Failed to load ${url}`)), {
+          once: true,
+        });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.dataset.rdkitSrc = url;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        script.remove();
+        reject(new Error(`Failed to load ${url}`));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  async getMolecule(smiles: string): Promise<RDKitMolecule> {
+    const rdkit = this.rdkit ?? (await this.loadRDKit());
+
+    const molecule = rdkit.get_mol(smiles);
+    if (!molecule) {
+      throw new Error(`Invalid SMILES: ${smiles}`);
+    }
+    if (typeof molecule.is_valid === 'function' && !molecule.is_valid()) {
+      molecule.delete();
+      throw new Error(`Invalid SMILES: ${smiles}`);
+    }
+    return molecule;
   }
 
   getSVG(molecule: RDKitMolecule, options: RDKitSVGOptions = {}): string {
-    if (!this.rdkit) {
-      throw new Error('RDKit not loaded');
-    }
+    const { width = 250, height = 200 } = options;
 
-    const {
-      width = 250,
-      height = 200,
-      bondLength = 30,
-      atomColor = '#000000',
-      bondColor = '#000000',
-      backgroundColor = 'transparent',
-    } = options;
-
+    // Tidy the 2D depiction so bonds are evenly scaled inside the viewport.
     try {
-      if (typeof molecule.get_svg_with_highlights === 'function') {
-        const svg = molecule.get_svg_with_highlights(JSON.stringify({
-          width,
-          height,
-          bondLength,
-          atomColor,
-          bondColor,
-          backgroundColor,
-        }));
-        return svg;
-      } else {
-        throw new Error('get_svg_with_highlights method not available');
-      }
+      molecule.normalize_depiction?.(1);
+      molecule.straighten_depiction?.();
     } catch (error) {
-      console.error('Error generating SVG:', error);
-      return this.getFallbackSVG(options);
+      console.warn('Could not normalise depiction, drawing as-is:', error);
     }
+
+    const svg = molecule.get_svg(width, height);
+    if (!svg || !svg.includes('<svg')) {
+      throw new Error('RDKit returned an empty drawing');
+    }
+
+    return (
+      svg
+        // The XML prolog is invalid inside an HTML document fragment.
+        .replace(/<\?xml[^?]*\?>/, '')
+        // Drop RDKit's opaque white backdrop so the card background shows
+        // through. Neutralise the fill rather than deleting the element, which
+        // would orphan its closing tag.
+        .replace("fill:#FFFFFF", 'fill:none')
+        .trim()
+    );
   }
 
   getProperties(molecule: RDKitMolecule): MoleculeProperties {
-    if (!this.rdkit) {
-      throw new Error('RDKit not loaded');
-    }
+    const empty: MoleculeProperties = {
+      molecularWeight: 0,
+      logP: 0,
+      hBondDonors: 0,
+      hBondAcceptors: 0,
+      rotatableBonds: 0,
+      ringCount: 0,
+      aromaticRingCount: 0,
+    };
 
     try {
-      if (typeof molecule.get_prop === 'function') {
-        return {
-          molecularWeight: parseFloat(molecule.get_prop('_Name') || '0'),
-          logP: parseFloat(molecule.get_prop('logP') || '0'),
-          hBondDonors: parseInt(molecule.get_prop('hbd') || '0'),
-          hBondAcceptors: parseInt(molecule.get_prop('hba') || '0'),
-          rotatableBonds: parseInt(molecule.get_prop('rtb') || '0'),
-          ringCount: parseInt(molecule.get_prop('ring_count') || '0'),
-          aromaticRingCount: parseInt(molecule.get_prop('aromatic_ring_count') || '0'),
-        };
-      } else {
-        return {
-          molecularWeight: 0,
-          logP: 0,
-          hBondDonors: 0,
-          hBondAcceptors: 0,
-          rotatableBonds: 0,
-          ringCount: 0,
-          aromaticRingCount: 0,
-        };
-      }
-    } catch (error) {
-      console.error('Error getting properties:', error);
+      const descriptors = JSON.parse(molecule.get_descriptors()) as RDKitDescriptors;
       return {
-        molecularWeight: 0,
-        logP: 0,
-        hBondDonors: 0,
-        hBondAcceptors: 0,
-        rotatableBonds: 0,
-        ringCount: 0,
-        aromaticRingCount: 0,
+        molecularWeight: descriptors.amw ?? descriptors.exactmw ?? 0,
+        logP: descriptors.CrippenClogP ?? 0,
+        hBondDonors: descriptors.lipinskiHBD ?? descriptors.NumHBD ?? 0,
+        hBondAcceptors: descriptors.lipinskiHBA ?? descriptors.NumHBA ?? 0,
+        rotatableBonds: descriptors.NumRotatableBonds ?? 0,
+        ringCount: descriptors.NumRings ?? 0,
+        aromaticRingCount: descriptors.NumAromaticRings ?? 0,
       };
+    } catch (error) {
+      console.error('Error reading molecule descriptors:', error);
+      return empty;
     }
   }
 
   cleanup(): void {
-    if (this.rdkit && typeof this.rdkit.delete === 'function') {
-      this.rdkit.delete();
-    }
     this.rdkit = null;
-    this.isLoading = false;
     this.loadPromise = null;
-  }
-
-  private getFallbackSVG(options: RDKitSVGOptions): string {
-    const { width = 250, height = 200 } = options;
-
-    return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
-      <circle cx="${width/2}" cy="${height/2 - 20}" r="20" fill="#6c757d"/>
-      <text x="${width/2}" y="${height/2 + 15}" text-anchor="middle" font-family="Arial" font-size="12" fill="#6c757d">
-        Structure Preview
-      </text>
-      <text x="${width/2}" y="${height/2 + 35}" text-anchor="middle" font-family="Arial" font-size="10" fill="#adb5bd">
-        (RDKit not available)
-      </text>
-    </svg>`;
   }
 }
 
-// Singleton instance
 export const rdkitService = new RDKitServiceImpl();

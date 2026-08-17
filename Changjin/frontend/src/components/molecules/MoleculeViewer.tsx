@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Alert, CircularProgress } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { useRDKit } from '../../hooks/useRDKit';
 
 export interface MoleculeViewerProps {
@@ -20,6 +20,13 @@ interface MoleculeProperties {
   aromaticRingCount: number;
 }
 
+const placeholderSVG = (w: number, h: number, message: string): string =>
+  `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="6"/>
+    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+      font-family="Inter, Arial, sans-serif" font-size="11" fill="#8a8f98">${message}</text>
+  </svg>`;
+
 export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
   smiles,
   width = 250,
@@ -30,77 +37,89 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
   const { isLoading, isLoaded, error, getMoleculeSVG, getMoleculeProperties } = useRDKit();
   const [svgContent, setSvgContent] = useState<string>('');
   const [properties, setProperties] = useState<MoleculeProperties | null>(null);
-  const [loading, setLoading] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [rendering, setRendering] = useState(false);
 
   useEffect(() => {
-    if (!smiles || !isLoaded) return;
+    // Nothing to draw yet: don't leave a spinner hanging on an empty SMILES.
+    if (!smiles) {
+      setSvgContent('');
+      setProperties(null);
+      setRendering(false);
+      return;
+    }
+    // Wait until the module is ready; this effect re-runs when isLoaded flips.
+    if (!isLoaded) return;
+
+    let cancelled = false;
+    setRendering(true);
 
     const loadMolecule = async () => {
-      setLoading(true);
       try {
-        // Generate SVG
-        const svgOptions = {
+        const svg = await getMoleculeSVG(smiles, {
           width,
           height,
           bondLength: Math.min(width, height) / 8,
-        };
+        });
+        if (!cancelled) setSvgContent(svg);
 
-        const svg = await getMoleculeSVG(smiles, svgOptions);
-        setSvgContent(svg);
-
-        // Get properties if requested
         if (showProperties) {
           const moleculeProps = await getMoleculeProperties(smiles);
-          setProperties(moleculeProps);
+          if (!cancelled) setProperties(moleculeProps);
         }
       } catch (err) {
-        console.error('Error loading molecule:', err);
-        setSvgContent(getFallbackSVG(width, height));
+        console.error('Error rendering molecule:', err);
+        if (!cancelled) {
+          setSvgContent(placeholderSVG(width, height, 'Structure unavailable'));
+          setProperties(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setRendering(false);
       }
     };
 
     loadMolecule();
+
+    return () => {
+      cancelled = true;
+    };
   }, [smiles, isLoaded, width, height, showProperties, getMoleculeSVG, getMoleculeProperties]);
 
-  const getFallbackSVG = (w: number, h: number): string => {
-    return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
-      <circle cx="${w/2}" cy="${h/2 - 20}" r="20" fill="#6c757d"/>
-      <text x="${w/2}" y="${h/2 + 15}" text-anchor="middle" font-family="Arial" font-size="12" fill="#6c757d">
-        Structure Preview
-      </text>
-      <text x="${w/2}" y="${h/2 + 35}" text-anchor="middle" font-family="Arial" font-size="10" fill="#adb5bd">
-        (RDKit not available)
-      </text>
-    </svg>`;
+  const frameSx = {
+    width,
+    height,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 2,
   };
 
-  if (error) {
+  // RDKit itself failed to load — show a static notice instead of spinning.
+  if (error && !isLoaded) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        <Typography variant="body2">
-          Failed to load molecular structure: {error}
-        </Typography>
-      </Alert>
+      <Box
+        className={className}
+        sx={frameSx}
+        dangerouslySetInnerHTML={{
+          __html: placeholderSVG(width, height, 'Structure renderer unavailable'),
+        }}
+      />
     );
   }
 
-  if (loading || isLoading) {
+  if (!smiles) {
     return (
       <Box
-        sx={{
-          width,
-          height,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 2,
-        }}
-      >
+        className={className}
+        sx={frameSx}
+        dangerouslySetInnerHTML={{ __html: placeholderSVG(width, height, 'No structure') }}
+      />
+    );
+  }
+
+  if (isLoading || rendering || !svgContent) {
+    return (
+      <Box className={className} sx={frameSx}>
         <CircularProgress size={28} sx={{ mb: 1.5 }} />
         <Typography variant="caption" color="text.secondary">
           Loading structure…
@@ -111,9 +130,7 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
 
   return (
     <Box className={className}>
-      {/* SVG Container */}
       <Box
-        ref={containerRef}
         sx={{
           width,
           height,
@@ -125,12 +142,13 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
           '& svg': {
             maxWidth: '100%',
             maxHeight: '100%',
+            width: '100%',
+            height: '100%',
           },
         }}
         dangerouslySetInnerHTML={{ __html: svgContent }}
       />
 
-      {/* Properties Display */}
       {showProperties && properties && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
