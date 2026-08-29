@@ -20,6 +20,7 @@ import type { Compound } from '../../types/api';
 import { formatSimilarity } from '../../services/utils/rdkitUtils';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { useRDKit } from '../../hooks/useRDKit';
+import { SubstitutabilityPanel } from './SubstitutabilityPanel';
 
 interface MoleculeProperties {
   molecularWeight: number;
@@ -268,6 +269,8 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
             Activity data and target information would be displayed here when connected to the real database.
           </Typography>
         </Box>
+
+        <SubstitutabilityPanel compound={compound} />
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>

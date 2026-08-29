@@ -229,3 +229,7 @@ Thumbs.db
 
 # Local environment files
 .env.*
+
+# Substitutability module: downloaded FDA/RxNorm sources and derived database.
+# Rebuild with: python Changjin/substitutability.py fetch && ... build
+Changjin/subst_data/cache/

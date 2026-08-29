@@ -95,3 +95,49 @@ export interface PropertyFilters {
   rtbMin?: number;
   rtbMax?: number;
 }
+
+// --- Substitutability (FDA Orange Book + CMS NADAC) -------------------------
+// The wire format in public/data/substitutability.json uses short keys because
+// they are roughly a third of the payload. They are expanded at the parse
+// boundary in substitutabilityApi.ts, so components never see them.
+
+export interface PricedMember {
+  applicationNumber: string;   // e.g. "NDA020702"
+  tradeName: string;
+  applicant: string;
+  teCode: string;              // Orange Book therapeutic-equivalence code
+  isBrand: boolean;            // from NADAC's own classification, not appl_type
+  pricePerUnit: number | null; // null when CMS does not survey this product
+  pricingUnit: string | null;  // "EA" | "ML" | "GM"
+}
+
+export interface EquivalenceGroup {
+  ingredient: string;
+  dosageForm: string;
+  route: string;
+  strength: string;
+  memberCount: number;
+  savingPercent: number | null; // null when no priced brand exists
+  members: PricedMember[];
+}
+
+export interface SubstitutabilityMeta {
+  orangeBook: string;
+  nadacWeek: string;
+  openFdaNdc: string;
+  generated: string;
+  priceBasis: string;          // the acquisition-cost disclaimer
+  coverage: { groups: number; withSavings: number; members: number };
+}
+
+export interface SubstitutabilityData {
+  meta: SubstitutabilityMeta;
+  groups: EquivalenceGroup[];
+  nameIndex: Record<string, number[]>;
+}
+
+export type SubstitutabilityResult =
+  | { status: 'loading' }
+  | { status: 'found'; groups: EquivalenceGroup[]; meta: SubstitutabilityMeta }
+  | { status: 'no-coverage'; reason: string }
+  | { status: 'error'; message: string };
