@@ -52,10 +52,14 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
     ];
 
     return ranges.map(range => {
-      const compoundsInRange = compounds.filter(c => {
-        const mw = c.molecular_weight ?? 150 + (c.smiles.length * 2);
-        return mw >= range.min && mw < range.max;
-      });
+      // A compound with no recorded weight is left out of the histogram. The
+      // fallback here used to bin it by `150 + smiles.length * 2`, which put it
+      // in a bucket chosen by how the SMILES happened to be written.
+      const compoundsInRange = compounds.filter(
+        c => c.molecular_weight != null
+          && c.molecular_weight >= range.min
+          && c.molecular_weight < range.max
+      );
 
       return {
         range: range.label,

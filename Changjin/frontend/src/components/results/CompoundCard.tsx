@@ -20,7 +20,7 @@ import {
   FavoriteBorder as FavoriteBorderIcon,
 } from '@mui/icons-material';
 import type { Compound } from '../../types/api';
-import { formatSimilarity } from '../../services/utils/rdkitUtils';
+import { formatSimilarity } from '../../services/utils/formatting';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { monoStack } from '../../styles/theme';
 
