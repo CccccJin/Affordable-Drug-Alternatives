@@ -20,6 +20,7 @@ interface RDKitMolecule {
   is_valid(): boolean;
   get_svg(width: number, height: number): string;
   get_descriptors(): string;
+  get_molblock(): string;
   get_morgan_fp_as_uint8array(details: string): Uint8Array;
   normalize_depiction?: (canonicalize?: number, scaleFactor?: number) => number;
   straighten_depiction?: (minimizeRotation?: boolean) => void;

@@ -1,4 +1,16 @@
+/**
+ * Export search results as CSV, SDF or JSON.
+ *
+ * Every value written here comes from the compound record. The previous
+ * implementation derived properties from the *length of the SMILES string*
+ * (`mw = 150 + smiles.length * 2`) and drew LogP from `Math.random()`, while
+ * the real values sat unused on the same object — so the same molecule
+ * exported twice disagreed with itself, and the numbers left the app inside a
+ * file that outlives the session. A property this export cannot source is
+ * written as empty, never as a guess.
+ */
 import type { Compound } from '../../types/api';
+import { rdkitService } from '../rdkit/rdkitService';
 
 export type ExportFormat = 'csv' | 'sdf' | 'json';
 
@@ -9,155 +21,210 @@ export interface ExportOptions {
   filename?: string;
 }
 
+export interface ExportResult {
+  /** Records written to the file. */
+  written: number;
+  /**
+   * ChEMBL IDs left out, with the reason. Only SDF can drop a record: it needs
+   * a parsed structure, and a record without one is not valid SDF.
+   */
+  skipped: { chembl_id: string; reason: string }[];
+}
+
+/**
+ * Properties carried by a compound record, in the order every format emits.
+ * One definition so CSV headers, JSON keys and SDF tags cannot drift apart.
+ */
+const PROPERTIES: {
+  key: keyof Compound;
+  header: string;
+  tag: string;
+  decimals?: number;
+}[] = [
+  { key: 'molecular_weight', header: 'Molecular_Weight', tag: 'Molecular_Weight', decimals: 3 },
+  { key: 'logp', header: 'LogP', tag: 'LogP', decimals: 3 },
+  { key: 'polar_surface_area', header: 'Polar_Surface_Area', tag: 'Polar_Surface_Area', decimals: 2 },
+  { key: 'h_bond_donors', header: 'H_Bond_Donors', tag: 'H_Bond_Donors' },
+  { key: 'h_bond_acceptors', header: 'H_Bond_Acceptors', tag: 'H_Bond_Acceptors' },
+  { key: 'rotatable_bonds', header: 'Rotatable_Bonds', tag: 'Rotatable_Bonds' },
+  { key: 'aromatic_rings', header: 'Aromatic_Rings', tag: 'Aromatic_Rings' },
+  { key: 'heavy_atoms', header: 'Heavy_Atoms', tag: 'Heavy_Atoms' },
+];
+
+/** A property value as text, or '' when the record does not carry it. */
+const propertyText = (compound: Compound, property: (typeof PROPERTIES)[number]): string => {
+  const value = compound[property.key];
+  if (value === null || value === undefined || typeof value !== 'number') return '';
+  return property.decimals === undefined ? String(value) : value.toFixed(property.decimals);
+};
+
+/** RFC 4180: quote a field and double any quote inside it. */
+const csvField = (value: string | number | null | undefined): string => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
 export class ExportService {
   static async exportCompounds(
     compounds: Compound[],
     options: ExportOptions
-  ): Promise<void> {
+  ): Promise<ExportResult> {
     const { format, filename = 'compounds' } = options;
 
     switch (format) {
       case 'csv':
-        await this.exportToCSV(compounds, options, filename);
-        break;
+        return this.exportToCSV(compounds, options, filename);
       case 'sdf':
-        await this.exportToSDF(compounds, options, filename);
-        break;
+        return this.exportToSDF(compounds, options, filename);
       case 'json':
-        await this.exportToJSON(compounds, options, filename);
-        break;
+        return this.exportToJSON(compounds, options, filename);
       default:
         throw new Error(`Unsupported export format: ${format}`);
     }
   }
 
-  private static async exportToCSV(
+  private static exportToCSV(
     compounds: Compound[],
     options: ExportOptions,
     filename: string
-  ): Promise<void> {
+  ): ExportResult {
     const headers = [
       'ChEMBL_ID',
+      'Preferred_Name',
       'SMILES',
       'Similarity',
-      ...(options.includeProperties ? [
-        'Molecular_Weight',
-        'LogP',
-        'H_Bond_Donors',
-        'H_Bond_Acceptors',
-        'Rotatable_Bonds',
-        'Aromatic_Rings'
-      ] : [])
+      ...(options.includeProperties ? PROPERTIES.map(p => p.header) : []),
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...compounds.map(compound => {
-        const row = [
-          compound.chembl_id,
-          `"${compound.smiles}"`,
-          compound.similarity.toFixed(4)
-        ];
+    const rows = compounds.map(compound => {
+      const row = [
+        csvField(compound.chembl_id),
+        csvField(compound.pref_name),
+        csvField(compound.smiles),
+        compound.similarity.toFixed(4),
+      ];
+      if (options.includeProperties) {
+        row.push(...PROPERTIES.map(p => propertyText(compound, p)));
+      }
+      return row.join(',');
+    });
 
-        if (options.includeProperties) {
-          // Mock calculated properties
-          const mw = 150 + (compound.smiles.length * 2);
-          const logp = -2 + (Math.random() * 4);
-          const hbd = Math.floor(compound.smiles.length / 20);
-          const hba = Math.floor(compound.smiles.length / 15) + 1;
-          const rtb = Math.floor(compound.smiles.length / 25);
-          const aromaticRings = Math.floor(compound.smiles.length / 30);
-
-          row.push(
-            mw.toFixed(2),
-            logp.toFixed(2),
-            hbd.toString(),
-            hba.toString(),
-            rtb.toString(),
-            aromaticRings.toString()
-          );
-        }
-
-        return row.join(',');
-      })
-    ].join('\n');
-
-    this.downloadFile(csvContent, `${filename}.csv`, 'text/csv');
+    this.downloadFile([headers.join(','), ...rows].join('\n'), `${filename}.csv`, 'text/csv');
+    return { written: compounds.length, skipped: [] };
   }
 
+  /**
+   * Real SDF: an MDL molblock per record, generated by RDKit from the SMILES.
+   *
+   * What this used to write was the SMILES string where the molblock belongs,
+   * followed by a `PUBCHEM_COMPOUND_CID` invented with `Math.random()` — a
+   * fabricated identifier into a public database, in a file format other
+   * cheminformatics tools read as authoritative. Neither survives.
+   */
   private static async exportToSDF(
     compounds: Compound[],
     options: ExportOptions,
     filename: string
-  ): Promise<void> {
-    const sdfContent = compounds.map(compound => {
-      const mw = 150 + (compound.smiles.length * 2);
-      const logp = -2 + (Math.random() * 4);
+  ): Promise<ExportResult> {
+    const skipped: ExportResult['skipped'] = [];
+    const records: string[] = [];
 
-      return `> <ChEMBL_ID>
-${compound.chembl_id}
+    for (const compound of compounds) {
+      let molblock: string;
+      try {
+        const molecule = await rdkitService.getMolecule(compound.smiles);
+        try {
+          molblock = molecule.get_molblock();
+        } finally {
+          molecule.delete();
+        }
+      } catch (error) {
+        // A record with no structure is not a valid SDF entry, so it is left
+        // out and reported rather than written as something that looks parsed.
+        skipped.push({
+          chembl_id: compound.chembl_id,
+          reason: error instanceof Error ? error.message : 'Could not build a structure',
+        });
+        continue;
+      }
 
-> <SMILES>
-${compound.smiles}
+      // The first molblock line is the title field, which RDKit leaves blank;
+      // by SDF convention it carries the record's identifier.
+      const lines = molblock.split('\n');
+      lines[0] = compound.chembl_id;
 
-> <Similarity>
-${compound.similarity.toFixed(4)}
+      const fields: [string, string][] = [
+        ['ChEMBL_ID', compound.chembl_id],
+        ...(compound.pref_name ? ([['Preferred_Name', compound.pref_name]] as [string, string][]) : []),
+        ['SMILES', compound.smiles],
+        ['Similarity', compound.similarity.toFixed(4)],
+        ...(options.includeProperties
+          ? (PROPERTIES.map(p => [p.tag, propertyText(compound, p)] as [string, string]).filter(
+              ([, value]) => value !== ''
+            ))
+          : []),
+      ];
 
-${options.includeProperties ? `> <Molecular_Weight>
-${mw.toFixed(2)}
+      records.push(
+        [
+          lines.join('\n').replace(/\n+$/, ''),
+          ...fields.map(([tag, value]) => `>  <${tag}>\n${value}\n`),
+          '$$$$',
+        ].join('\n')
+      );
+    }
 
-> <LogP>
-${logp.toFixed(2)}
+    if (records.length === 0) {
+      throw new Error(
+        'No structure could be generated for any selected compound, so there is ' +
+          'nothing to write to an SDF.'
+      );
+    }
 
-` : ''}> <PUBCHEM_COMPOUND_CID>
-${Math.floor(Math.random() * 1000000)}
-
-$$$$
-${compound.smiles}
-`;
-    }).join('\n');
-
-    this.downloadFile(sdfContent, `${filename}.sdf`, 'chemical/x-mdl-sdfile');
+    this.downloadFile(
+      `${records.join('\n')}\n`,
+      `${filename}.sdf`,
+      'chemical/x-mdl-sdfile'
+    );
+    return { written: records.length, skipped };
   }
 
-  private static async exportToJSON(
+  private static exportToJSON(
     compounds: Compound[],
     options: ExportOptions,
     filename: string
-  ): Promise<void> {
+  ): ExportResult {
     const jsonData = {
       metadata: {
         exportDate: new Date().toISOString(),
         totalCompounds: compounds.length,
-        searchQuery: 'Similarity search results',
+        source: 'ChEMBL 35 static export; similarity is Morgan/Tanimoto (radius 2, 1024 bits)',
         includeProperties: options.includeProperties || false,
       },
       compounds: compounds.map(compound => ({
         chembl_id: compound.chembl_id,
+        pref_name: compound.pref_name ?? null,
         smiles: compound.smiles,
         similarity: compound.similarity,
         ...(options.includeProperties && {
-          properties: {
-            molecular_weight: 150 + (compound.smiles.length * 2),
-            logp: -2 + (Math.random() * 4),
-            h_bond_donors: Math.floor(compound.smiles.length / 20),
-            h_bond_acceptors: Math.floor(compound.smiles.length / 15) + 1,
-            rotatable_bonds: Math.floor(compound.smiles.length / 25),
-            aromatic_rings: Math.floor(compound.smiles.length / 30),
-          }
-        })
-      }))
+          // null where the export does not carry the value, rather than a
+          // number the reader would have no way to tell apart from a measured one.
+          properties: Object.fromEntries(
+            PROPERTIES.map(p => [p.key, (compound[p.key] as number | null | undefined) ?? null])
+          ),
+        }),
+      })),
     };
 
-    const jsonContent = JSON.stringify(jsonData, null, 2);
-    this.downloadFile(jsonContent, `${filename}.json`, 'application/json');
+    this.downloadFile(
+      JSON.stringify(jsonData, null, 2),
+      `${filename}.json`,
+      'application/json'
+    );
+    return { written: compounds.length, skipped: [] };
   }
 
-  private static downloadFile(
-    content: string,
-    filename: string,
-    mimeType: string
-  ): void {
+  private static downloadFile(content: string, filename: string, mimeType: string): void {
     const blob = new Blob([content], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -174,18 +241,18 @@ ${compound.smiles}
       {
         format: 'csv',
         label: 'CSV',
-        description: 'Comma-separated values for spreadsheet applications'
+        description: 'Comma-separated values for spreadsheet applications',
       },
       {
         format: 'sdf',
         label: 'SDF',
-        description: 'Structure Data Format for chemical databases'
+        description: 'Structure Data Format with an MDL molblock per compound',
       },
       {
         format: 'json',
         label: 'JSON',
-        description: 'JavaScript Object Notation for programmatic access'
-      }
+        description: 'JavaScript Object Notation for programmatic access',
+      },
     ];
   }
 }

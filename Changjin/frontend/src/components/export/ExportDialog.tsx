@@ -38,6 +38,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const [includeProperties, setIncludeProperties] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Records the export could not write. Surfaced instead of closing on a
+  // partial result, so a short file is never mistaken for a complete one.
+  const [notice, setNotice] = useState<string | null>(null);
 
   const supportedFormats = ExportService.getSupportedFormats();
 
@@ -49,6 +52,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
     setIsExporting(true);
     setError(null);
+    setNotice(null);
 
     try {
       const options: ExportOptions = {
@@ -57,9 +61,18 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         filename: `chemical_search_results_${new Date().toISOString().split('T')[0]}`,
       };
 
-      await ExportService.exportCompounds(compounds, options);
+      const result = await ExportService.exportCompounds(compounds, options);
 
-      // Close dialog after successful export
+      if (result.skipped.length > 0) {
+        setNotice(
+          `Wrote ${result.written} of ${compounds.length} compounds. ` +
+            `${result.skipped.length} had no structure RDKit could build and were ` +
+            `left out: ${result.skipped.map(s => s.chembl_id).join(', ')}.`
+        );
+        return;
+      }
+
+      // Close dialog after a complete export
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
@@ -71,6 +84,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const handleClose = () => {
     if (!isExporting) {
       setError(null);
+      setNotice(null);
       onClose();
     }
   };
@@ -114,6 +128,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
             </Typography>
           </Box>
         </Box>
+
+        {notice && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            {notice}
+          </Alert>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
