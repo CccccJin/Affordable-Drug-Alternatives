@@ -1,0 +1,62 @@
+name: Data freshness
+
+# The deployed page quotes FDA ratings and CMS prices. CMS republishes NADAC
+# weekly and FDA revises the Orange and Purple Books monthly, so a committed
+# extract goes out of date on its own, without anyone touching the repository.
+# The site already warns a reader once the extract passes 90 days
+# (services/api/dataAge.ts); this tells the maintainers first.
+#
+# It runs no download and hits no external API. The upstream cadence is already
+# known, so the age of what is committed is a sufficient trigger, and a check
+# with no network dependency cannot raise a false alarm on a rate limit or fail
+# quietly on a moved endpoint — which would leave the real staleness unreported.
+
+on:
+  schedule:
+    # 07:00 UTC on the 1st. Monthly matches the slowest upstream cadence.
+    - cron: '0 7 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check extract age
+        id: freshness
+        working-directory: Changjin
+        # Never fails the run: a stale extract is a task to schedule, not a
+        # broken build. The step records the verdict for the next one.
+        run: python check_data_freshness.py --github || true
+
+      - name: Open or update the rebuild issue
+        if: steps.freshness.outputs.stale == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUMMARY: ${{ steps.freshness.outputs.summary }}
+        run: |
+          set -euo pipefail
+          TITLE="Rebuild the FDA/CMS extracts"
+          # One issue, reopened and updated, rather than a new one every month.
+          EXISTING=$(gh issue list --state all --search "$TITLE in:title" \
+                       --json number,state --jq '.[0] // empty')
+          if [ -n "$EXISTING" ]; then
+            NUMBER=$(echo "$EXISTING" | jq -r .number)
+            [ "$(echo "$EXISTING" | jq -r .state)" = "CLOSED" ] && \
+              gh issue reopen "$NUMBER"
+            gh issue comment "$NUMBER" --body "$SUMMARY"
+          else
+            gh issue create --title "$TITLE" --body "$SUMMARY"
+          fi

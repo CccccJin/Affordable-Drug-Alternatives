@@ -129,6 +129,13 @@ export const CheaperAlternatives: React.FC = () => {
   const [draft, setDraft] = useState(query);
 
   const result = useAlternatives(query);
+  // The disclaimer sits above the results and so outlives them; only the states
+  // that carry meta can date the extract, and the rest simply omit the age
+  // rather than assuming it is current.
+  const generatedDate =
+    result.status === 'idle' || result.status === 'found'
+      ? result.meta.generated
+      : undefined;
 
   const submit = (value: string) => {
     setDraft(value);
@@ -155,7 +162,7 @@ export const CheaperAlternatives: React.FC = () => {
         </Typography>
       </Box>
 
-      <ClinicalDisclaimer />
+      <ClinicalDisclaimer generated={generatedDate} />
 
       <Paper variant="outlined" sx={{ p: 2.5, mb: 4 }}>
         <Box

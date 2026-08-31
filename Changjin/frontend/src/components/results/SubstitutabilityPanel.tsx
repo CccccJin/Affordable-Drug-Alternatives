@@ -41,7 +41,7 @@ export const SubstitutabilityPanel: React.FC<SubstitutabilityPanelProps> = ({ co
 
       {result.status === 'found' && (
         <>
-          <ClinicalDisclaimer />
+          <ClinicalDisclaimer generated={result.meta.generated} />
 
           {result.groups.map(group => (
             <EquivalenceGroupCard key={groupKey(group)} group={group} />

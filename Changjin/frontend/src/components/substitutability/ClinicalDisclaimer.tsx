@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, AlertTitle, Typography } from '@mui/material';
+import { dataAge, stalenessWarning } from '../../services/api/dataAge';
 
 /**
  * Structural, not a footnote — the counterpart to `NadacDisclaimer`.
@@ -11,7 +12,10 @@ import { Alert, AlertTitle, Typography } from '@mui/material';
  * before the reader reaches the numbers, and points at the authoritative
  * source rather than positioning the page as one.
  */
-export const ClinicalDisclaimer: React.FC = () => (
+export const ClinicalDisclaimer: React.FC<{ generated?: string }> = ({ generated }) => {
+  const warning = generated ? stalenessWarning(dataAge(generated)) : null;
+
+  return (
   <Alert severity="info" variant="outlined" sx={{ mb: 3 }}>
     <AlertTitle sx={{ fontWeight: 700 }}>
       Reference information — not medical advice
@@ -26,9 +30,21 @@ export const ClinicalDisclaimer: React.FC = () => (
     </Typography>
     <Typography variant="caption" color="text.secondary">
       Ratings and prices shown here are a point-in-time extract of published FDA and
-      CMS data and may be out of date. The FDA Orange Book and Purple Book are the
-      authoritative sources; the application number listed for every product lets you
-      check any claim on this page against them directly.
+      CMS data. The FDA Orange Book and Purple Book are the authoritative sources; the
+      application number listed for every product lets you check any claim on this
+      page against them directly.
     </Typography>
+
+    {/* Stated, not implied: a price that is quietly two years old looks exactly
+        like a current one. */}
+    {warning && (
+      <Typography
+        variant="caption"
+        sx={{ mt: 1, display: 'block', fontWeight: 700, color: 'warning.dark' }}
+      >
+        {warning}
+      </Typography>
+    )}
   </Alert>
-);
+  );
+};
