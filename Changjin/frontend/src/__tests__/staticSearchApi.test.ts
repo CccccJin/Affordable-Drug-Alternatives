@@ -207,6 +207,96 @@ describe('StaticSearchApi.search', () => {
   });
 });
 
+describe('post-processing', () => {
+  it('reports what the property filters removed, and why', async () => {
+    const response = await StaticSearchApi.search({
+      smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+      threshold: 0,
+      enable_post_processing: true,
+      filters: { molWeightMax: 100 },
+    });
+
+    // Aspirin matches structurally at 1.0 but weighs 180.
+    const removed = response.post_processed!.filtered_out;
+    expect(removed.map(r => r.chembl_id)).toContain('CHEMBL25');
+    expect(removed.find(r => r.chembl_id === 'CHEMBL25')!.reason).toMatch(
+      /molecular weight 180.16 is above the 100 maximum/
+    );
+  });
+
+  it('leaves filtered_out empty when no filter was applied', async () => {
+    const response = await StaticSearchApi.search({
+      smiles: 'CCO',
+      threshold: 0,
+      enable_post_processing: true,
+    });
+    expect(response.post_processed!.filtered_out).toEqual([]);
+  });
+
+  it('never filters a compound out for lacking the property', async () => {
+    const response = await StaticSearchApi.search({
+      smiles: 'CCO',
+      threshold: 0,
+      enable_post_processing: true,
+      // cns_mpo is absent from neither fixture, but logp is present on both;
+      // use a bound no recorded value can fail to be compared against.
+      filters: { logpMin: -100 },
+    });
+    expect(response.post_processed!.filtered_out).toEqual([]);
+  });
+
+  it('clusters by structure rather than by rank', async () => {
+    const response = await StaticSearchApi.search({
+      smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+      threshold: 0,
+      enable_post_processing: true,
+    });
+    const clusters = response.post_processed!.clusters;
+
+    // Ethanol and aspirin are not similar, so they cannot share a cluster.
+    expect(clusters).toHaveLength(2);
+    for (const cluster of clusters) {
+      expect(cluster.members).toHaveLength(1);
+      expect(cluster.similarity_threshold).toBe(0.6);
+    }
+  });
+
+  it('quotes the cutoff it actually used', async () => {
+    const response = await StaticSearchApi.search({
+      smiles: 'CCO',
+      threshold: 0,
+      enable_post_processing: true,
+    });
+    // The old block hard-coded 0.7, which stopped matching the search long ago.
+    for (const cluster of response.post_processed!.clusters) {
+      expect(cluster.similarity_threshold).not.toBe(0.7);
+    }
+  });
+
+  it('recommends one representative per cluster, with a reason derived from it', async () => {
+    const response = await StaticSearchApi.search({
+      smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+      threshold: 0,
+      enable_post_processing: true,
+    });
+    const recommendations = response.post_processed!.recommendations;
+    const clusters = response.post_processed!.clusters;
+
+    expect(recommendations).toHaveLength(clusters.length);
+    expect(recommendations.map(r => r.chembl_id)).toEqual(clusters.map(c => c.centroid));
+    // Not the old fixed sentence.
+    for (const recommendation of recommendations) {
+      expect(recommendation.reason).not.toMatch(/Highest ranked match/);
+      expect(recommendation.reason).toMatch(/cluster/i);
+    }
+  });
+
+  it('is omitted entirely when not requested', async () => {
+    const response = await StaticSearchApi.search({ smiles: 'CCO', threshold: 0 });
+    expect(response.post_processed).toBeUndefined();
+  });
+});
+
 describe('StaticSearchApi.searchAI', () => {
   it('says why it cannot answer rather than returning a lookalike score', async () => {
     await expect(StaticSearchApi.searchAI()).rejects.toThrow(

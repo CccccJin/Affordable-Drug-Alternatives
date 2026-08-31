@@ -23,7 +23,12 @@ import type {
   PropertyFilters,
 } from '../../types/api';
 import { InvalidSmilesError, rdkitService } from '../rdkit/rdkitService';
-import { loadFingerprintCorpus, scoreCorpus } from '../search/fingerprintStore';
+import {
+  loadFingerprintCorpus,
+  scoreCorpus,
+  type FingerprintCorpus,
+} from '../search/fingerprintStore';
+import { butinaCluster, similarityMatrix } from '../search/chemicalSpace';
 
 /**
  * Tanimoto floor for a compound to appear in results.
@@ -104,6 +109,7 @@ const queryFingerprint = async (
 interface ScoredCorpus {
   compounds: StaticCompoundRecord[];
   scores: Float64Array;
+  corpus: FingerprintCorpus;
 }
 
 const scoreAgainstCorpus = async (query: string): Promise<ScoredCorpus> => {
@@ -123,63 +129,132 @@ const scoreAgainstCorpus = async (query: string): Promise<ScoredCorpus> => {
   }
 
   const fingerprint = await queryFingerprint(query, corpus.geometry);
-  return { compounds, scores: scoreCorpus(corpus, fingerprint) };
+  return { compounds, scores: scoreCorpus(corpus, fingerprint), corpus };
 };
 
 
-const applyFilters = (compound: Compound, filters?: PropertyFilters): boolean => {
-  if (!filters) {
-    return true;
-  }
+/**
+ * Why a property filter excluded a compound, or null when it passed.
+ *
+ * Returns the reason rather than a boolean so `filtered_out` can say what
+ * happened. It used to be hard-coded to an empty array, which meant the results
+ * page reported that nothing had been filtered even when the filters had just
+ * removed half the hits.
+ */
+const filterRejection = (
+  compound: Compound,
+  filters?: PropertyFilters
+): string | null => {
+  if (!filters) return null;
 
-  const checks: Array<[number | null | undefined, number | undefined, number | undefined]> = [
-    [compound.molecular_weight, filters.molWeightMin, filters.molWeightMax],
-    [compound.logp, filters.logpMin, filters.logpMax],
-    [compound.h_bond_donors, filters.hbdMin, filters.hbdMax],
-    [compound.h_bond_acceptors, filters.hbaMin, filters.hbaMax],
-    [compound.polar_surface_area, filters.psaMin, filters.psaMax],
-    [compound.rotatable_bonds, filters.rtbMin, filters.rtbMax],
+  const checks: {
+    label: string;
+    value: number | null | undefined;
+    min?: number;
+    max?: number;
+  }[] = [
+    { label: 'molecular weight', value: compound.molecular_weight, min: filters.molWeightMin, max: filters.molWeightMax },
+    { label: 'LogP', value: compound.logp, min: filters.logpMin, max: filters.logpMax },
+    { label: 'H-bond donors', value: compound.h_bond_donors, min: filters.hbdMin, max: filters.hbdMax },
+    { label: 'H-bond acceptors', value: compound.h_bond_acceptors, min: filters.hbaMin, max: filters.hbaMax },
+    { label: 'polar surface area', value: compound.polar_surface_area, min: filters.psaMin, max: filters.psaMax },
+    { label: 'rotatable bonds', value: compound.rotatable_bonds, min: filters.rtbMin, max: filters.rtbMax },
   ];
 
-  return checks.every(([value, min, max]) => {
-    if (value == null) {
-      return true;
-    }
-    if (min != null && value < min) {
-      return false;
-    }
-    if (max != null && value > max) {
-      return false;
-    }
-    return true;
-  });
+  for (const { label, value, min, max } of checks) {
+    // A property the export does not carry cannot exclude anything; filtering
+    // on absence would silently drop compounds for having no data.
+    if (value == null) continue;
+    if (min != null && value < min) return `${label} ${value} is below the ${min} minimum`;
+    if (max != null && value > max) return `${label} ${value} is above the ${max} maximum`;
+  }
+  return null;
 };
 
-const buildPostProcessing = (results: Compound[]): PostProcessingResult => ({
-  ranked_candidates: results.slice(0, 20).map(compound => ({
-    ...compound,
-    molecular_weight: compound.molecular_weight || 0,
-    logp: compound.logp || 0,
-    h_bond_donors: compound.h_bond_donors || 0,
-    h_bond_acceptors: compound.h_bond_acceptors || 0,
-    rotatable_bonds: compound.rotatable_bonds || 0,
-    aromatic_rings: compound.aromatic_rings || 0,
-  })),
-  filtered_out: [],
-  clusters: [
-    {
-      cluster_id: 1,
-      centroid: results[0]?.chembl_id || '',
-      members: results.slice(0, 10).map(compound => compound.chembl_id),
-      similarity_threshold: 0.7,
-    },
-  ].filter(cluster => cluster.centroid),
-  recommendations: results.slice(0, 5).map(compound => ({
-    chembl_id: compound.chembl_id,
-    reason: 'Highest ranked match in the static processed ChEMBL export',
-    score: compound.similarity,
-  })),
-});
+/**
+ * Tanimoto floor for two results to share a Butina cluster. Matches
+ * `ClusteringVisualization`, so the clusters quoted here and the ones drawn on
+ * the Analytics tab are the same clusters.
+ */
+const POST_PROCESSING_CLUSTER_CUTOFF = 0.6;
+
+/**
+ * The post-processing block, computed from the result set.
+ *
+ * The previous version reported a single cluster containing whichever ten
+ * compounds happened to rank highest, tagged with a `similarity_threshold` of
+ * 0.7 that no longer matched the search, an always-empty `filtered_out`, and
+ * five "recommendations" carrying a fixed sentence. It described the shape of
+ * the FastAPI response without computing any of it.
+ *
+ * Clusters are now real Taylor-Butina over the corpus fingerprints, and a
+ * recommendation is a cluster representative — the densest member of each
+ * cluster — which is a defensible thing to suggest looking at, because it means
+ * "one option per distinct scaffold in these results" rather than "the top of a
+ * list you can already see".
+ */
+const buildPostProcessing = (
+  page: { compound: Compound; row: number }[],
+  corpus: FingerprintCorpus,
+  filteredOut: PostProcessingResult['filtered_out']
+): PostProcessingResult => {
+  const { bytesPerRecord } = corpus.geometry;
+  const fingerprints = page.map(entry =>
+    corpus.bits.subarray(entry.row * bytesPerRecord, (entry.row + 1) * bytesPerRecord)
+  );
+
+  const n = page.length;
+  const similarity = similarityMatrix(fingerprints);
+  const assignment = butinaCluster(similarity, n, POST_PROCESSING_CLUSTER_CUTOFF);
+
+  const members = new Map<number, number[]>();
+  assignment.forEach((cluster, index) => {
+    members.set(cluster, [...(members.get(cluster) ?? []), index]);
+  });
+
+  /** The member with the highest total similarity to the rest of its cluster. */
+  const representative = (indices: number[]): number =>
+    indices.reduce((best, index) => {
+      const weight = (i: number) =>
+        indices.reduce((sum, j) => sum + similarity[i * n + j], 0);
+      return weight(index) > weight(best) ? index : best;
+    }, indices[0]);
+
+  const clusters = [...members.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+    .map(([cluster_id, indices]) => ({
+      cluster_id,
+      centroid: page[representative(indices)].compound.chembl_id,
+      members: indices.map(index => page[index].compound.chembl_id),
+      similarity_threshold: POST_PROCESSING_CLUSTER_CUTOFF,
+    }));
+
+  return {
+    // Property values are passed through. `|| 0` here used to turn a compound
+    // with no recorded weight into one weighing zero.
+    ranked_candidates: page.slice(0, 20).map(entry => ({
+      ...entry.compound,
+      molecular_weight: entry.compound.molecular_weight ?? 0,
+      logp: entry.compound.logp ?? 0,
+      h_bond_donors: entry.compound.h_bond_donors ?? 0,
+      h_bond_acceptors: entry.compound.h_bond_acceptors ?? 0,
+      rotatable_bonds: entry.compound.rotatable_bonds ?? 0,
+      aromatic_rings: entry.compound.aromatic_rings ?? 0,
+    })),
+    filtered_out: filteredOut,
+    clusters,
+    recommendations: clusters.slice(0, 5).map(cluster => ({
+      chembl_id: cluster.centroid,
+      reason:
+        cluster.members.length === 1
+          ? 'Only member of its structural cluster — a scaffold nothing else here shares'
+          : `Most representative of a ${cluster.members.length}-compound cluster at Tanimoto ≥ ${POST_PROCESSING_CLUSTER_CUTOFF}`,
+      score:
+        page.find(entry => entry.compound.chembl_id === cluster.centroid)!.compound
+          .similarity,
+    })),
+  };
+};
 
 const toProperties = (compound: StaticCompoundRecord): CalculatedProperties => ({
   mw: compound.molecular_weight || 0,
@@ -205,28 +280,39 @@ export class StaticSearchApi {
     const threshold = request.threshold ?? DEFAULT_SIMILARITY_THRESHOLD;
     const maxResults = request.max_results ?? 50;
 
-    const { compounds, scores } = await scoreAgainstCorpus(request.smiles);
+    const { compounds, scores, corpus } = await scoreAgainstCorpus(request.smiles);
 
     let bestSimilarity = 0;
-    const scored: Compound[] = [];
+    const kept: { compound: Compound; row: number }[] = [];
+    const filteredOut: PostProcessingResult['filtered_out'] = [];
+
     for (let i = 0; i < compounds.length; i += 1) {
       const similarity = scores[i];
       if (similarity > bestSimilarity) {
         bestSimilarity = similarity;
       }
-      if (similarity >= threshold) {
-        scored.push({ ...compounds[i], similarity });
+      if (similarity < threshold) continue;
+
+      const compound: Compound = { ...compounds[i], similarity };
+      const rejection = filterRejection(compound, request.filters);
+      if (rejection) {
+        filteredOut.push({
+          chembl_id: compound.chembl_id,
+          smiles: compound.smiles,
+          reason: rejection,
+        });
+        continue;
       }
+      kept.push({ compound, row: i });
     }
 
-    const results = scored
-      .filter(compound => applyFilters(compound, request.filters))
-      .sort(
-        (left, right) =>
-          right.similarity - left.similarity ||
-          left.chembl_id.localeCompare(right.chembl_id)
-      )
-      .slice(0, maxResults);
+    kept.sort(
+      (left, right) =>
+        right.compound.similarity - left.compound.similarity ||
+        left.compound.chembl_id.localeCompare(right.compound.chembl_id)
+    );
+    const page = kept.slice(0, maxResults);
+    const results = page.map(entry => entry.compound);
 
     return {
       count: results.length,
@@ -234,7 +320,7 @@ export class StaticSearchApi {
       best_similarity: bestSimilarity,
       threshold,
       post_processed: request.enable_post_processing
-        ? buildPostProcessing(results)
+        ? buildPostProcessing(page, corpus, filteredOut)
         : undefined,
     };
   }

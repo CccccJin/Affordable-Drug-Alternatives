@@ -252,9 +252,22 @@ export const ResultsList: React.FC<ResultsListProps> = ({
       {results.post_processed && (
         <Alert severity="info" sx={{ mt: 4 }}>
           <Typography variant="body2">
-            Results include post-processing with clustering and drug-likeness filtering.
-            {results.post_processed.filtered_out.length > 0 &&
-              ` ${results.post_processed.filtered_out.length} compounds were filtered out.`}
+            {results.post_processed.clusters.length > 0 && (
+              <>
+                These results fall into{' '}
+                <strong>{results.post_processed.clusters.length}</strong> structural
+                cluster{results.post_processed.clusters.length === 1 ? '' : 's'}{' '}
+                (Taylor&ndash;Butina, Tanimoto &ge;{' '}
+                {results.post_processed.clusters[0].similarity_threshold}).{' '}
+              </>
+            )}
+            {results.post_processed.filtered_out.length > 0
+              ? `${results.post_processed.filtered_out.length} compound${
+                  results.post_processed.filtered_out.length === 1 ? '' : 's'
+                } matched structurally but were removed by the property filters — ` +
+                `for example ${results.post_processed.filtered_out[0].chembl_id}: ` +
+                `${results.post_processed.filtered_out[0].reason}.`
+              : 'No compound was removed by the property filters.'}
           </Typography>
         </Alert>
       )}
