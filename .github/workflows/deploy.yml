@@ -16,6 +16,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The deployed page is the frontend plus the data files under public/data,
+  # and those files are produced by the Python layer. A broken export script is
+  # therefore a deploy-blocking fault, which is why `deploy` waits on this.
+  #
+  # Only pytest and rdkit are installed: every test that needs the 100 MB
+  # sqlite database or the FDA/NADAC downloads skips itself, so the suite runs
+  # from a clean checkout without them (82 run, 42 skip). Notably
+  # test_exported_blob_is_aligned_with_compounds_json does run, which is what
+  # catches fingerprints.bin and compounds.json being regenerated apart.
+  python-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install pytest rdkit
+
+      - name: Test
+        working-directory: Changjin
+        run: python -m pytest tests/ -q
+
   build:
     runs-on: ubuntu-latest
 
@@ -67,7 +96,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, python-tests]
 
     steps:
       - name: Deploy to GitHub Pages

@@ -76,6 +76,8 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 }) => {
   const theme = useTheme();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  // null means "export everything on screen"; a compound means just that one.
+  const [exportSubject, setExportSubject] = useState<Compound | null>(null);
 
   const handleSearchQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onSearchQueryChange?.(event.target.value);
@@ -210,7 +212,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <Button
             variant="outlined"
             startIcon={<DownloadIcon />}
-            onClick={() => setExportDialogOpen(true)}
+            onClick={() => {
+              setExportSubject(null);
+              setExportDialogOpen(true);
+            }}
             size="medium"
           >
             Export
@@ -229,6 +234,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
             <CompoundCard
               compound={compound}
               onViewDetails={onViewDetails}
+              onExport={(subject) => {
+                setExportSubject(subject);
+                setExportDialogOpen(true);
+              }}
               showProperties={true}
             />
           </Box>
@@ -274,7 +283,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
       {/* Export Dialog */}
       <ExportDialog
-        compounds={results.results}
+        compounds={exportSubject ? [exportSubject] : results.results}
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
       />

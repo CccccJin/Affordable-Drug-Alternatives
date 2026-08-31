@@ -233,3 +233,6 @@ Thumbs.db
 # Substitutability module: downloaded FDA/RxNorm sources and derived database.
 # Rebuild with: python Changjin/substitutability.py fetch && ... build
 Changjin/subst_data/cache/
+
+# Editor backup of a component, kept locally only
+Changjin/frontend/src/*.backup

@@ -27,6 +27,8 @@ import { monoStack } from '../../styles/theme';
 interface CompoundCardProps {
   compound: Compound;
   onViewDetails?: (compound: Compound) => void;
+  /** Export just this compound. Without it the button is not rendered. */
+  onExport?: (compound: Compound) => void;
   showProperties?: boolean;
 }
 
@@ -51,6 +53,7 @@ const PropertyItem: React.FC<PropertyItemProps> = ({ label, value }) => (
 export const CompoundCard: React.FC<CompoundCardProps> = ({
   compound,
   onViewDetails,
+  onExport,
   showProperties = false,
 }) => {
   const theme = useTheme();
@@ -294,14 +297,22 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
           gap: 1,
         }}
       >
-        <Button
-          size="small"
-          variant="text"
-          onClick={(e) => e.stopPropagation()}
-          sx={{ color: 'text.secondary' }}
-        >
-          Export
-        </Button>
+        {/* Rendered only when it can do something. This button previously
+            existed with an onClick that called stopPropagation and nothing
+            else, so it looked live and did nothing. */}
+        {onExport && (
+          <Button
+            size="small"
+            variant="text"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExport(compound);
+            }}
+            sx={{ color: 'text.secondary' }}
+          >
+            Export
+          </Button>
+        )}
         <Button
           size="small"
           variant="outlined"
