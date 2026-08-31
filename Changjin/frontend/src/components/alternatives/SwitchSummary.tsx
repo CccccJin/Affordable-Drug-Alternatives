@@ -59,12 +59,12 @@ export const SwitchSummary: React.FC<{ group: EquivalenceGroup }> = ({ group }) 
           flexWrap: 'wrap',
         }}
       >
-        {side('Prescribed', pair.brand.tradeName, pair.brand.pricePerUnit, pair.brand.pricingUnit)}
+        {side('Brand', pair.brand.tradeName, pair.brand.pricePerUnit, pair.brand.pricingUnit)}
 
         <ArrowForwardIcon sx={{ color: 'success.main', flexShrink: 0 }} />
 
         {side(
-          'Cheapest FDA-equivalent',
+          'Lowest-cost rated equivalent',
           pair.generic.tradeName,
           pair.generic.pricePerUnit,
           pair.generic.pricingUnit
@@ -78,7 +78,7 @@ export const SwitchSummary: React.FC<{ group: EquivalenceGroup }> = ({ group }) 
             {group.savingPercent!.toFixed(1)}%
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            lower acquisition cost
+            lower published acquisition cost
           </Typography>
         </Box>
       </Box>

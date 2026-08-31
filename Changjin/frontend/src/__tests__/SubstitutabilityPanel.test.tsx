@@ -64,6 +64,30 @@ describe('SubstitutabilityPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('always renders the not-medical-advice disclaimer alongside a price', async () => {
+    // The clinical counterpart to the NADAC test above: a large saving figure
+    // must never read as a recommendation to switch.
+    renderPanel('ATORVASTATIN');
+    await screen.findAllByText('LIPITOR');
+    expect(screen.getByText(/Reference information . not medical advice/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Do not start, stop, or change a medication based on this page/i),
+    ).toBeInTheDocument();
+  });
+
+  it('does not tell the reader a pharmacist may substitute without the prescriber', async () => {
+    // The earlier phrasing read as permission granted to whoever was looking at
+    // the page. The rating is a finding about products, not an instruction.
+    renderPanel('ATORVASTATIN');
+    await screen.findAllByText('LIPITOR');
+    expect(
+      screen.queryByText(/may substitute between them without contacting the prescriber/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/is a decision for a pharmacist or\s+prescriber/i),
+    ).toBeInTheDocument();
+  });
+
   it('cites the Orange Book record behind every claim', async () => {
     renderPanel('ATORVASTATIN');
     await screen.findAllByText('LIPITOR');

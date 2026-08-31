@@ -4,6 +4,7 @@ import type { Compound } from '../../types/api';
 import { useSubstitutability } from '../../hooks/useSubstitutability';
 import { EquivalenceGroupCard } from '../substitutability/EquivalenceGroupCard';
 import { groupKey } from '../substitutability/groups';
+import { ClinicalDisclaimer } from '../substitutability/ClinicalDisclaimer';
 import { NadacDisclaimer } from '../substitutability/NadacDisclaimer';
 
 interface SubstitutabilityPanelProps {
@@ -40,6 +41,8 @@ export const SubstitutabilityPanel: React.FC<SubstitutabilityPanelProps> = ({ co
 
       {result.status === 'found' && (
         <>
+          <ClinicalDisclaimer />
+
           {result.groups.map(group => (
             <EquivalenceGroupCard key={groupKey(group)} group={group} />
           ))}

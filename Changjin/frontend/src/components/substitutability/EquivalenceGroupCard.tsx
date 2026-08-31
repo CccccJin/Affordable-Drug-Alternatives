@@ -32,9 +32,11 @@ export const EquivalenceGroupCard: React.FC<{ group: EquivalenceGroup }> = ({ gr
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        FDA rates these {group.memberCount} products therapeutically equivalent. A
-        pharmacist may substitute between them without contacting the prescriber,
-        subject to state substitution law.
+        FDA has assigned these {group.memberCount} products the same
+        therapeutic-equivalence rating. That is a finding about the products;
+        whether substituting one for another is appropriate for a given patient,
+        and whether state law permits it, is a decision for a pharmacist or
+        prescriber.
       </Typography>
 
       <TableContainer component={Paper} variant="outlined">

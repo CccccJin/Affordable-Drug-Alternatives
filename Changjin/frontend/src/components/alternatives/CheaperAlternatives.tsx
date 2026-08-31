@@ -22,6 +22,7 @@ import type { EquivalenceGroup } from '../../types/api';
 import { useAlternatives } from '../../hooks/useAlternatives';
 import { EquivalenceGroupCard } from '../substitutability/EquivalenceGroupCard';
 import { groupKey, switchPair } from '../substitutability/groups';
+import { ClinicalDisclaimer } from '../substitutability/ClinicalDisclaimer';
 import { NadacDisclaimer } from '../substitutability/NadacDisclaimer';
 import { formatPrice, numberCell } from '../substitutability/format';
 import { SwitchSummary } from './SwitchSummary';
@@ -38,8 +39,8 @@ const HighlightTable: React.FC<{ groups: EquivalenceGroup[]; onPick: (name: stri
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>Prescribed</TableCell>
-          <TableCell>Cheapest FDA-equivalent</TableCell>
+          <TableCell>Brand</TableCell>
+          <TableCell>Lowest-cost rated equivalent</TableCell>
           <TableCell sx={numberCell}>Brand $/unit</TableCell>
           <TableCell sx={numberCell}>Generic $/unit</TableCell>
           <TableCell sx={numberCell}>Saving</TableCell>
@@ -94,14 +95,17 @@ export const CheaperAlternatives: React.FC = () => {
           Substitutability
         </Typography>
         <Typography variant="h2" component="h1" sx={{ mb: 1.5, fontFamily: serifStack }}>
-          Find a cheaper equivalent
+          Therapeutic equivalence lookup
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640 }}>
-          Enter a brand or generic name. Results are the products FDA rates
-          therapeutically equivalent to it — a pharmacist may substitute between them
-          without contacting the prescriber — priced with CMS NADAC.
+        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 660 }}>
+          Enter a brand or generic name to see how FDA has rated other products
+          containing the same active ingredient, alongside CMS NADAC acquisition
+          costs where they are published. This is a reference view of public FDA and
+          CMS records — not medical advice, and not a recommendation to substitute.
         </Typography>
       </Box>
+
+      <ClinicalDisclaimer />
 
       <Paper variant="outlined" sx={{ p: 2.5, mb: 4 }}>
         <Box
@@ -172,7 +176,7 @@ export const CheaperAlternatives: React.FC = () => {
       {result.status === 'idle' && (
         <>
           <Typography variant="h6" gutterBottom>
-            Largest savings in the dataset
+            Largest published price differences
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {result.meta.coverage.groups.toLocaleString()} equivalence groups,{' '}
