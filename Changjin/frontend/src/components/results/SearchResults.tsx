@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
 import { setSelectedCompound } from '../../store/slices/resultsSlice';
 import { ResultsList } from './ResultsList';
+import { SimilarityCaveat } from './SimilarityCaveat';
 import { CompoundDetails } from './CompoundDetails';
 import { AnalyticsDashboard } from '../charts/AnalyticsDashboard';
 import {
@@ -188,6 +189,8 @@ export const SearchResults: React.FC = () => {
           ))}
         </Stack>
       </Box>
+
+      <SimilarityCaveat />
 
       {/* Tabs */}
       <Box
