@@ -124,11 +124,19 @@ def build_payload(conn) -> dict:
             "s": g["strength_key"], "n": len(members), "sv": saving, "mem": members,
         })
 
-    # Index on the Orange Book name and on the salt-stripped moiety, so a search
-    # for "atorvastatin" reaches the "ATORVASTATIN CALCIUM" groups.
+    # Index on the Orange Book ingredient, on the salt-stripped moiety, and on
+    # every member's trade name.
+    #
+    # The trade names are what make the index usable as a front door. A patient
+    # or prescriber starts from the brand they were given -- "Lipitor", not
+    # "ATORVASTATIN CALCIUM" -- and without them the cheapest-equivalent lookup
+    # can only be reached by someone who already knows the generic name, which
+    # is the answer they came for.
     name_index: dict[str, list[int]] = {}
     for idx, group in enumerate(groups):
-        for key in {group["i"], base_moiety(group["i"])}:
+        keys = {group["i"], base_moiety(group["i"])}
+        keys.update(member["t"] for member in group["mem"])
+        for key in keys:
             if key:
                 name_index.setdefault(key, []).append(idx)
 

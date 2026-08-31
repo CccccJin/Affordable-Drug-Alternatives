@@ -11,6 +11,15 @@ export interface SearchResponse {
   count: number;
   results: Compound[];
   post_processed?: PostProcessingResult;
+  /**
+   * Highest Tanimoto seen anywhere in the corpus, including below the
+   * threshold. Lets an empty result set report how close the nearest miss was
+   * instead of just saying nothing matched. Optional: the FastAPI backend does
+   * not compute it, only the static build does.
+   */
+  best_similarity?: number;
+  /** Threshold the results were filtered at, for the same reason. */
+  threshold?: number;
 }
 
 export interface ResolveRequest {
@@ -140,4 +149,18 @@ export type SubstitutabilityResult =
   | { status: 'loading' }
   | { status: 'found'; groups: EquivalenceGroup[]; meta: SubstitutabilityMeta }
   | { status: 'no-coverage'; reason: string }
+  | { status: 'error'; message: string };
+
+/**
+ * State of the cheapest-equivalent search.
+ *
+ * `idle` carries the highlight list rather than being empty, so the page can
+ * show real savings before the user types anything; `no-match` carries
+ * suggestions, so a miss is a next step rather than a dead end.
+ */
+export type AlternativesResult =
+  | { status: 'loading' }
+  | { status: 'idle'; highlights: EquivalenceGroup[]; meta: SubstitutabilityMeta }
+  | { status: 'found'; query: string; groups: EquivalenceGroup[]; meta: SubstitutabilityMeta }
+  | { status: 'no-match'; query: string; suggestions: string[] }
   | { status: 'error'; message: string };

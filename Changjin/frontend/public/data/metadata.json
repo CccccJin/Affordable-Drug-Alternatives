@@ -18,7 +18,17 @@
   "notes": [
     "Static export for GitHub Pages; no local database or API required.",
     "Contains public compound identifiers, preferred names, canonical SMILES, and processed RDKit descriptor fields.",
-    "This file does not include full database fingerprints, embeddings, prices, or private data.",
+    "Morgan fingerprints ship alongside in fingerprints.bin; ChemBERTa embeddings, prices and private data do not.",
     "Demo subset: 5,000 lowest-numbered ChEMBL IDs from the full 42,231-record export, to keep the GitHub Pages deployment lightweight."
-  ]
+  ],
+  "fingerprints": {
+    "file": "fingerprints.bin",
+    "algorithm": "Morgan",
+    "radius": 2,
+    "n_bits": 1024,
+    "bytes_per_record": 128,
+    "records": 5000,
+    "unparseable": 0,
+    "note": "Row i corresponds to record i of compounds.json; regenerate both together. Matches chem.py, so scores equal the FastAPI /search endpoint's."
+  }
 }

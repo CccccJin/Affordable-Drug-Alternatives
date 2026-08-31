@@ -38,6 +38,18 @@ jobs:
         working-directory: Changjin/frontend
         run: npm run lint
 
+      # Gates the deploy on the test suite. Jest is already a devDependency, so
+      # `npm ci` above installs it and this needs no extra setup. The Python
+      # tests are not run here: they need RDKit, which has no PyPI wheel on
+      # every platform, and a 100 MB sqlite build the runner does not have.
+      - name: Test
+        working-directory: Changjin/frontend
+        run: npm test
+
+      - name: Type check
+        working-directory: Changjin/frontend
+        run: npm run type-check
+
       - name: Build
         working-directory: Changjin/frontend
         run: npm run build

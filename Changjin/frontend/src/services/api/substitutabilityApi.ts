@@ -111,18 +111,75 @@ export const __resetSubstitutabilityCache = (): void => {
   inFlight = null;
 };
 
+const indexKey = (name: string): string =>
+  name.trim().toUpperCase().replace(/\s+/g, ' ');
+
 /**
  * Orange Book ingredient names carry the salt ("ATORVASTATIN CALCIUM") while a
  * ChEMBL preferred name usually does not ("ATORVASTATIN"). The export indexes
- * both spellings, so an exact lookup on the upper-cased name finds either.
+ * both spellings plus every member's trade name ("LIPITOR"), so an exact lookup
+ * on the upper-cased name finds any of the three.
  */
 export const lookupGroups = (
   data: SubstitutabilityData,
   prefName: string | null | undefined,
 ): EquivalenceGroup[] => {
   if (!prefName) return [];
-  const key = prefName.trim().toUpperCase().replace(/\s+/g, ' ');
-  const indices = data.nameIndex[key];
+  const indices = data.nameIndex[indexKey(prefName)];
   if (!indices) return [];
   return indices.map(i => data.groups[i]).filter(Boolean);
+};
+
+/**
+ * Index keys containing the query, for a search box where the user is typing.
+ *
+ * The index is an exact-match map, which is the right shape for looking up a
+ * compound's own name but useless to someone half-way through spelling
+ * "levothyroxine". Prefix matches rank above interior ones so "atorva" leads
+ * with ATORVASTATIN rather than a product that merely contains the substring.
+ */
+export const suggestNames = (
+  data: SubstitutabilityData,
+  query: string,
+  limit = 8,
+): string[] => {
+  const key = indexKey(query);
+  if (key.length < 2) return [];
+
+  const prefix: string[] = [];
+  const interior: string[] = [];
+  for (const name of Object.keys(data.nameIndex)) {
+    if (name.startsWith(key)) prefix.push(name);
+    else if (name.includes(key)) interior.push(name);
+    // Stop scanning once both buckets can fill the quota on their own.
+    if (prefix.length >= limit) break;
+  }
+
+  prefix.sort((a, b) => a.length - b.length || a.localeCompare(b));
+  interior.sort((a, b) => a.length - b.length || a.localeCompare(b));
+  return [...prefix, ...interior].slice(0, limit);
+};
+
+/**
+ * The largest brand-to-generic savings in the export, one per ingredient.
+ *
+ * Gives the search page something true to show before anyone types. Deduped by
+ * ingredient because the same drug appears once per strength -- without that,
+ * the list is ten rows of atorvastatin and demonstrates nothing about breadth.
+ */
+export const topSavings = (
+  data: SubstitutabilityData,
+  limit = 12,
+): EquivalenceGroup[] => {
+  const best = new Map<string, EquivalenceGroup>();
+  for (const group of data.groups) {
+    if (group.savingPercent === null) continue;
+    const seen = best.get(group.ingredient);
+    if (!seen || group.savingPercent > seen.savingPercent!) {
+      best.set(group.ingredient, group);
+    }
+  }
+  return [...best.values()]
+    .sort((a, b) => b.savingPercent! - a.savingPercent!)
+    .slice(0, limit);
 };

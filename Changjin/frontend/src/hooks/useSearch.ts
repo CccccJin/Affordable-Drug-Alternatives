@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MockSearchApi } from '../services/api/mockSearchApi';
+import {
+  DEFAULT_SIMILARITY_THRESHOLD,
+  StaticSearchApi,
+} from '../services/api/staticSearchApi';
 import type {
   SearchRequest,
   SearchResponse,
@@ -25,7 +28,7 @@ export const useSearch = () => {
 
   return useMutation<SearchResponse, Error, SearchRequest>({
     mutationFn: async (request: SearchRequest) => {
-      return await MockSearchApi.search(request);
+      return await StaticSearchApi.search(request);
     },
     onSuccess: (data) => {
       // Cache the search results
@@ -38,8 +41,10 @@ export const useAISearch = () => {
   const queryClient = useQueryClient();
 
   return useMutation<SearchResponse, Error, SearchRequest>({
-    mutationFn: async (request: SearchRequest) => {
-      return await MockSearchApi.searchAI(request);
+    // The request is ignored: ChemBERTa search needs the FastAPI backend, so
+    // the static build rejects it rather than answering with a lookalike score.
+    mutationFn: async () => {
+      return await StaticSearchApi.searchAI();
     },
     onSuccess: (data) => {
       // Cache the AI search results
@@ -52,7 +57,7 @@ export const useAISearch = () => {
 export const useResolveName = () => {
   return useMutation<ResolveResponse, Error, ResolveRequest>({
     mutationFn: async (request: ResolveRequest) => {
-      return await MockSearchApi.resolveName(request);
+      return await StaticSearchApi.resolveName(request);
     },
   });
 };
@@ -61,7 +66,7 @@ export const useResolveName = () => {
 export const useCalculateProperties = () => {
   return useMutation<CalculatedProperties, Error, PropertyCalculationRequest>({
     mutationFn: async (request: PropertyCalculationRequest) => {
-      return await MockSearchApi.calculateProperties(request);
+      return await StaticSearchApi.calculateProperties(request);
     },
   });
 };
@@ -71,7 +76,7 @@ export const useFilterableProperties = () => {
   return useQuery<string[]>({
     queryKey: queryKeys.properties,
     queryFn: async () => {
-      return await MockSearchApi.getFilterableProperties();
+      return await StaticSearchApi.getFilterableProperties();
     },
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
@@ -81,7 +86,7 @@ export const useFilterableProperties = () => {
 export const useVisualizeMolecule = () => {
   return useMutation<string, Error, string>({
     mutationFn: async (smiles: string) => {
-      return await MockSearchApi.visualizeMolecule(smiles);
+      return await StaticSearchApi.visualizeMolecule(smiles);
     },
   });
 };
@@ -91,7 +96,7 @@ export const useHealthCheck = () => {
   return useQuery<{ status: string }>({
     queryKey: queryKeys.health,
     queryFn: async () => {
-      return await MockSearchApi.healthCheck();
+      return await StaticSearchApi.healthCheck();
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 2,
@@ -107,7 +112,7 @@ export const useCompoundSearch = () => {
   const searchBySMILES = async (smiles: string, useAI: boolean = false, filters?: PropertyFilters) => {
     const searchRequest: SearchRequest = {
       smiles,
-      threshold: 0.7,
+      threshold: DEFAULT_SIMILARITY_THRESHOLD,
       max_results: 50,
       enable_post_processing: true,
       filters,

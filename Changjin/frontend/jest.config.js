@@ -8,7 +8,6 @@
  */
 export default {
   testEnvironment: 'jsdom',
-  setupFilesAfterEach: undefined,
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   transform: {

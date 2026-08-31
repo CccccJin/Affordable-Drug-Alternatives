@@ -20,6 +20,7 @@ interface RDKitMolecule {
   is_valid(): boolean;
   get_svg(width: number, height: number): string;
   get_descriptors(): string;
+  get_morgan_fp_as_uint8array(details: string): Uint8Array;
   normalize_depiction?: (canonicalize?: number, scaleFactor?: number) => number;
   straighten_depiction?: (minimizeRotation?: boolean) => void;
   delete(): void;
@@ -42,6 +43,8 @@ export interface MoleculeProperties {
   rotatableBonds: number;
   ringCount: number;
   aromaticRingCount: number;
+  polarSurfaceArea: number;
+  heavyAtoms: number;
 }
 
 /** Raw descriptor payload returned by JSMol.get_descriptors(). */
@@ -56,6 +59,26 @@ interface RDKitDescriptors {
   NumRotatableBonds?: number;
   NumRings?: number;
   NumAromaticRings?: number;
+  tpsa?: number;
+  NumHeavyAtoms?: number;
+}
+
+/**
+ * The query string is not a structure RDKit can parse.
+ *
+ * Distinguished from every other failure because it is the one the caller can
+ * act on: a user who typed a drug name into the SMILES box can still be served
+ * by resolving the name first. A load or timeout failure cannot be recovered
+ * that way and must surface.
+ */
+export class InvalidSmilesError extends Error {
+  readonly smiles: string;
+
+  constructor(smiles: string) {
+    super(`Not a valid SMILES string: ${smiles}`);
+    this.name = 'InvalidSmilesError';
+    this.smiles = smiles;
+  }
 }
 
 /** Where to fetch RDKit from: local copy first, CDNs only as a fallback. */
@@ -193,11 +216,11 @@ class RDKitServiceImpl {
 
     const molecule = rdkit.get_mol(smiles);
     if (!molecule) {
-      throw new Error(`Invalid SMILES: ${smiles}`);
+      throw new InvalidSmilesError(smiles);
     }
     if (typeof molecule.is_valid === 'function' && !molecule.is_valid()) {
       molecule.delete();
-      throw new Error(`Invalid SMILES: ${smiles}`);
+      throw new InvalidSmilesError(smiles);
     }
     return molecule;
   }
@@ -230,6 +253,33 @@ class RDKitServiceImpl {
     );
   }
 
+  /**
+   * Morgan fingerprint of a SMILES, as packed bits.
+   *
+   * The corpus side of the search is fingerprinted offline by Python RDKit
+   * (`export_demo_fingerprints.py`); this is the query side. Both builds emit
+   * the same `BitVectToBinaryText` layout for the same molecule and the same
+   * parameters, which is what lets the two halves be compared at all --
+   * `tests/test_demo_fingerprints.py` pins that equality against vectors
+   * captured from this WASM build.
+   *
+   * Geometry is passed in rather than hard-coded so it can come from the
+   * export's own metadata, and a regenerated corpus cannot silently disagree
+   * with the query.
+   */
+  async getMorganFingerprint(
+    smiles: string,
+    { radius, nBits }: { radius: number; nBits: number }
+  ): Promise<Uint8Array> {
+    const molecule = await this.getMolecule(smiles);
+    try {
+      return molecule.get_morgan_fp_as_uint8array(JSON.stringify({ radius, nBits }));
+    } finally {
+      // WASM heap allocation: not reclaimed by the JS garbage collector.
+      molecule.delete();
+    }
+  }
+
   getProperties(molecule: RDKitMolecule): MoleculeProperties {
     const empty: MoleculeProperties = {
       molecularWeight: 0,
@@ -239,6 +289,8 @@ class RDKitServiceImpl {
       rotatableBonds: 0,
       ringCount: 0,
       aromaticRingCount: 0,
+      polarSurfaceArea: 0,
+      heavyAtoms: 0,
     };
 
     try {
@@ -251,6 +303,8 @@ class RDKitServiceImpl {
         rotatableBonds: descriptors.NumRotatableBonds ?? 0,
         ringCount: descriptors.NumRings ?? 0,
         aromaticRingCount: descriptors.NumAromaticRings ?? 0,
+        polarSurfaceArea: descriptors.tpsa ?? 0,
+        heavyAtoms: descriptors.NumHeavyAtoms ?? 0,
       };
     } catch (error) {
       console.error('Error reading molecule descriptors:', error);

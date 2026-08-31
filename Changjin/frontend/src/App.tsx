@@ -6,6 +6,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import { SearchForm } from './components/search/SearchForm';
 import { SearchResults } from './components/results/SearchResults';
 import { History } from './components/history/History';
+import { CheaperAlternatives } from './components/alternatives/CheaperAlternatives';
 import { ComingSoon } from './components/layout/ComingSoon';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
               <Route path="/" element={<SearchForm />} />
               <Route path="/search" element={<SearchForm />} />
               <Route path="/results" element={<SearchResults />} />
+              <Route path="/alternatives" element={<CheaperAlternatives />} />
               <Route path="/history" element={<History />} />
               <Route path="/analysis" element={<ComingSoon title="Analysis" />} />
               <Route path="/settings" element={<ComingSoon title="Settings" />} />

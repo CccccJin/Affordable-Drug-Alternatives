@@ -9,6 +9,7 @@ import {
   FormControlLabel,
   Paper,
   Stack,
+  Tooltip,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -41,8 +42,8 @@ const FEATURES = [
   },
   {
     icon: <SparkleIcon fontSize="small" />,
-    title: 'AI similarity',
-    text: 'ChemBERTa embeddings surface intelligent matches beyond fingerprint overlap.',
+    title: 'Morgan fingerprints',
+    text: 'Tanimoto over ECFP4 bits, computed in-browser — the same score the API returns.',
   },
   {
     icon: <TuneIcon fontSize="small" />,
@@ -149,7 +150,7 @@ export const SearchForm: React.FC = () => {
         >
           <BoltIcon sx={{ fontSize: 14, color: brand.indigo }} />
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-            Powered by ChEMBL 35 &amp; ChemBERTa
+            Powered by ChEMBL 35 &amp; RDKit
           </Typography>
         </Box>
 
@@ -182,8 +183,8 @@ export const SearchForm: React.FC = () => {
             mx: 'auto',
           }}
         >
-          Search millions of compounds by structure or name and discover
-          chemically similar molecules in seconds.
+          Search 5,000 ChEMBL compounds by structure or name. Similarity is a
+          real Morgan/Tanimoto computation, run in your browser.
         </Typography>
       </Box>
 
@@ -244,31 +245,39 @@ export const SearchForm: React.FC = () => {
             </Button>
           </Box>
 
-          {/* AI toggle */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={useAI}
-                onChange={(e) => setUseAI(e.target.checked)}
-                color="primary"
-              />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <SparkleIcon
-                  sx={{
-                    fontSize: 18,
-                    color: useAI ? brand.indigo : 'text.disabled',
-                    transition: 'color 0.2s ease',
-                  }}
+          {/* AI toggle. Disabled in the static build: ChemBERTa search needs
+              the FastAPI backend and a 315 MB torch model, so the switch says
+              so up front rather than failing after a click. */}
+          <Tooltip title="ChemBERTa embedding search needs the FastAPI backend, which this static demo does not deploy. Structural similarity runs fully in the browser.">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useAI}
+                  onChange={(e) => setUseAI(e.target.checked)}
+                  color="primary"
+                  disabled
                 />
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  AI-powered search
-                </Typography>
-              </Box>
-            }
-            sx={{ mr: 0 }}
-          />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <SparkleIcon
+                    sx={{
+                      fontSize: 18,
+                      color: useAI ? brand.indigo : 'text.disabled',
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    AI-powered search
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                    (backend only)
+                  </Typography>
+                </Box>
+              }
+              sx={{ mr: 0 }}
+            />
+          </Tooltip>
         </Stack>
 
         <TextField

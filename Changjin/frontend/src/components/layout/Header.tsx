@@ -15,6 +15,7 @@ import {
 import {
   Search as SearchIcon,
   History as HistoryIcon,
+  SavingsOutlined as SavingsIcon,
   DarkModeOutlined as DarkModeIcon,
   LightModeOutlined as LightModeIcon,
 } from '@mui/icons-material';
@@ -153,6 +154,13 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
               sx={navButtonSx(isActive('/search'))}
             >
               Search
+            </Button>
+            <Button
+              startIcon={!isMobile ? <SavingsIcon fontSize="small" /> : undefined}
+              onClick={() => navigate('/alternatives')}
+              sx={navButtonSx(isActive('/alternatives'))}
+            >
+              Alternatives
             </Button>
             <Button
               startIcon={!isMobile ? <HistoryIcon fontSize="small" /> : undefined}

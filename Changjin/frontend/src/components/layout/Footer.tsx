@@ -25,7 +25,7 @@ export const Footer: React.FC = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          ChemSearch — AI-powered discovery of affordable drug alternatives
+          ChemSearch — structural similarity and FDA-rated substitutability
         </Typography>
         <Typography variant="caption" color="text.secondary">
           Compound data from{' '}

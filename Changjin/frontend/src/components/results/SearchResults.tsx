@@ -18,7 +18,10 @@ import { setSelectedCompound } from '../../store/slices/resultsSlice';
 import { ResultsList } from './ResultsList';
 import { CompoundDetails } from './CompoundDetails';
 import { AnalyticsDashboard } from '../charts/AnalyticsDashboard';
-import { MockSearchApi } from '../../services/api/mockSearchApi';
+import {
+  DEFAULT_SIMILARITY_THRESHOLD,
+  StaticSearchApi,
+} from '../../services/api/staticSearchApi';
 import type { Compound, SearchResponse } from '../../types/api';
 import { monoStack } from '../../styles/theme';
 
@@ -75,21 +78,15 @@ export const SearchResults: React.FC = () => {
       try {
         let searchQuery = query;
         if (searchType === 'name') {
-          const resolved = await MockSearchApi.resolveName({ name: query });
+          const resolved = await StaticSearchApi.resolveName({ name: query });
           searchQuery = resolved.smiles;
         }
 
         const response = useAI
-          ? await MockSearchApi.searchAI({
+          ? await StaticSearchApi.searchAI()
+          : await StaticSearchApi.search({
               smiles: searchQuery,
-              threshold: 0.7,
-              max_results: 50,
-              enable_post_processing: true,
-              filters: searchState.filters,
-            })
-          : await MockSearchApi.search({
-              smiles: searchQuery,
-              threshold: 0.7,
+              threshold: DEFAULT_SIMILARITY_THRESHOLD,
               max_results: 50,
               enable_post_processing: true,
               filters: searchState.filters,
@@ -174,7 +171,7 @@ export const SearchResults: React.FC = () => {
           {useAI && (
             <Chip
               icon={<SparkleIcon sx={{ fontSize: 15 }} />}
-              label="AI-powered (ChemBERTa)"
+              label="AI (ChemBERTa) — backend only"
               size="small"
               color="primary"
               variant="outlined"
@@ -237,9 +234,11 @@ export const SearchResults: React.FC = () => {
 
       <Alert severity="info" sx={{ mt: 5 }}>
         <Typography variant="body2">
-          Results are loaded from static files in <strong>public/data</strong> for
-          GitHub Pages deployment. Full-database dynamic similarity search still
-          requires a backend API and database.
+          Similarity is a real Morgan/Tanimoto computation (ECFP4, radius 2,
+          1024 bits) run in your browser against <strong>public/data</strong>, so
+          scores match what the FastAPI <code>/search</code> endpoint returns.
+          What the static build limits is <em>coverage</em>: 5,000 compounds
+          rather than the full ChEMBL 35 export.
         </Typography>
       </Alert>
     </Box>
