@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ScatterChart,
   Scatter,
@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import {
   Card,
@@ -20,8 +19,21 @@ import {
   MenuItem,
   Chip,
   Avatar,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import type { Compound } from '../../types/api';
+import { rdkitService } from '../../services/rdkit/rdkitService';
+import { loadFingerprintCorpus } from '../../services/search/fingerprintStore';
+import { buildChemicalSpace } from '../../services/search/chemicalSpace';
+
+/**
+ * Tanimoto floor for two compounds to land in the same Butina cluster. 0.6 is
+ * below the conventional 0.7 "highly similar" line because a result set is
+ * already pre-filtered by similarity to the query; at 0.7 almost everything
+ * shown becomes a singleton.
+ */
+const CLUSTER_CUTOFF = 0.6;
 
 interface ClusteringVisualizationProps {
   compounds: Compound[];
@@ -42,8 +54,10 @@ interface ClusterInfo {
   compounds: Compound[];
   avgSimilarity: number;
   properties: {
-    avgMW: number;
-    avgLogP: number;
+    // null when no member of the cluster carries the property, rather than a
+    // number derived from something else.
+    avgMW: number | null;
+    avgLogP: number | null;
   };
 }
 
@@ -54,59 +68,90 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
   const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
   const [colorScheme, setColorScheme] = useState<'similarity' | 'properties'>('similarity');
 
-  // Generate mock clustering data (in real implementation, this would use PCA or t-SNE)
-  const clusteringData = useMemo((): { points: ClusterPoint[]; clusters: ClusterInfo[] } => {
+  const [space, setSpace] = useState<ReturnType<typeof buildChemicalSpace> | null>(null);
+  const [spaceError, setSpaceError] = useState<string | null>(null);
+
+  // Fingerprints come from RDKit rather than from the corpus blob: the plot
+  // shows whatever is on screen, which after filtering and sorting is no longer
+  // aligned with corpus row order.
+  useEffect(() => {
+    let cancelled = false;
     if (compounds.length === 0) {
-      return { points: [], clusters: [] };
+      setSpace(null);
+      return;
     }
 
-    // Mock PCA-like transformation for visualization
-    const points: ClusterPoint[] = compounds.map((compound) => {
-      // Create pseudo-random but deterministic positions based on SMILES
-      const hash = compound.smiles.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-      }, 0);
-
-      const x = Math.sin(hash) * 100 + (Math.random() - 0.5) * 50;
-      const y = Math.cos(hash) * 100 + (Math.random() - 0.5) * 50;
-
-      // Assign clusters (simple clustering based on position)
-      const cluster = Math.floor((Math.atan2(y, x) + Math.PI) / (Math.PI * 2) * 5);
-
-      return {
-        x,
-        y,
-        cluster,
-        compound,
-        size: compound.similarity * 20 + 5, // Size based on similarity
-      };
-    });
-
-    // Generate cluster information
-    const clusters: ClusterInfo[] = [];
-    for (let i = 0; i < 5; i++) {
-      const clusterCompounds = points.filter(p => p.cluster === i).map(p => p.compound);
-
-      if (clusterCompounds.length > 0) {
-        const centerX = points.filter(p => p.cluster === i).reduce((sum, p) => sum + p.x, 0) / clusterCompounds.length;
-        const centerY = points.filter(p => p.cluster === i).reduce((sum, p) => sum + p.y, 0) / clusterCompounds.length;
-
-        clusters.push({
-          id: i,
-          center: { x: centerX, y: centerY },
-          compounds: clusterCompounds,
-          avgSimilarity: clusterCompounds.reduce((sum, compound) => sum + compound.similarity, 0) / clusterCompounds.length,
-          properties: {
-            avgMW: clusterCompounds.reduce((sum, compound) => sum + (150 + (compound.smiles.length * 2)), 0) / clusterCompounds.length,
-            avgLogP: clusterCompounds.reduce((sum) => sum + (-2 + (Math.random() * 4)), 0) / clusterCompounds.length,
-          },
-        });
+    (async () => {
+      try {
+        const { geometry } = await loadFingerprintCorpus();
+        const fingerprints = await Promise.all(
+          compounds.map(compound =>
+            rdkitService.getMorganFingerprint(compound.smiles, geometry)
+          )
+        );
+        if (cancelled) return;
+        setSpaceError(null);
+        setSpace(buildChemicalSpace(fingerprints, CLUSTER_CUTOFF));
+      } catch (error) {
+        if (cancelled) return;
+        setSpace(null);
+        setSpaceError(error instanceof Error ? error.message : 'Could not project these compounds');
       }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [compounds]);
+
+  const clusteringData = useMemo((): { points: ClusterPoint[]; clusters: ClusterInfo[] } => {
+    if (!space) return { points: [], clusters: [] };
+
+    const points: ClusterPoint[] = space.points.map((point, i) => ({
+      x: point.x,
+      y: point.y,
+      cluster: point.cluster,
+      compound: compounds[i],
+      size: compounds[i].similarity * 20 + 5,
+    }));
+
+    const byCluster = new Map<number, ClusterPoint[]>();
+    for (const point of points) {
+      const list = byCluster.get(point.cluster) ?? [];
+      list.push(point);
+      byCluster.set(point.cluster, list);
     }
+
+    /** Mean of a property over the members that actually carry it. */
+    const meanOf = (members: Compound[], key: 'molecular_weight' | 'logp'): number | null => {
+      const values = members
+        .map(member => member[key])
+        .filter((value): value is number => typeof value === 'number');
+      return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+    };
+
+    const clusters: ClusterInfo[] = [...byCluster.entries()]
+      .sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+      .map(([id, members]) => {
+        const molecules = members.map(m => m.compound);
+        return {
+          id,
+          center: {
+            x: members.reduce((sum, m) => sum + m.x, 0) / members.length,
+            y: members.reduce((sum, m) => sum + m.y, 0) / members.length,
+          },
+          compounds: molecules,
+          avgSimilarity:
+            molecules.reduce((sum, m) => sum + m.similarity, 0) / molecules.length,
+          properties: {
+            avgMW: meanOf(molecules, 'molecular_weight'),
+            avgLogP: meanOf(molecules, 'logp'),
+          },
+        };
+      });
 
     return { points, clusters };
-  }, [compounds]);
+  }, [space, compounds]);
 
   const getColor = (cluster: number, value?: number) => {
     if (colorScheme === 'similarity' && value !== undefined) {
@@ -118,6 +163,33 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
     // Color by cluster
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
     return colors[cluster % colors.length];
+  };
+
+  /**
+   * Scatter symbols are drawn here rather than left to recharts, which sizes
+   * them from a ZAxis scale and emits `d="M0,0"` — a zero-radius path — when it
+   * cannot resolve one. Radius encodes similarity to the query, so the marker
+   * carries the same information as the colour without depending on that scale.
+   */
+  const renderPoint = (props: unknown) => {
+    const { cx, cy, payload } = props as {
+      cx?: number;
+      cy?: number;
+      payload?: ClusterPoint;
+    };
+    if (cx === undefined || cy === undefined || !payload) return <g />;
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={4 + payload.compound.similarity * 7}
+        fill={getColor(payload.cluster, payload.compound.similarity)}
+        fillOpacity={0.85}
+        stroke="#fff"
+        strokeWidth={1}
+        style={{ cursor: 'pointer' }}
+      />
+    );
   };
 
   const handlePointClick = (data: ClusterPoint) => {
@@ -173,44 +245,69 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
         <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 3 }}>
           {/* Scatter Plot */}
           <Box>
+            {spaceError && <Alert severity="error" sx={{ mb: 2 }}>{spaceError}</Alert>}
+
+            {/* Constant height, and the chart mounts only once the projection is
+                ready: ResponsiveContainer measures its parent on mount and does
+                not reliably re-measure, so mounting it inside a zero-height box
+                leaves an empty plot even after the data arrives. */}
             <Box sx={{ height: 400, mb: 2 }}>
+              {!space ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, height: '100%' }}>
+                  {!spaceError && compounds.length > 0 && <CircularProgress size={18} />}
+                  <Typography variant="body2" color="text.secondary">
+                    {spaceError
+                      ? 'No projection available.'
+                      : compounds.length === 0
+                        ? 'No compounds to project.'
+                        : `Fingerprinting ${compounds.length} compounds…`}
+                  </Typography>
+                </Box>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart>
                   <CartesianGrid />
                   <XAxis
                     type="number"
                     dataKey="x"
-                    name="PC1"
-                    domain={['dataMin - 20', 'dataMax + 20']}
+                    name="MDS1"
+                    domain={['dataMin - 0.05', 'dataMax + 0.05']}
+                    tickFormatter={(v: number) => v.toFixed(2)}
                   />
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="PC2"
-                    domain={['dataMin - 20', 'dataMax + 20']}
+                    name="MDS2"
+                    domain={['dataMin - 0.05', 'dataMax + 0.05']}
+                    tickFormatter={(v: number) => v.toFixed(2)}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Scatter
                     name="Compounds"
                     data={clusteringData.points}
                     onClick={handlePointClick}
-                  >
-                    {clusteringData.points.map((point) => (
-                      <Cell
-                        key={`cell-${point.compound.chembl_id}`}
-                        fill={getColor(point.cluster, point.compound.similarity)}
-                      />
-                    ))}
-                  </Scatter>
+                    isAnimationActive={false}
+                    shape={renderPoint}
+                  />
                 </ScatterChart>
               </ResponsiveContainer>
+              )}
             </Box>
 
             <Typography variant="body2" color="text.secondary">
-              💡 Click on points to view cluster details. Colors represent {
-                colorScheme === 'similarity' ? 'similarity scores' : 'cluster assignments'
+              Click a point for its cluster. Colours show {
+                colorScheme === 'similarity' ? 'similarity to the query' : 'cluster assignment'
               }.
             </Typography>
+            {space && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Axes are classical MDS on 1 &minus; Tanimoto over Morgan fingerprints, so
+                distance on the plot approximates structural distance. Kruskal stress{' '}
+                <strong>{space.stress.toFixed(2)}</strong> &mdash; two dimensions cannot hold
+                the geometry of a 1024-bit space, so read proximity as a hint, not a measurement.
+                Clusters are Taylor&ndash;Butina at Tanimoto &ge; {CLUSTER_CUTOFF}.
+              </Typography>
+            )}
           </Box>
 
           {/* Cluster Information Panel */}
@@ -265,7 +362,10 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
                             Avg Similarity: {cluster.avgSimilarity.toFixed(3)}
                           </Typography>
                           <Typography variant="caption" display="block">
-                            Avg MW: {cluster.properties.avgMW.toFixed(1)} g/mol
+                            Avg MW:{' '}
+                            {cluster.properties.avgMW === null
+                              ? '—'
+                              : `${cluster.properties.avgMW.toFixed(1)} g/mol`}
                           </Typography>
                         </Box>
                       </Box>
@@ -275,7 +375,7 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
               </Box>
             ) : (
               <Typography variant="body2" color="text.secondary">
-                No clusters detected. Need more compounds for meaningful clustering.
+                Nothing to cluster yet.
               </Typography>
             )}
 
@@ -285,8 +385,8 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
                   Cluster {selectedCluster} Details
                 </Typography>
                 <Typography variant="body2">
-                  {clusteringData.clusters.find(c => c.id === selectedCluster)?.compounds.length || 0} compounds
-                  in this cluster with similar structural and property profiles.
+                  {clusteringData.clusters.find(c => c.id === selectedCluster)?.compounds.length || 0}{' '}
+                  compounds within Tanimoto {CLUSTER_CUTOFF} of this cluster&rsquo;s centre.
                 </Typography>
               </Box>
             )}
