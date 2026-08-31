@@ -43,6 +43,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const [notice, setNotice] = useState<string | null>(null);
 
   const supportedFormats = ExportService.getSupportedFormats();
+  const plural = compounds.length === 1 ? '' : 's';
 
   const handleExport = async () => {
     if (compounds.length === 0) {
@@ -65,7 +66,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
       if (result.skipped.length > 0) {
         setNotice(
-          `Wrote ${result.written} of ${compounds.length} compounds. ` +
+          `Wrote ${result.written} of ${compounds.length} compound${plural}. ` +
             `${result.skipped.length} had no structure RDKit could build and were ` +
             `left out: ${result.skipped.map(s => s.chembl_id).join(', ')}.`
         );
@@ -119,7 +120,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <Chip
-              label={`${compounds.length} compounds`}
+              label={`${compounds.length} compound${plural}`}
               color="primary"
               size="small"
             />
@@ -226,7 +227,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
           disabled={isExporting || compounds.length === 0}
           color="primary"
         >
-          {isExporting ? 'Exporting...' : `Export ${compounds.length} Compounds`}
+          {isExporting ? 'Exporting...' : `Export ${compounds.length} compound${plural}`}
         </Button>
       </DialogActions>
     </Dialog>
