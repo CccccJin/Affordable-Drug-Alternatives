@@ -49,7 +49,9 @@ describe('SubstitutabilityPanel', () => {
     // The brand name appears twice by design: once in the table, once in the
     // saving sentence. Assert on all matches rather than a unique one.
     expect(await screen.findAllByText('LIPITOR')).not.toHaveLength(0);
-    expect(screen.getAllByText('19.11383').length).toBeGreaterThan(0);
+    // Precision tracks magnitude: three decimals at $19, five at sub-cent —
+    // a generic priced 0.03704 must not round to 0.04.
+    expect(screen.getAllByText('19.114').length).toBeGreaterThan(0);
     expect(screen.getAllByText('0.03704').length).toBeGreaterThan(0);
     expect(screen.getByText(/99\.8%/)).toBeInTheDocument();
     expect(screen.getByText('Grade A')).toBeInTheDocument();
@@ -102,5 +104,25 @@ describe('SubstitutabilityPanel', () => {
     );
     expect(screen.getByText(/Purple\s+Book/i)).toBeInTheDocument();
     expect(screen.queryAllByText('LIPITOR')).toHaveLength(0);
+  });
+});
+
+describe('formatPrice', () => {
+  it('keeps sub-cent precision where generics live', async () => {
+    const { formatPrice } = await import('../components/substitutability/format');
+    expect(formatPrice(0.03704)).toBe('0.03704');
+    expect(formatPrice(0.00001)).toBe('0.00001');
+  });
+
+  it('drops noise digits on a biologic and separates thousands', async () => {
+    const { formatPrice } = await import('../components/substitutability/format');
+    // "$3366.12300" is five digits of noise after the only two that matter.
+    expect(formatPrice(3366.123)).toBe('3,366.12');
+    expect(formatPrice(29792.78571)).toBe('29,792.79');
+  });
+
+  it('renders an absent price as a dash, not a zero', async () => {
+    const { formatPrice } = await import('../components/substitutability/format');
+    expect(formatPrice(null)).toBe('—');
   });
 });

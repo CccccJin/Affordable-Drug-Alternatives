@@ -18,13 +18,14 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useSearchParams } from 'react-router-dom';
-import type { EquivalenceGroup } from '../../types/api';
+import type { BiologicFamily, EquivalenceGroup } from '../../types/api';
 import { useAlternatives } from '../../hooks/useAlternatives';
 import { EquivalenceGroupCard } from '../substitutability/EquivalenceGroupCard';
 import { groupKey, switchPair } from '../substitutability/groups';
 import { ClinicalDisclaimer } from '../substitutability/ClinicalDisclaimer';
 import { NadacDisclaimer } from '../substitutability/NadacDisclaimer';
 import { formatPrice, numberCell } from '../substitutability/format';
+import { BiologicFamilyCard } from '../substitutability/BiologicFamilyCard';
 import { SwitchSummary } from './SwitchSummary';
 import { serifStack } from '../../styles/theme';
 
@@ -63,6 +64,55 @@ const HighlightTable: React.FC<{ groups: EquivalenceGroup[]; onPick: (name: stri
               <TableCell sx={numberCell}>{formatPrice(pair.generic.pricePerUnit)}</TableCell>
               <TableCell sx={{ ...numberCell, fontWeight: 700, color: 'success.dark' }}>
                 {group.savingPercent!.toFixed(1)}%
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  </TableContainer>
+);
+
+const BiologicHighlightTable: React.FC<{
+  families: BiologicFamily[];
+  onPick: (name: string) => void;
+}> = ({ families, onPick }) => (
+  <TableContainer component={Paper} variant="outlined">
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>Reference biologic</TableCell>
+          <TableCell>Cheapest follow-on</TableCell>
+          <TableCell sx={numberCell}>Reference $/unit</TableCell>
+          <TableCell sx={numberCell}>Follow-on $/unit</TableCell>
+          <TableCell sx={numberCell}>Saving</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {families.map(family => {
+          const saving = family.savings[0];
+          return (
+            <TableRow
+              key={family.molecule}
+              hover
+              sx={{ cursor: 'pointer' }}
+              onClick={() => onPick(saving.fromName)}
+            >
+              <TableCell sx={{ fontWeight: 600 }}>{saving.fromName}</TableCell>
+              <TableCell>
+                {saving.toName}{' '}
+                <Chip
+                  label={saving.grade === 'A' ? 'interchangeable' : 'biosimilar'}
+                  size="small"
+                  variant="outlined"
+                  color={saving.grade === 'A' ? 'success' : 'warning'}
+                  sx={{ ml: 0.5 }}
+                />
+              </TableCell>
+              <TableCell sx={numberCell}>{formatPrice(saving.fromPrice)}</TableCell>
+              <TableCell sx={numberCell}>{formatPrice(saving.toPrice)}</TableCell>
+              <TableCell sx={{ ...numberCell, fontWeight: 700, color: 'success.dark' }}>
+                {saving.savingPercent.toFixed(1)}%
               </TableCell>
             </TableRow>
           );
@@ -184,6 +234,22 @@ export const CheaperAlternatives: React.FC = () => {
             brand and a priced generic. Select a row to open it.
           </Typography>
           <HighlightTable groups={result.highlights} onPick={submit} />
+
+          {result.biologicHighlights.length > 0 && (
+            <>
+              <Typography variant="h6" sx={{ mt: 4 }} gutterBottom>
+                Biologics
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Licensed under the Purple Book rather than the Orange Book. Far fewer
+                have a published acquisition cost — CMS surveys retail pharmacies and
+                most biologics are clinician-administered — but the ones that do carry
+                the largest absolute differences in this dataset.
+              </Typography>
+              <BiologicHighlightTable families={result.biologicHighlights} onPick={submit} />
+            </>
+          )}
+
           <NadacDisclaimer />
         </>
       )}
@@ -191,8 +257,15 @@ export const CheaperAlternatives: React.FC = () => {
       {result.status === 'found' && (
         <>
           <Typography variant="h6" gutterBottom>
-            {result.groups.length} equivalence group
-            {result.groups.length === 1 ? '' : 's'} for {result.query}
+            {[
+              result.groups.length > 0 &&
+                `${result.groups.length} equivalence group${result.groups.length === 1 ? '' : 's'}`,
+              result.biologics.length > 0 &&
+                `${result.biologics.length} biologic famil${result.biologics.length === 1 ? 'y' : 'ies'}`,
+            ]
+              .filter(Boolean)
+              .join(' and ')}{' '}
+            for {result.query}
           </Typography>
 
           {result.groups.map(group => (
@@ -200,6 +273,10 @@ export const CheaperAlternatives: React.FC = () => {
               <SwitchSummary group={group} />
               <EquivalenceGroupCard group={group} />
             </Box>
+          ))}
+
+          {result.biologics.map(family => (
+            <BiologicFamilyCard key={family.molecule} family={family} />
           ))}
 
           <NadacDisclaimer />

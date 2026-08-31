@@ -160,7 +160,74 @@ export type SubstitutabilityResult =
  */
 export type AlternativesResult =
   | { status: 'loading' }
-  | { status: 'idle'; highlights: EquivalenceGroup[]; meta: SubstitutabilityMeta }
-  | { status: 'found'; query: string; groups: EquivalenceGroup[]; meta: SubstitutabilityMeta }
+  | {
+      status: 'idle';
+      highlights: EquivalenceGroup[];
+      biologicHighlights: BiologicFamily[];
+      meta: SubstitutabilityMeta;
+    }
+  | {
+      status: 'found';
+      query: string;
+      groups: EquivalenceGroup[];
+      /**
+       * Purple Book families matching the same query. A search answers from
+       * both regulatory pathways because a patient holding a prescription does
+       * not know, and should not need to know, which one their drug sits under.
+       */
+      biologics: BiologicFamily[];
+      meta: SubstitutabilityMeta;
+    }
   | { status: 'no-match'; query: string; suggestions: string[] }
   | { status: 'error'; message: string };
+
+// --- Purple Book biologics -------------------------------------------------
+// Kept separate from EquivalenceGroup rather than folded into it: a biologic
+// family's members do not share one grade, and its prices are only comparable
+// within a pricing unit, so the two shapes genuinely differ.
+
+export interface BiologicMember {
+  blaNumber: string;
+  applicationNumber: string;
+  tradeName: string;
+  applicant: string;
+  licenseType: string;          // "351(a)" | "351(k) Interchangeable" | "351(k) Biosimilar"
+  /** "reference" for the originator; "A" interchangeable; "B" biosimilar. */
+  grade: 'reference' | 'A' | 'B';
+  route: string;
+  dosageForm: string;
+  strength: string;
+  pricePerUnit: number | null;
+  pricingUnit: string | null;
+  referenceProduct: string | null;
+}
+
+export interface BiologicSaving {
+  pricingUnit: string;
+  fromName: string;
+  fromPrice: number;
+  toName: string;
+  toPrice: number;
+  /** Grade of the follow-on being switched to: A substitutable, B not. */
+  grade: 'A' | 'B';
+  savingPercent: number;
+}
+
+export interface BiologicFamily {
+  molecule: string;
+  memberCount: number;
+  savings: BiologicSaving[];
+  members: BiologicMember[];
+}
+
+export interface BiologicsMeta {
+  purpleBook: string;
+  generated: string;
+  coverage: { families: number; members: number; withSavings: number };
+}
+
+export interface BiologicsData {
+  meta: BiologicsMeta;
+  families: BiologicFamily[];
+  nameIndex: Record<string, number[]>;
+}

@@ -5,6 +5,7 @@ import {
   suggestNames,
   topSavings,
 } from '../services/api/substitutabilityApi';
+import { biologicHighlights, loadBiologics, lookupBiologics } from '../services/api/biologicsApi';
 import type { AlternativesResult } from '../types/api';
 import { substitutabilityQueryKey } from './useSubstitutability';
 
@@ -20,29 +21,44 @@ import { substitutabilityQueryKey } from './useSubstitutability';
  * Shares one query key with `useSubstitutability`, so the 1.8 MB payload is
  * fetched once per session however the user arrives at it.
  */
+export const biologicsQueryKey = ['biologics'] as const;
+
 export const useAlternatives = (query: string): AlternativesResult => {
   const { data, isLoading, error } = useQuery({
     queryKey: substitutabilityQueryKey,
     queryFn: loadSubstitutability,
     staleTime: Infinity,
   });
+  // 6 KB gzipped, so it rides along with the main payload rather than waiting
+  // for the user to search something that turns out to be a biologic.
+  const biologics = useQuery({
+    queryKey: biologicsQueryKey,
+    queryFn: loadBiologics,
+    staleTime: Infinity,
+  });
 
-  if (isLoading) return { status: 'loading' };
+  if (isLoading || biologics.isLoading) return { status: 'loading' };
   if (error) {
     return {
       status: 'error',
       message: error instanceof Error ? error.message : 'Unknown error',
     };
   }
-  if (!data) return { status: 'loading' };
+  if (!data || !biologics.data) return { status: 'loading' };
 
   const trimmed = query.trim();
   if (!trimmed) {
-    return { status: 'idle', highlights: topSavings(data), meta: data.meta };
+    return {
+      status: 'idle',
+      highlights: topSavings(data),
+      biologicHighlights: biologicHighlights(biologics.data),
+      meta: data.meta,
+    };
   }
 
   const groups = lookupGroups(data, trimmed);
-  if (groups.length === 0) {
+  const matchedBiologics = lookupBiologics(biologics.data, trimmed);
+  if (groups.length === 0 && matchedBiologics.length === 0) {
     return {
       status: 'no-match',
       query: trimmed,
@@ -54,5 +70,11 @@ export const useAlternatives = (query: string): AlternativesResult => {
   const ranked = [...groups].sort(
     (a, b) => (b.savingPercent ?? -1) - (a.savingPercent ?? -1)
   );
-  return { status: 'found', query: trimmed, groups: ranked, meta: data.meta };
+  return {
+    status: 'found',
+    query: trimmed,
+    groups: ranked,
+    biologics: matchedBiologics,
+    meta: data.meta,
+  };
 };
