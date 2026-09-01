@@ -11,6 +11,8 @@
  */
 import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { AtcClassPanel } from '../components/substitutability/AtcClassPanel';
 import { __resetAtcCache, loadAtcClasses, lookupAtcClasses } from '../services/api/atcApi';
 import type { AtcClass } from '../types/api';
@@ -169,5 +171,38 @@ describe('reaching a class from what the page actually holds', () => {
       for (const c of lookupAtcClasses(data, name)) if (!seen.has(c.code)) seen.set(c.code, c);
     }
     expect([...seen.values()]).toHaveLength(1);
+  });
+});
+
+describe('where the panel is mounted', () => {
+  /* The component was correct and every test above passed while the panel sat
+     in the landing branch instead of the results branch — reachable only when
+     no drug has been searched, which is exactly when it has nothing to show.
+     Unit tests cannot see this: they render the panel directly. Reading the
+     source is what catches it. */
+  const source = readFileSync(
+    join(process.cwd(), 'src', 'components', 'alternatives', 'CheaperAlternatives.tsx'),
+    'utf8',
+  );
+
+  it('is used exactly once', () => {
+    expect(source.match(/<AtcClassPanel/g) || []).toHaveLength(1);
+  });
+
+  it('sits after the FDA panels, not in the landing branch', () => {
+    const idle = source.indexOf("result.status === 'idle'");
+    const biologicCards = source.indexOf('<BiologicFamilyCard');
+    const panel = source.indexOf('<AtcClassPanel');
+    expect(idle).toBeGreaterThan(-1);
+    expect(biologicCards).toBeGreaterThan(-1);
+    // After the Orange Book and Purple Book cards...
+    expect(panel).toBeGreaterThan(biologicCards);
+    // ...and the landing branch is earlier in the file than both.
+    expect(idle).toBeLessThan(biologicCards);
+  });
+
+  it('is fed resolved ingredients rather than the raw query', () => {
+    expect(source).toMatch(/useAtcClasses\(ingredients\)/);
+    expect(source).not.toMatch(/useAtcClasses\(query\)/);
   });
 });

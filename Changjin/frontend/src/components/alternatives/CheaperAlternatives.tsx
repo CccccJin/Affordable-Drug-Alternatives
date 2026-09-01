@@ -270,8 +270,6 @@ export const CheaperAlternatives: React.FC = () => {
             </>
           )}
 
-          <AtcClassPanel classes={atcClasses} queryName={query} />
-
           <NadacDisclaimer />
         </>
       )}
@@ -300,6 +298,10 @@ export const CheaperAlternatives: React.FC = () => {
           {result.biologics.map(family => (
             <BiologicFamilyCard key={family.molecule} family={family} />
           ))}
+
+          {/* Grade C, last and collapsed: the FDA findings above answer the
+              question, this is background a reader chooses to open. */}
+          <AtcClassPanel classes={atcClasses} queryName={query} />
 
           <NadacDisclaimer />
 
