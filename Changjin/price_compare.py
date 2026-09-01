@@ -421,6 +421,18 @@ def _cmd_export_biologics(args):
     export_main()
 
 
+def _cmd_export_atc(args):
+    """Grade C: WHO ATC level-4 classes.
+
+    Separate from `export` because it is a different kind of claim. The Orange
+    and Purple Book exports carry FDA findings a pharmacist may act on; this
+    carries a WHO classification nobody may act on without a prescriber.
+    """
+    from subst_data import export_atc_classes
+    export_atc_classes.main()
+    return 0
+
+
 def _cmd_biologic_sanity(args):
     from subst_data.biologic_sanity import main as sanity_main
     sanity_main(output=args.output)
@@ -460,6 +472,10 @@ def main(argv=None):
     xb = sub.add_parser("export-biologics",
                         help="write the Purple Book biologic export")
     xb.set_defaults(func=_cmd_export_biologics)
+
+    xa = sub.add_parser("export-atc",
+                        help="write the WHO ATC level-4 class export (grade C)")
+    xa.set_defaults(func=_cmd_export_atc)
 
     bs = sub.add_parser("biologic-sanity",
                         help="check the biologic export against grade.py")

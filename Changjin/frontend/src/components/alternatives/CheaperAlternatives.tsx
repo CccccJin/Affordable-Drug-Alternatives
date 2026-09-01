@@ -26,6 +26,8 @@ import { ClinicalDisclaimer } from '../substitutability/ClinicalDisclaimer';
 import { NadacDisclaimer } from '../substitutability/NadacDisclaimer';
 import { formatPrice, numberCell } from '../substitutability/format';
 import { BiologicFamilyCard } from '../substitutability/BiologicFamilyCard';
+import { AtcClassPanel } from '../substitutability/AtcClassPanel';
+import { useAtcClasses } from '../../hooks/useAtcClasses';
 import { SwitchSummary } from './SwitchSummary';
 import { serifStack } from '../../styles/theme';
 
@@ -129,6 +131,9 @@ export const CheaperAlternatives: React.FC = () => {
   const [draft, setDraft] = useState(query);
 
   const result = useAlternatives(query);
+  // Grade C, and kept last on purpose: the FDA answers come first, and this is
+  // background a reader opens rather than an answer offered to them.
+  const atcClasses = useAtcClasses(query);
   // The disclaimer sits above the results and so outlives them; only the states
   // that carry meta can date the extract, and the rest simply omit the age
   // rather than assuming it is current.
@@ -256,6 +261,8 @@ export const CheaperAlternatives: React.FC = () => {
               <BiologicHighlightTable families={result.biologicHighlights} onPick={submit} />
             </>
           )}
+
+          <AtcClassPanel classes={atcClasses} queryName={query} />
 
           <NadacDisclaimer />
         </>

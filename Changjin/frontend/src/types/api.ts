@@ -245,3 +245,33 @@ export interface BiologicsData {
   families: BiologicFamily[];
   nameIndex: Record<string, number[]>;
 }
+
+
+// --- WHO ATC level-4 classes (grade C) -------------------------------------
+// Deliberately carries no saving and no ranking: see `atcApi.ts`.
+
+export interface AtcMember {
+  ingredient: string;
+  priceLow: number | null;      // null when CMS surveys no product
+  priceHigh: number | null;
+  pricingUnit: string | null;
+  surveyedProducts: number;
+}
+
+export interface AtcClass {
+  code: string;                 // e.g. "C10AA"
+  className: string;            // e.g. "HMG CoA reductase inhibitors"
+  pricedMembers: number;
+  members: AtcMember[];
+}
+
+export interface AtcData {
+  meta: {
+    source: string;
+    generated: string;
+    relation: string;           // the disclaimer, carried from the export
+    coverage: { classes: number; named: number; withPrices: number };
+  };
+  classes: AtcClass[];
+  nameIndex: Record<string, number[]>;
+}

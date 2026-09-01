@@ -22,8 +22,8 @@ const CheaperAlternatives = lazy(() =>
   import('./components/alternatives/CheaperAlternatives').then(m => ({ default: m.CheaperAlternatives })));
 const History = lazy(() =>
   import('./components/history/History').then(m => ({ default: m.History })));
-const ComingSoon = lazy(() =>
-  import('./components/layout/ComingSoon').then(m => ({ default: m.ComingSoon })));
+const NotFound = lazy(() =>
+  import('./components/layout/NotFound').then(m => ({ default: m.NotFound })));
 
 /** Shown while a route chunk arrives. Sized to hold the fold steady. */
 const RouteFallback = () => (
@@ -45,9 +45,13 @@ function App() {
                 <Route path="/results" element={<SearchResults />} />
                 <Route path="/alternatives" element={<CheaperAlternatives />} />
                 <Route path="/history" element={<History />} />
-                <Route path="/analysis" element={<ComingSoon title="Analysis" />} />
-                <Route path="/settings" element={<ComingSoon title="Settings" />} />
-                <Route path="/help" element={<ComingSoon title="Help" />} />
+                {/* /analysis, /settings and /help used to render a "coming
+                    soon" placeholder. Nothing linked to them — the only links
+                    lived in a Sidebar that was never mounted — so they were
+                    three promises the app made to nobody. Removed along with
+                    the sidebar; anything still pointing at them now lands here
+                    and is told so. */}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </MainLayout>
