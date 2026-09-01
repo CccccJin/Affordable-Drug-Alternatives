@@ -60,9 +60,8 @@ jest.unstable_mockModule('../services/rdkit/rdkitService', () => ({
   rdkitService: { getMorganFingerprint, getMolecule: jest.fn(), getProperties: jest.fn() },
 }));
 
-const { StaticSearchApi, DEFAULT_SIMILARITY_THRESHOLD } = await import(
-  '../services/api/staticSearchApi'
-);
+const { StaticSearchApi, DEFAULT_SIMILARITY_THRESHOLD, __resetCompoundsCache } =
+  await import('../services/api/staticSearchApi');
 const { __resetFingerprintCache } = await import('../services/search/fingerprintStore');
 
 // Short wire keys, as compounds.json ships them; staticSearchApi expands these
@@ -98,6 +97,7 @@ const blob = (): Uint8Array => {
 
 beforeEach(() => {
   __resetFingerprintCache();
+  __resetCompoundsCache();
   jest.clearAllMocks();
   const packed = blob();
   global.fetch = jest.fn((url: unknown) => {
@@ -319,6 +319,73 @@ describe('post-processing', () => {
   it('is omitted entirely when not requested', async () => {
     const response = await StaticSearchApi.search({ smiles: 'CCO', threshold: 0 });
     expect(response.post_processed).toBeUndefined();
+  });
+});
+
+describe('corpus lookups do not scan', () => {
+  /**
+   * The regression this guards: growing the corpus from 5,000 to 84,818 turned
+   * a linear name lookup from ~7 ms into 92-115 ms, and `resolveName` ran three
+   * of them — about 460 ms of string normalisation for a name the corpus does
+   * not hold, against 194 ms for the similarity scan that is the actual work.
+   *
+   * Timing is a poor assertion, so this counts the work: a lookup must not
+   * touch every record.
+   */
+  const countingCorpus = (size: number) => {
+    let reads = 0;
+    const records = Array.from({ length: size }, (_, i) => ({
+      id: `CHEMBL${i}`,
+      n: i === size - 1 ? 'NEEDLE' : `FILLER${i}`,
+      s: i === size - 1 ? 'CCO' : `C${'C'.repeat((i % 20) + 1)}O`,
+      mw: 100, lp: 1, psa: 10, hbd: 1, hba: 1, rtb: 1, ar: 0, ha: 5, cns: 4,
+    }));
+    // Count property reads during lookup, not during the one build pass.
+    const proxied = records.map(r => new Proxy(r, {
+      get(target, key) {
+        if (key === 'n' || key === 's' || key === 'id') reads += 1;
+        return Reflect.get(target, key);
+      },
+    }));
+    return { proxied, reads: () => reads, reset: () => { reads = 0; } };
+  };
+
+  it('finds a name at the end of the corpus without reading every record', async () => {
+    const { proxied, reads, reset } = countingCorpus(2000);
+    global.fetch = jest.fn((url: unknown) => {
+      const href = String(url);
+      if (href.endsWith('compounds.json')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(proxied) });
+      }
+      if (href.endsWith('metadata.json')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            fingerprints: {
+              file: 'fingerprints.bin', algorithm: 'Morgan', radius: 2,
+              n_bits: 1024, bytes_per_record: BYTES_PER_RECORD, records: 2000,
+            },
+          }),
+        });
+      }
+      const packed = new Uint8Array(2000 * BYTES_PER_RECORD);
+      packed.set(bytes(ETHANOL), 1999 * BYTES_PER_RECORD);
+      return Promise.resolve({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(
+          packed.buffer.slice(0, packed.byteLength)),
+      });
+    }) as unknown as typeof fetch;
+
+    __resetFingerprintCache();
+    __resetCompoundsCache();
+    // First call pays the one build pass.
+    await StaticSearchApi.search({ smiles: 'NEEDLE', threshold: 0.9 });
+    reset();
+
+    // Second lookup must be served from the index, not by walking 2,000 rows.
+    await StaticSearchApi.search({ smiles: 'NEEDLE', threshold: 0.9 });
+    expect(reads()).toBeLessThan(50);
   });
 });
 

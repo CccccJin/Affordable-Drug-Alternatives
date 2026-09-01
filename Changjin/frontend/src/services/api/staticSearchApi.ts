@@ -75,7 +75,29 @@ const expandCompound = (c: WireCompound): StaticCompoundRecord => ({
   cns_mpo: c.cns ?? null,
 });
 
-let compoundsCache: StaticCompoundRecord[] | null = null;
+/**
+ * The corpus plus the indices every lookup needs.
+ *
+ * Built in the single pass that already expands the wire records, because the
+ * alternative is scanning all of it per query. At 5,000 compounds a linear scan
+ * cost about 7 ms and nobody noticed; at 84,818 it measured 92-115 ms, and
+ * `resolveName` ran three of them, so a search for a name the corpus does not
+ * hold spent roughly 460 ms normalising strings — more than the 194 ms the
+ * actual similarity scan takes.
+ *
+ * `normalizedNames` exists for the one lookup a Map cannot serve, the substring
+ * fallback: the comparison is cheap, it was re-normalising 84,818 strings on
+ * every call that made it expensive.
+ */
+interface CompoundCorpus {
+  records: StaticCompoundRecord[];
+  byName: Map<string, number>;
+  byId: Map<string, number>;
+  bySmiles: Map<string, number>;
+  normalizedNames: string[];
+}
+
+let compoundsCache: CompoundCorpus | null = null;
 
 // Vite injects import.meta.env at build time; under Jest it is undefined, so
 // fall back to the site root rather than throwing on a property of undefined.
@@ -96,7 +118,7 @@ const nameAliases: Record<string, string> = {
   paracetamol: 'acetaminophen',
 };
 
-const loadCompounds = async (): Promise<StaticCompoundRecord[]> => {
+const loadCompounds = async (): Promise<CompoundCorpus> => {
   if (compoundsCache) {
     return compoundsCache;
   }
@@ -107,7 +129,29 @@ const loadCompounds = async (): Promise<StaticCompoundRecord[]> => {
   }
 
   const wire = (await response.json()) as WireCompound[];
-  compoundsCache = wire.map(expandCompound);
+  const records: StaticCompoundRecord[] = new Array(wire.length);
+  const byName = new Map<string, number>();
+  const byId = new Map<string, number>();
+  const bySmiles = new Map<string, number>();
+  const normalizedNames: string[] = new Array(wire.length);
+
+  for (let i = 0; i < wire.length; i += 1) {
+    records[i] = expandCompound(wire[i]);
+
+    const name = normalize(wire[i].n || '');
+    normalizedNames[i] = name;
+    // First writer wins, which is what the linear scan it replaces did: several
+    // ChEMBL entries can share a preferred name.
+    if (name && !byName.has(name)) byName.set(name, i);
+
+    const id = normalize(wire[i].id);
+    if (id && !byId.has(id)) byId.set(id, i);
+
+    const smiles = normalizeSmiles(wire[i].s);
+    if (smiles && !bySmiles.has(smiles)) bySmiles.set(smiles, i);
+  }
+
+  compoundsCache = { records, byName, byId, bySmiles, normalizedNames };
   return compoundsCache;
 };
 
@@ -119,20 +163,19 @@ const loadCompounds = async (): Promise<StaticCompoundRecord[]> => {
  * precisely the job that needs RDKit. A miss here is not an answer, only a
  * decision to go and load it.
  */
-const exactCorpusRow = (
-  compounds: StaticCompoundRecord[],
-  query: string
-): number => {
+const exactCorpusRow = (corpus: CompoundCorpus, query: string): number => {
   const asSmiles = normalizeSmiles(query);
   const asName = normalize(nameAliases[normalize(query)] || query);
 
-  for (let i = 0; i < compounds.length; i += 1) {
-    const compound = compounds[i];
-    if (asSmiles && normalizeSmiles(compound.smiles) === asSmiles) return i;
-    if (asName && (normalize(compound.pref_name || '') === asName
-                   || normalize(compound.chembl_id) === asName)) return i;
-  }
-  return -1;
+  const row = corpus.bySmiles.get(asSmiles)
+    ?? corpus.byName.get(asName)
+    ?? corpus.byId.get(asName);
+  return row ?? -1;
+};
+
+/** Exposed for tests; resets the module-level corpus, like its siblings. */
+export const __resetCompoundsCache = (): void => {
+  compoundsCache = null;
 };
 
 /**
@@ -154,16 +197,16 @@ const exactCorpusRow = (
  */
 const queryFingerprint = async (
   query: string,
-  corpus: FingerprintCorpus,
-  compounds: StaticCompoundRecord[]
+  fingerprints: FingerprintCorpus,
+  compounds: CompoundCorpus
 ): Promise<Uint8Array> => {
   const row = exactCorpusRow(compounds, query);
   if (row !== -1) {
-    const { bytesPerRecord } = corpus.geometry;
-    return corpus.bits.subarray(row * bytesPerRecord, (row + 1) * bytesPerRecord);
+    const { bytesPerRecord } = fingerprints.geometry;
+    return fingerprints.bits.subarray(row * bytesPerRecord, (row + 1) * bytesPerRecord);
   }
 
-  const { radius, nBits } = corpus.geometry;
+  const { radius, nBits } = fingerprints.geometry;
   try {
     return await rdkitService.getMorganFingerprint(query, { radius, nBits });
   } catch (error) {
@@ -185,23 +228,27 @@ interface ScoredCorpus {
 }
 
 const scoreAgainstCorpus = async (query: string): Promise<ScoredCorpus> => {
-  const [compounds, corpus] = await Promise.all([
+  const [compounds, fingerprints] = await Promise.all([
     loadCompounds(),
     loadFingerprintCorpus(),
   ]);
 
-  if (compounds.length !== corpus.geometry.records) {
+  if (compounds.records.length !== fingerprints.geometry.records) {
     // Row i of the blob is compound i; a mismatch means the two files were
     // regenerated apart and every score past the divergence is wrong.
     throw new Error(
-      `compounds.json has ${compounds.length} records but fingerprints.bin has ` +
-        `${corpus.geometry.records} — regenerate both with ` +
-        '`python export_demo_fingerprints.py`'
+      `compounds.json has ${compounds.records.length} records but ` +
+        `fingerprints.bin has ${fingerprints.geometry.records} — regenerate ` +
+        'both with `python export_demo_fingerprints.py`'
     );
   }
 
-  const fingerprint = await queryFingerprint(query, corpus, compounds);
-  return { compounds, scores: scoreCorpus(corpus, fingerprint), corpus };
+  const fingerprint = await queryFingerprint(query, fingerprints, compounds);
+  return {
+    compounds: compounds.records,
+    scores: scoreCorpus(fingerprints, fingerprint),
+    corpus: fingerprints,
+  };
 };
 
 
@@ -416,12 +463,19 @@ export class StaticSearchApi {
 
   static async resolveName(request: ResolveRequest): Promise<ResolveResponse> {
     await simulateDelay();
-    const compounds = await loadCompounds();
+    const corpus = await loadCompounds();
     const requestedName = normalize(nameAliases[normalize(request.name)] || request.name);
 
-    const compound = compounds.find(item => normalize(item.pref_name || '') === requestedName)
-      || compounds.find(item => normalize(item.pref_name || '').includes(requestedName))
-      || compounds.find(item => normalize(item.chembl_id) === requestedName);
+    // Exact matches are O(1). The substring fallback still walks the corpus,
+    // but over names normalised once at load rather than re-normalising 84,818
+    // strings per call, and only when both exact lookups have already missed.
+    let row = corpus.byName.get(requestedName) ?? corpus.byId.get(requestedName);
+    if (row === undefined) {
+      row = corpus.normalizedNames.findIndex(
+        name => name.length > 0 && name.includes(requestedName));
+      if (row === -1) row = undefined;
+    }
+    const compound = row === undefined ? undefined : corpus.records[row];
 
     if (!compound) {
       throw new Error(`Could not resolve chemical name from static data: ${request.name}`);
@@ -436,8 +490,10 @@ export class StaticSearchApi {
 
   static async calculateProperties(request: PropertyCalculationRequest): Promise<CalculatedProperties> {
     await simulateDelay();
-    const compounds = await loadCompounds();
-    const compound = compounds.find(item => normalizeSmiles(item.smiles) === normalizeSmiles(request.smiles));
+    const corpus = await loadCompounds();
+    // Was a linear find over every record; the index answers it outright.
+    const row = corpus.bySmiles.get(normalizeSmiles(request.smiles));
+    const compound = row === undefined ? undefined : corpus.records[row];
 
     if (compound) {
       return toProperties(compound);
