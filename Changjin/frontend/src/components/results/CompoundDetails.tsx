@@ -161,6 +161,7 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
                 width={300}
                 height={250}
                 showProperties={true}
+                label={compound.pref_name || compound.chembl_id}
               />
             </Box>
 

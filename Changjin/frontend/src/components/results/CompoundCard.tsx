@@ -202,7 +202,12 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
             overflow: 'hidden',
           }}
         >
-          <MoleculeViewer smiles={compound.smiles} width={150} height={100} />
+          <MoleculeViewer
+            smiles={compound.smiles}
+            width={150}
+            height={100}
+            label={compound.pref_name || compound.chembl_id}
+          />
         </Box>
 
         {/* SMILES */}

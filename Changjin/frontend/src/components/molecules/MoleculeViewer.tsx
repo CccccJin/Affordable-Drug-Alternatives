@@ -8,6 +8,8 @@ export interface MoleculeViewerProps {
   height?: number;
   showProperties?: boolean;
   className?: string;
+  /** Compound name, so the drawing can be announced as something. */
+  label?: string;
 }
 
 interface MoleculeProperties {
@@ -33,7 +35,16 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
   height = 200,
   showProperties = false,
   className,
+  label,
 }) => {
+  /* The drawing is the main content of a result card and, until this, carried
+     no accessible name: RDKit emits a tree of unlabelled <path> elements, so a
+     screen reader announced nothing at all for it. Naming the wrapper and
+     letting the paths inherit presentation is the right shape — the individual
+     bonds are not separately meaningful, the molecule is. */
+  const structureLabel = label
+    ? `Chemical structure of ${label}`
+    : 'Chemical structure';
   const { isLoading, isLoaded, error, getMoleculeSVG, getMoleculeProperties } = useRDKit();
   const [svgContent, setSvgContent] = useState<string>('');
   const [properties, setProperties] = useState<MoleculeProperties | null>(null);
@@ -100,6 +111,8 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
       <Box
         className={className}
         sx={frameSx}
+        role="img"
+        aria-label="Structure renderer unavailable"
         dangerouslySetInnerHTML={{
           __html: placeholderSVG(width, height, 'Structure renderer unavailable'),
         }}
@@ -112,6 +125,8 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
       <Box
         className={className}
         sx={frameSx}
+        role="img"
+        aria-label={label ? `No structure available for ${label}` : 'No structure available'}
         dangerouslySetInnerHTML={{ __html: placeholderSVG(width, height, 'No structure') }}
       />
     );
@@ -146,6 +161,8 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({
             height: '100%',
           },
         }}
+        role="img"
+        aria-label={structureLabel}
         dangerouslySetInnerHTML={{ __html: svgContent }}
       />
 

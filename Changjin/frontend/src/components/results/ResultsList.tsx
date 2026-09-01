@@ -191,6 +191,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <TextField
             size="small"
             placeholder="Filter results…"
+            aria-label="Filter these results by name, ChEMBL id or SMILES"
             value={searchQuery}
             onChange={handleSearchQueryChange}
             InputProps={{
