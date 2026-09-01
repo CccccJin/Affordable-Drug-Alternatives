@@ -113,13 +113,15 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         Analytics Dashboard
       </Typography>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { lg: '1fr 1fr' }, gap: 3 }}>
-        <PropertyDistributionChart compounds={compounds} />
-        <ClusteringVisualization compounds={compounds} />
-      </Box>
-
-      {/* Summary Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2, mt: 3 }}>
+      {/* Order matters more here than anything on this screen.
+          The two structural charts below are roughly 880px tall together, so
+          when they came first the whole substitutability half of this tab —
+          the cards, the price spread, every figure tied to an FDA rating —
+          began 200px past the fold. A visitor opening the tab saw only
+          structural similarity: the one number the caveat above tells them not
+          to act on. What the page is for now comes first, and the structural
+          analysis sits underneath as supporting detail. */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
         <SummaryCard tone="primary" value={compounds.length} label="Total Compounds" />
         <SummaryCard
           tone="info"
@@ -154,6 +156,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         rows={spreadRows}
         nadacWeek={substitutabilityData?.meta.nadacWeek ?? ''}
       />
+
+      <Typography variant="h6" component="h3" sx={{ mt: 5, mb: 0.5 }}>
+        Structural analysis
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: '68ch' }}>
+        How these results are shaped as molecules, which is a separate question
+        from whether any of them may be substituted for another.
+      </Typography>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { lg: '1fr 1fr' }, gap: 3 }}>
+        <PropertyDistributionChart compounds={compounds} />
+        <ClusteringVisualization compounds={compounds} />
+      </Box>
     </Box>
   );
 };

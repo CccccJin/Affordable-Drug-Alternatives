@@ -162,6 +162,20 @@ describe('AnalyticsDashboard summary cards', () => {
     expect(screen.queryByText('Structure Types')).not.toBeInTheDocument();
   });
 
+  it('puts substitutability above the structural charts', async () => {
+    /* Not cosmetics. The two structural charts run to roughly 880px together,
+       so with them first every FDA-derived figure on this tab started past the
+       fold: opening Analytics showed only structural similarity, which is the
+       number the caveat tells the reader not to act on. Asserting on document
+       order is the only way to hold this — jsdom has no layout, so a height
+       assertion would pass no matter where the sections sit. */
+    renderDashboard(COMPOUNDS);
+    const cards = await screen.findByText('Total Compounds');
+    const structural = await screen.findByText('Structural analysis');
+    expect(cards.compareDocumentPosition(structural))
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it('says the similarity figure is the one not tied to an FDA rating', async () => {
     renderDashboard(COMPOUNDS);
     expect(await screen.findByText(/High Structural Similarity/)).toBeInTheDocument();
