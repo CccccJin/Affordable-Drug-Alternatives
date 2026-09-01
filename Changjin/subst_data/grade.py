@@ -242,6 +242,38 @@ class Side:
         return bool(self.pb_rows)
 
 
+
+#: Grade and rule for a pair of Purple Book rows, or None when unrelated.
+#:
+#: Pure: it reads only the two rows. Both the pairwise adjudicator and the bulk
+#: frontend export call it, so a rule added here cannot be missing from one of
+#: them.
+def biologic_relationship(ra, rb) -> tuple[str, str] | None:
+    """(grade, rule_id) for two Purple Book products.
+
+    ``A3`` an interchangeable 351(k) follow-on and its reference product.
+    ``B4`` a biosimilar without an interchangeability finding, and its reference.
+    ``B5`` two 351(k) follow-ons of one reference — FDA determines
+           interchangeability only against the reference, never between two
+           follow-ons, however interchangeable each is individually.
+    ``B6`` the same proper name under separate BLAs, with no 351(k) link.
+    """
+    for sub, ref in ((ra, rb), (rb, ra)):
+        if sub["ref_proper_name_key"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
+            if sub["is_interchangeable"]:
+                return ("A", "A3")
+            if sub["is_biosimilar"]:
+                return ("B", "B4")
+
+    if ra["ref_proper_name_key"] and ra["ref_proper_name_key"] == rb["ref_proper_name_key"]:
+        return ("B", "B5")
+
+    if ra["proper_name_key"] and ra["proper_name_key"] == rb["proper_name_key"]:
+        return ("B", "B6")
+
+    return None
+
+
 class Adjudicator:
     """Resolves two RXCUIs against the FDA sources and grades the pair."""
 
@@ -668,6 +700,16 @@ class Adjudicator:
         return verdict(grade, rule, label, extra=evidence, caveats=caveats,
                        confidence=confidence, details=details)
 
+    # ------------------------------------------------------------------
+    # The biologic decision, separated from the evidence it cites.
+    #
+    # `export_biologics.py` needs the same answer in bulk and cannot afford to
+    # go through `judge()`, which resolves RXCUIs against RxNav. It used to
+    # reimplement the rules instead, and dropped B5 on the way -- so the export
+    # labelled eight Humira follow-ons "interchangeable" with nothing saying
+    # they are not interchangeable with *each other*. One function, two callers.
+    # `tests/test_biologic_relationship.py` pins them together.
+    # ------------------------------------------------------------------
     def _pb_pair(self, ra, rb):
         def ev(row, fieldname, value, note=""):
             return Evidence(
@@ -688,10 +730,14 @@ class Adjudicator:
             "b_ref_product": rb["ref_proprietary_name"],
         }
 
+        decision = biologic_relationship(ra, rb)
+        if decision is None:
+            return None
+        _, rule_id = decision
+
         # Is one the 351(k) follow-on of the other?
         for sub, ref, tag in ((ra, rb, "a"), (rb, ra, "b")):
-            if sub["ref_proper_name_key"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
-                if sub["is_interchangeable"]:
+            if rule_id == "A3" and sub["is_interchangeable"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
                     return (0, "A", "A3",
                             "Purple Book 351(k) INTERCHANGEABLE biologic and its "
                             "reference product",
@@ -702,7 +748,7 @@ class Adjudicator:
                             ["Interchangeable status permits pharmacy-level substitution, "
                              "but state biologic substitution statutes still govern."],
                             "high", details)
-                if sub["is_biosimilar"]:
+            if rule_id == "B4" and sub["is_biosimilar"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
                     return (1, "B", "B4",
                             "Purple Book 351(k) BIOSIMILAR (not interchangeable) and its "
                             "reference product",
@@ -713,8 +759,7 @@ class Adjudicator:
                             [], "high", details)
 
         # Two 351(k) products sharing one reference product.
-        if (ra["ref_proper_name_key"] and
-                ra["ref_proper_name_key"] == rb["ref_proper_name_key"]):
+        if rule_id == "B5":
             return (2, "B", "B5",
                     "two 351(k) follow-on biologics of the same reference product",
                     base + [Evidence(
@@ -727,7 +772,7 @@ class Adjudicator:
                      "reference, FDA has made no determination between them."],
                     "high", details)
 
-        if ra["proper_name_key"] and ra["proper_name_key"] == rb["proper_name_key"]:
+        if rule_id == "B6":
             return (3, "B", "B6",
                     "same biologic proper name under separate BLAs, no 351(k) link",
                     base, ["Distinct originator licences of the same proper name are not "

@@ -17,7 +17,7 @@ import type {
 // --- wire format -----------------------------------------------------------
 interface WireMember {
   b: string; a: string; t: string; m: string; lt: string;
-  g: 'reference' | 'A' | 'B';
+  g: 'reference' | 'A' | 'B'; rule: string;
   r: string; df: string; s: string;
   p: number | null; u: string | null; ref: string | null;
 }
@@ -26,7 +26,8 @@ interface WireSaving {
   g: 'A' | 'B'; sv: number;
 }
 interface WireGroup {
-  i: string; n: number; sav: WireSaving[]; mem: WireMember[];
+  i: string; n: number; ref: string | null; b5: boolean;
+  sav: WireSaving[]; mem: WireMember[];
 }
 interface WirePayload {
   meta: {
@@ -44,6 +45,7 @@ const expandMember = (m: WireMember): BiologicMember => ({
   applicant: m.m,
   licenseType: m.lt,
   grade: m.g,
+  rule: m.rule,
   route: m.r,
   dosageForm: m.df,
   strength: m.s,
@@ -65,6 +67,8 @@ const expandSaving = (s: WireSaving): BiologicSaving => ({
 const expandFamily = (g: WireGroup): BiologicFamily => ({
   molecule: g.i,
   memberCount: g.n,
+  referenceProduct: g.ref,
+  followOnsUndetermined: g.b5,
   savings: g.sav.map(expandSaving),
   members: g.mem.map(expandMember),
 });

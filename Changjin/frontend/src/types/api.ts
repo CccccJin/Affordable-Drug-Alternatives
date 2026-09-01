@@ -192,8 +192,13 @@ export interface BiologicMember {
   tradeName: string;
   applicant: string;
   licenseType: string;          // "351(a)" | "351(k) Interchangeable" | "351(k) Biosimilar"
-  /** "reference" for the originator; "A" interchangeable; "B" biosimilar. */
+  /**
+   * Grade **against the family's reference product**, not a property of this
+   * product on its own. `grade.biologic_relationship` decides it; `rule` names
+   * the clause (A3 interchangeable, B4 biosimilar).
+   */
   grade: 'reference' | 'A' | 'B';
+  rule: string;
   route: string;
   dosageForm: string;
   strength: string;
@@ -216,6 +221,15 @@ export interface BiologicSaving {
 export interface BiologicFamily {
   molecule: string;
   memberCount: number;
+  /** The product every grade in this family is measured against. */
+  referenceProduct: string | null;
+  /**
+   * True when the family holds more than one 351(k) follow-on, which makes
+   * rule B5 apply between them: FDA determines interchangeability only against
+   * the reference, never between two follow-ons, however interchangeable each
+   * is individually.
+   */
+  followOnsUndetermined: boolean;
   savings: BiologicSaving[];
   members: BiologicMember[];
 }

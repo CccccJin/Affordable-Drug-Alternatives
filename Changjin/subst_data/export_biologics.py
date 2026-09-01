@@ -31,6 +31,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import defaultdict
+
+from .grade import biologic_relationship
 from datetime import date
 from pathlib import Path
 
@@ -54,15 +56,24 @@ def _prices(conn) -> dict[str, list[tuple[float, str]]]:
     return out
 
 
-def _grade(row) -> str:
-    """The grade `grade.py` assigns this product against its reference."""
+def _grade_against_reference(row, reference) -> tuple[str, str]:
+    """(grade, rule) for this product *against its reference product*.
+
+    Delegates to `grade.biologic_relationship` rather than restating the rules.
+    An earlier version restated them and dropped B5, so the export marked eight
+    Humira follow-ons "interchangeable" with nothing recording that FDA has made
+    no finding between them. The grade is a property of a *pair*; naming the
+    other end of the pair is what keeps it from being read as a property of one
+    product.
+    """
     if row["license_type"] == "351(a)":
-        return "reference"
-    if row["is_interchangeable"]:
-        return "A"        # rule A3
-    if row["is_biosimilar"]:
-        return "B"        # rule B4
-    return "B"
+        return ("reference", "")
+    if reference is None:
+        # A follow-on whose reference is not itself marketed. Its own licence
+        # still says which it is, but there is no pair to grade.
+        return (("A" if row["is_interchangeable"] else "B"), "")
+    decision = biologic_relationship(reference, row)
+    return decision if decision else ("B", "")
 
 
 def build_payload(conn) -> dict:
@@ -84,10 +95,10 @@ def build_payload(conn) -> dict:
         entries = prices.get(row["appl_no"], [(None, None)])
         for price, unit in entries:
             families[key].append({
+                "row": row,
                 "b": row["bla_no"], "a": row["appl_no"],
                 "t": row["proprietary_name"], "m": row["applicant"],
                 "lt": row["license_type"],
-                "g": _grade(row),
                 "r": row["route"], "df": row["dosage_form"], "s": row["strength"],
                 "p": round(price, 5) if price is not None else None,
                 "u": unit,
@@ -100,6 +111,17 @@ def build_payload(conn) -> dict:
         # substitute and nothing to say about it.
         if not any(m["lt"].startswith("351(k)") for m in members):
             continue
+
+        # Grade every member against the reference product, because that is the
+        # only pair FDA rules on. `refName` carries the other end of that pair
+        # into the payload so the frontend can name it rather than presenting a
+        # relationship as if it were an attribute.
+        reference = next((m["row"] for m in members if m["lt"] == "351(a)"), None)
+        for member in members:
+            grade, rule = _grade_against_reference(member["row"], reference)
+            member["g"] = grade
+            member["rule"] = rule
+            del member["row"]
 
         # Savings are per pricing unit, because $/EA and $/ML do not compare.
         savings = []
@@ -140,9 +162,16 @@ def build_payload(conn) -> dict:
         members = list(collapsed.values())
 
         members.sort(key=lambda m: (m["lt"] != "351(a)", m["p"] is None, m["p"] or 0.0))
+        followons = [m for m in members if m["lt"].startswith("351(k)")]
         groups.append({
             "i": key,
             "n": len(members),
+            # The reference every grade in this family is measured against.
+            "ref": reference["proprietary_name"] if reference is not None else None,
+            # More than one follow-on means rule B5 applies between them: FDA
+            # has made no interchangeability finding, however interchangeable
+            # each is with the reference.
+            "b5": len(followons) > 1,
             "sav": sorted(savings, key=lambda s: -s["sv"]),
             "mem": members,
         })

@@ -34,21 +34,18 @@ export interface SubstitutabilitySummary {
   savingPercent: number | null;
 }
 
-const TIERS: Record<SubstitutabilityTier, { headline: string; detail: string }> = {
-  pharmacy: {
-    headline: 'A pharmacist can substitute',
-    detail: 'FDA rates an equivalent product interchangeable',
-  },
-  prescriber: {
-    headline: 'Needs prescriber approval',
-    detail: 'A follow-on exists, but FDA has made no interchangeability finding',
-  },
-};
-
 const summarise = (
   tier: SubstitutabilityTier,
-  savingPercent: number | null
-): SubstitutabilitySummary => ({ tier, ...TIERS[tier], savingPercent });
+  savingPercent: number | null,
+  detail: string
+): SubstitutabilitySummary => ({
+  tier,
+  headline: tier === 'pharmacy'
+    ? 'A pharmacist can substitute'
+    : 'Needs prescriber approval',
+  detail,
+  savingPercent,
+});
 
 /**
  * Verdicts keyed by ChEMBL id. Absent from the map means no FDA data, which is
@@ -82,7 +79,11 @@ export const useSubstitutabilitySummaries = (
         .filter((s): s is number => s !== null);
       summaries.set(
         compound.chembl_id,
-        summarise('pharmacy', savings.length ? Math.max(...savings) : null)
+        summarise(
+          'pharmacy',
+          savings.length ? Math.max(...savings) : null,
+          'FDA rates these products therapeutically equivalent'
+        )
       );
       continue;
     }
@@ -98,10 +99,19 @@ export const useSubstitutabilitySummaries = (
       const interchangeable = best
         ? best.grade === 'A'
         : families.some(f => f.members.some(m => m.grade === 'A'));
+      // A biologic rating always points at one product, so the card names it.
+      // "A pharmacist can substitute" with nothing after it would read as a
+      // claim about every product in the family, which rule B5 denies.
+      const reference = families[0].referenceProduct;
       summaries.set(
         compound.chembl_id,
-        summarise(interchangeable ? 'pharmacy' : 'prescriber',
-                  best ? best.savingPercent : null)
+        summarise(
+          interchangeable ? 'pharmacy' : 'prescriber',
+          best ? best.savingPercent : null,
+          interchangeable
+            ? `FDA rates a follow-on interchangeable with ${reference ?? 'the reference product'}`
+            : `A biosimilar to ${reference ?? 'the reference product'} exists, with no interchangeability finding`
+        )
       );
     }
   }

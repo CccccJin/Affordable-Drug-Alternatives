@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Accordion,
+  Alert,
   AccordionDetails,
   AccordionSummary,
   Box,
@@ -22,21 +23,37 @@ import { formatPrice, monoCell, numberCell } from './format';
  * One Purple Book family: a reference biologic and everything licensed against
  * it under 351(k).
  *
- * Unlike an Orange Book AB group, the grade is a property of the member, not of
- * the group — an interchangeable follow-on is grade A and may be substituted at
- * the pharmacy, while a biosimilar that carries no interchangeability
- * determination is grade B and needs the prescriber. Showing one badge for the
- * whole family would erase exactly the distinction a reader needs.
+ * An Orange Book AB group is a clique: any member substitutes for any other.
+ * A Purple Book family is a star. Every rating points at the reference product
+ * and at nothing else, so two follow-ons that are each interchangeable with the
+ * reference are *not* interchangeable with one another — rule B5.
+ *
+ * Presenting a star with the clique's vocabulary is what made this confusing:
+ * eight rows reading "Grade A" invite the reader to pair any two of them. Each
+ * badge therefore names the product it is rated against, and a family holding
+ * more than one follow-on says outright that nothing has been determined
+ * between them.
  */
 
-const gradeChip = (member: BiologicMember) => {
+/**
+ * Every badge names the other end of the relationship.
+ *
+ * A bare "Grade A" on eight rows of one family reads as a property of each
+ * product, and therefore as transitive: if these are all Grade A, surely any
+ * two of them are interchangeable. They are not — that is rule B5. Saying
+ * "Interchangeable with Humira" makes the claim directional, so two such rows
+ * assert nothing about each other.
+ */
+const relationshipChip = (member: BiologicMember, reference: string | null) => {
+  const against = reference ?? 'the reference product';
+
   if (member.grade === 'reference') {
-    return <Chip label="Reference" size="small" variant="outlined" />;
+    return <Chip label="Reference product" size="small" variant="outlined" />;
   }
   if (member.grade === 'A') {
     return (
       <Chip
-        label="Grade A · interchangeable"
+        label={`Interchangeable with ${against}`}
         size="small"
         color="success"
         sx={{ fontWeight: 600 }}
@@ -45,7 +62,7 @@ const gradeChip = (member: BiologicMember) => {
   }
   return (
     <Chip
-      label="Grade B · prescriber required"
+      label={`Biosimilar to ${against}`}
       size="small"
       color="warning"
       variant="outlined"
@@ -92,7 +109,11 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
           <TableRow>
             <TableCell>Product</TableCell>
             <TableCell>Applicant</TableCell>
-            <TableCell>Status</TableCell>
+            <TableCell>
+              {family.referenceProduct
+                ? `Relationship to ${family.referenceProduct}`
+                : 'Relationship to the reference'}
+            </TableCell>
             <TableCell sx={numberCell}>$ / unit</TableCell>
             <TableCell>Unit</TableCell>
           </TableRow>
@@ -105,7 +126,7 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
             >
               <TableCell>{member.tradeName}</TableCell>
               <TableCell>{member.applicant}</TableCell>
-              <TableCell>{gradeChip(member)}</TableCell>
+              <TableCell>{relationshipChip(member, family.referenceProduct)}</TableCell>
               <TableCell sx={numberCell}>{formatPrice(member.pricePerUnit)}</TableCell>
               <TableCell>{member.pricingUnit ?? '—'}</TableCell>
             </TableRow>
@@ -113,6 +134,18 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
         </TableBody>
       </Table>
     </TableContainer>
+
+    {family.followOnsUndetermined && (
+      <Alert severity="warning" variant="outlined" sx={{ mt: 1.5 }}>
+        <Typography variant="body2">
+          Each product above is rated against{' '}
+          <strong>{family.referenceProduct ?? 'the reference product'}</strong> only.
+          FDA has made <strong>no determination between them</strong>, so swapping one
+          follow-on for another is not covered by any rating on this page — however
+          interchangeable each is with the reference.
+        </Typography>
+      </Alert>
+    )}
 
     {/* Same principle as the Orange Book panel: every claim cites the record it
         came from, so a reviewer can open the Purple Book at that BLA number. */}
@@ -132,6 +165,7 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
             >
               {`purplebook.csv : BLA${member.blaNumber} · ${member.licenseType}`}
               {member.referenceProduct ? ` · ref ${member.referenceProduct}` : ''}
+              {member.rule ? ` · rule ${member.rule}` : ''}
             </Box>
           ))}
         </Box>
