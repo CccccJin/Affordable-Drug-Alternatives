@@ -1,8 +1,9 @@
 # Chemical Similarity Search API.
 #
-# RDKit is installed from PyPI rather than Conda: the `rdkit` wheel covers
-# manylinux x86_64, which is what this image is, and pulling in a Conda
-# distribution for one package would roughly triple the image.
+# RDKit is installed from PyPI rather than Conda: it publishes manylinux wheels
+# for both x86_64 and aarch64, so this builds natively on an Apple Silicon host
+# as well as on an x86 runner, and pulling in a Conda distribution for one
+# package would roughly triple the image.
 #
 # The database is *not* baked in. chembl_35.duckdb is several GB and changes on
 # a different cadence from the code, so it mounts at runtime:
@@ -25,9 +26,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# libxrender/libxext are RDKit's drawing dependencies, needed by /visualize.
+# rdkit.Chem.Draw, which /visualize needs, links against these at import time.
+# libexpat in particular is not obvious and not pulled in by the wheel: without
+# it the import raises and the endpoint answers 501 while everything else in the
+# image works, which is how it was found.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libxrender1 libxext6 curl \
+ && apt-get install -y --no-install-recommends \
+      libxrender1 libxext6 libexpat1 curl \
  && rm -rf /var/lib/apt/lists/*
 
 # Dependencies first, so a source change does not reinstall them.
