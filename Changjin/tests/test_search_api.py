@@ -129,6 +129,46 @@ class TestHealth:
         assert response.json() == {"status": "ok"}
 
 
+class TestEveryRouteAnswers:
+    """No registered GET route may raise.
+
+    `GET /` returned 500 from the original upload until this was written: it
+    served an `index.html` deleted in that same commit, and nothing ever opened
+    the root of the API. The container smoke test had the same blind spot that
+    let `/visualize` ship a 501 — it checked the endpoints someone thought to
+    check. This checks all of them, so an unreachable route fails here instead
+    of in front of a visitor.
+
+    A 4xx is a considered answer (missing query parameter, bad input) and
+    passes; only a 5xx means the handler itself broke.
+    """
+
+    def _plain_get_routes(self):
+        import main
+
+        for route in main.app.routes:
+            methods = getattr(route, "methods", set()) or set()
+            path = getattr(route, "path", "")
+            if "GET" in methods and "{" not in path:
+                yield path
+
+    def test_there_are_routes_to_check(self, client):
+        assert len(list(self._plain_get_routes())) >= 4
+
+    def test_no_route_raises(self, client):
+        broken = []
+        for path in self._plain_get_routes():
+            status = client.get(path).status_code
+            if status >= 500:
+                broken.append(f"{path} -> {status}")
+        assert not broken, f"routes returning 5xx: {broken}"
+
+    def test_the_root_points_somewhere_real(self, client):
+        body = client.get("/").json()
+        assert client.get(body["health"]).status_code == 200
+        assert client.get(body["docs"]).status_code == 200
+
+
 class TestProperties:
     def test_lists_the_filterable_keys(self, client):
         response = client.get("/properties")

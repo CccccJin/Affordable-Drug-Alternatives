@@ -21,6 +21,7 @@ import {
   Avatar,
   Alert,
   CircularProgress,
+  alpha,
 } from '@mui/material';
 import type { Compound } from '../../types/api';
 import { rdkitService } from '../../services/rdkit/rdkitService';
@@ -210,7 +211,11 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
             Similarity: {data.compound.similarity.toFixed(3)}
           </Typography>
           <Typography variant="body2">
-            SMILES: {data.compound.smiles.substring(0, 30)}...
+            {/* The ellipsis used to be unconditional, so a short SMILES was
+                shown as though it had been cut off. */}
+            SMILES: {data.compound.smiles.length > 30
+              ? `${data.compound.smiles.slice(0, 30)}…`
+              : data.compound.smiles}
           </Typography>
           <Typography variant="body2">
             Cluster: {data.cluster}
@@ -242,7 +247,7 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
           </FormControl>
         </Box>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
           {/* Scatter Plot */}
           <Box>
             {spaceError && <Alert severity="error" sx={{ mb: 2 }}>{spaceError}</Alert>}
@@ -395,11 +400,11 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
 
         {/* Cluster Statistics */}
         {clusteringData.clusters.length > 0 && (
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
+          <Box sx={{ mt: 3, p: 2, borderRadius: 1, bgcolor: theme => alpha(theme.palette.primary.main, 0.07) }}>
             <Typography variant="subtitle2" gutterBottom>
               Clustering Statistics
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Total Clusters

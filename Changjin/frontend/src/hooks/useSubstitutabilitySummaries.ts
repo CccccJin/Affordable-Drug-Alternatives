@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   loadSubstitutability,
@@ -66,55 +67,62 @@ export const useSubstitutabilitySummaries = (
     staleTime: Infinity,
   });
 
-  const summaries = new Map<string, SubstitutabilitySummary>();
-  if (!substitutability.data || !biologics.data) return summaries;
+  // Memoised: the results list asks for one page, but the analytics tab asks
+  // for the whole result set, and this rebuilt the map on every render.
+  const substitutabilityData = substitutability.data;
+  const biologicsData = biologics.data;
 
-  for (const compound of compounds) {
-    // Orange Book: every exported group is AB-rated, so the tier is fixed and
-    // only the saving varies. Take the best across matching strengths.
-    const groups = lookupGroups(substitutability.data, compound.pref_name);
-    if (groups.length > 0) {
-      const savings = groups
-        .map(g => g.savingPercent)
-        .filter((s): s is number => s !== null);
-      summaries.set(
-        compound.chembl_id,
-        summarise(
-          'pharmacy',
-          savings.length ? Math.max(...savings) : null,
-          'FDA rates these products therapeutically equivalent'
-        )
-      );
-      continue;
+  return useMemo(() => {
+    const summaries = new Map<string, SubstitutabilitySummary>();
+    if (!substitutabilityData || !biologicsData) return summaries;
+
+    for (const compound of compounds) {
+      // Orange Book: every exported group is AB-rated, so the tier is fixed and
+      // only the saving varies. Take the best across matching strengths.
+      const groups = lookupGroups(substitutabilityData, compound.pref_name);
+      if (groups.length > 0) {
+        const savings = groups
+          .map(g => g.savingPercent)
+          .filter((s): s is number => s !== null);
+        summaries.set(
+          compound.chembl_id,
+          summarise(
+            'pharmacy',
+            savings.length ? Math.max(...savings) : null,
+            'FDA rates these products therapeutically equivalent'
+          )
+        );
+        continue;
+      }
+
+      // Purple Book: the tier depends on whether a follow-on is interchangeable
+      // or merely biosimilar, so it is read off the cheapest switch on offer.
+      const families = lookupBiologics(biologicsData, compound.pref_name);
+      if (families.length > 0) {
+        const switches = families.flatMap(f => f.savings);
+        const best = switches.length
+          ? switches.reduce((a, b) => (b.savingPercent > a.savingPercent ? b : a))
+          : null;
+        const interchangeable = best
+          ? best.grade === 'A'
+          : families.some(f => f.members.some(m => m.grade === 'A'));
+        // A biologic rating always points at one product, so the card names it.
+        // "A pharmacist can substitute" with nothing after it would read as a
+        // claim about every product in the family, which rule B5 denies.
+        const reference = families[0].referenceProduct;
+        summaries.set(
+          compound.chembl_id,
+          summarise(
+            interchangeable ? 'pharmacy' : 'prescriber',
+            best ? best.savingPercent : null,
+            interchangeable
+              ? `FDA rates a follow-on interchangeable with ${reference ?? 'the reference product'}`
+              : `A biosimilar to ${reference ?? 'the reference product'} exists, with no interchangeability finding`
+          )
+        );
+      }
     }
 
-    // Purple Book: the tier depends on whether a follow-on is interchangeable
-    // or merely biosimilar, so it is read off the cheapest switch on offer.
-    const families = lookupBiologics(biologics.data, compound.pref_name);
-    if (families.length > 0) {
-      const switches = families.flatMap(f => f.savings);
-      const best = switches.length
-        ? switches.reduce((a, b) => (b.savingPercent > a.savingPercent ? b : a))
-        : null;
-      const interchangeable = best
-        ? best.grade === 'A'
-        : families.some(f => f.members.some(m => m.grade === 'A'));
-      // A biologic rating always points at one product, so the card names it.
-      // "A pharmacist can substitute" with nothing after it would read as a
-      // claim about every product in the family, which rule B5 denies.
-      const reference = families[0].referenceProduct;
-      summaries.set(
-        compound.chembl_id,
-        summarise(
-          interchangeable ? 'pharmacy' : 'prescriber',
-          best ? best.savingPercent : null,
-          interchangeable
-            ? `FDA rates a follow-on interchangeable with ${reference ?? 'the reference product'}`
-            : `A biosimilar to ${reference ?? 'the reference product'} exists, with no interchangeability finding`
-        )
-      );
-    }
-  }
-
-  return summaries;
+    return summaries;
+  }, [compounds, substitutabilityData, biologicsData]);
 };

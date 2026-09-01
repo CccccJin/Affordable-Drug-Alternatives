@@ -1,7 +1,7 @@
 # main.py (更新后)
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import logging
@@ -140,9 +140,21 @@ def get_pref_name_map(chembl_ids: List[str]) -> dict:
 
 # --- Endpoints ---
 
-@app.get("/", include_in_schema=False)
+@app.get("/", tags=["system"], summary="Service index")
 def root():
-    return FileResponse("index.html")
+    """Where to go from here.
+
+    This used to serve an `index.html` that has not existed since the original
+    upload, so the root of the API answered 500 to anyone who opened it in a
+    browser — the first thing most people try. The frontend is a separate Vite
+    SPA deployed to GitHub Pages and is not served from here.
+    """
+    return {
+        "service": "Affordable Drug Alternatives API",
+        "docs": "/docs",
+        "health": "/health",
+        "frontend": "https://cccccjin.github.io/Affordable-Drug-Alternatives/",
+    }
 
 @app.get("/health", tags=["system"], summary="Health check")
 def health_check():

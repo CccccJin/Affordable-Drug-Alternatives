@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Spread — Generic Substitution Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN C — "THE SPREAD"
+   Thesis: show the evidence for the claim rather than the claim.
+   One row per equivalence group, every surveyed product plotted
+   on a shared logarithmic price axis, sorted by how far apart
+   the cheapest and dearest sit.
+
+   TOKENS
+   --field    #FFFFFF  plain white. A tinted ground would put a
+                       colour behind marks whose only job is to
+                       be compared against one another.
+   --ink      #262A33  blue-grey dark. Text and product marks.
+   --hair     #DCDFE5  axis and separators.
+   --quiet    #6E7684  secondary text, sample sizes, units.
+   --brand    #A8214B  THE ONLY ACCENT IN THE FILE. One job:
+                       marking the brand / reference product.
+                       Nothing else is crimson, so a crimson
+                       mark always means the same thing.
+
+   DATAVIZ COLOUR: categorical, one class. Magnitude is carried
+   entirely by POSITION on the log axis; hue distinguishes only
+   the brand from its equivalents. Small samples are marked by
+   LINE STYLE (dotted range) rather than by a second colour, so
+   confidence and identity never compete for the same channel.
+
+   TYPE: Source Serif 4 for ingredient names, Source Sans 3 for
+   everything else. In a dot plot the eye scans labels
+   vertically while measuring horizontally; giving the label a
+   different texture rather than a different weight keeps the
+   two motions from interfering. Same superfamily, so the serif
+   labels and the sans figures share a baseline and metrics.
+   ============================================================ */
+:root{
+  --field:#FFFFFF; --ink:#262A33; --hair:#DCDFE5; --quiet:#6E7684;
+  --brand:#A8214B;
+  --sans:'Source Sans 3',system-ui,sans-serif;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--field); color:var(--ink); font-family:var(--sans);
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:64px 44px 110px}
+h1{font-family:var(--sans);font-size:33px;line-height:1.22;font-weight:700;letter-spacing:-.021em;max-width:26ch;margin:0 0 16px}
+.sub{max-width:64ch;color:var(--quiet);font-size:15px;margin:0 0 8px}
+.prov{font-size:12px;color:var(--quiet);margin:18px 0 0}
+
+/* ---- the specimen: the single widest spread, drawn at a size
+        nothing else on the page gets. this is the protagonist. ---- */
+.specimen{margin:40px 0 8px;padding:30px 0 26px;border-top:2px solid var(--ink);border-bottom:1px solid var(--hair)}
+.sp-head{display:flex;align-items:baseline;justify-content:space-between;gap:24px;margin-bottom:6px;flex-wrap:wrap}
+.sp-name{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:-.012em}
+.sp-ratio{font-size:29px;font-weight:700;letter-spacing:-.02em;color:var(--brand);white-space:nowrap}
+.sp-meta{font-size:13px;color:var(--quiet);margin:0 0 20px}
+.sp-plot{width:100%;height:88px;display:block}
+.sp-read{font-size:14px;color:var(--ink);max-width:62ch;margin:16px 0 0}
+.sp-read b{color:var(--brand);font-weight:600}
+
+/* ---- controls: filter state is spelled out in a sentence, not
+        only shown as a pressed button. ---- */
+.bar{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:34px 0 0;padding-bottom:16px;border-bottom:1px solid var(--hair)}
+.grp{display:flex;gap:7px;align-items:center}
+.grp>span{font-size:12.5px;color:var(--quiet)}
+.tog{font:600 13px var(--sans);background:transparent;border:1px solid var(--hair);border-radius:2px;padding:6px 12px;color:var(--quiet);cursor:pointer}
+.tog[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:#F2F3F6}
+.tog:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.scope{font-size:13.5px;color:var(--quiet);margin:16px 0 0}
+.scope b{color:var(--ink);font-weight:600}
+
+/* ---- shared axis, sticky so a row 40 rows down is still
+        readable against a scale. ---- */
+.axis{position:sticky;top:0;background:var(--field);padding:14px 0 4px;z-index:2;border-bottom:1px solid var(--hair)}
+.axis svg{display:block;width:100%;height:24px}
+
+.cat{margin:0}
+.cat-h{display:flex;align-items:baseline;gap:12px;width:100%;background:transparent;border:0;padding:26px 0 8px;cursor:pointer;color:inherit;text-align:left}
+.cat-h:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.cat-code{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--brand)}
+.cat-name{font-size:14.5px;font-weight:600;letter-spacing:-.004em}
+.cat-n{font-size:12.5px;color:var(--quiet);margin-left:auto}
+.row{display:grid;grid-template-columns:200px 1fr 118px;gap:18px;align-items:center;padding:7px 0;border-bottom:1px solid #EFF1F4}
+.row:hover{background:#F7F8FA}
+.r-name{font-family:var(--serif);font-size:15.5px;line-height:1.25}
+.r-n{font-family:var(--sans);font-size:11.5px;color:var(--quiet);display:block;margin-top:1px}
+.r-plot{width:100%;height:22px;display:block}
+.r-ratio{text-align:right;font-size:14px;font-weight:600}
+.r-ratio small{display:block;font-weight:400;font-size:11.5px;color:var(--quiet)}
+.row.sparse .r-ratio{color:var(--quiet);font-weight:400}
+.legend{display:flex;gap:26px;align-items:center;margin:34px 0 0;padding-top:16px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--quiet);flex-wrap:wrap}
+.legend span{display:flex;gap:7px;align-items:center}
+.empty{padding:44px 0 10px;max-width:58ch}
+.empty h2{font-size:19px;margin:0 0 10px;font-weight:700}
+.empty p{color:var(--quiet);font-size:14px;margin:0 0 16px}
+.empty button{font:600 13px var(--sans);padding:9px 15px;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:2px;cursor:pointer}
+.empty button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){ .row{transition:background .12s ease} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Inside one FDA equivalence group, price spans more than two orders of magnitude.</h1>
+<p class="sub">Every dot is one surveyed product. Every row is one group FDA rates therapeutically equivalent, so each row is a set of products a pharmacist may swap between. The axis is logarithmic and shared, and rows are ordered by how far apart the cheapest and dearest sit.</p>
+<p class="prov">Built 2026-08-31 from Orange Book <code>products.txt</code> and the CMS NADAC survey covering 2025-01-01 to 2026-08-26. Every figure is a pharmacy acquisition cost per dispensing unit, which is neither a copay nor a cash price.</p>
+
+<section class="specimen" id="specimen" aria-label="Widest spread"></section>
+
+<div class="bar" role="group" aria-label="Filters">
+  <div class="grp"><span>order by</span>
+    <button class="tog" data-sort="spread" aria-pressed="true">spread</button>
+    <button class="tog" data-sort="price" aria-pressed="false">brand price</button>
+  </div>
+  <div class="grp"><span>sample</span>
+    <button class="tog" data-min="1" aria-pressed="true">all</button>
+    <button class="tog" data-min="5" aria-pressed="false">n ≥ 5</button>
+    <button class="tog" data-min="10" aria-pressed="false">n ≥ 10</button>
+  </div>
+  <div class="grp"><span>dispensing unit</span>
+    <button class="tog" data-unit="all" aria-pressed="true">any</button>
+    <button class="tog" data-unit="EA" aria-pressed="false">per EA</button>
+    <button class="tog" data-unit="ML" aria-pressed="false">per mL</button>
+  </div>
+</div>
+<p class="scope" id="scope"></p>
+
+<div class="axis"><svg id="axis" role="img" aria-label="Logarithmic axis, US dollars per dispensing unit"></svg></div>
+
+<div id="body"></div>
+
+<div class="legend">
+  <span><svg width="16" height="10"><circle cx="5" cy="5" r="3" fill="var(--ink)"/></svg> equivalent product</span>
+  <span><svg width="16" height="10"><path d="M2 5 L7 1 L12 5 L7 9 Z" fill="var(--brand)"/></svg> brand / reference</span>
+  <span><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 3"/></svg> fewer than 5 products surveyed</span>
+</div>
+
+</div>
+<script>
+/* =============================================================
+   Fake data at NADAC scale. `products` holds every surveyed
+   price in the group, not just the extremes, so each row is an
+   actual distribution rather than a range with the middle
+   invented. Three groups carry only two or three products, to
+   check that a wide spread drawn from n=2 does not silently
+   outrank a narrower spread drawn from n=22.
+   ============================================================= */
+const GROUPS = [
+  {ing:'Atorvastatin calcium', atc:'C10AA', cat:'HMG CoA reductase inhibitors', form:'tablet, 40 mg', unit:'EA',
+   brandName:'LIPITOR', brandPrice:19.11383,
+   products:[0.03704,0.03810,0.03955,0.04102,0.04290,0.04511,0.04884,0.05230,0.06104,0.07733,0.09912,0.14220,0.31005]},
+  {ing:'Aripiprazole', atc:'N05AX', cat:'Other antipsychotics', form:'tablet, 10 mg', unit:'EA',
+   brandName:'ABILIFY', brandPrice:32.15900,
+   products:[0.21140,0.22015,0.23880,0.25330,0.27904,0.31220,0.38041,0.52117,0.81330,1.44200]},
+  {ing:'Sertraline hydrochloride', atc:'N06AB', cat:'Selective serotonin reuptake inhibitors', form:'tablet, 50 mg', unit:'EA',
+   brandName:'ZOLOFT', brandPrice:8.94210,
+   products:[0.04880,0.05012,0.05244,0.05531,0.05902,0.06340,0.06988,0.07914,0.09220,0.11504,0.15330,0.22811,0.41002,0.78330,1.09220,2.31400]},
+  {ing:'Clopidogrel bisulfate', atc:'B01AC', cat:'Platelet aggregation inhibitors', form:'tablet, 75 mg', unit:'EA',
+   brandName:'PLAVIX', brandPrice:9.77310,
+   products:[0.08120,0.08402,0.08811,0.09230,0.09904,0.10552,0.11430,0.12904,0.14822,0.18004,0.22930,0.31200,0.48220,0.79300,1.42000,2.88100,4.10200,6.22000]},
+  {ing:'Rosuvastatin calcium', atc:'C10AA', cat:'HMG CoA reductase inhibitors', form:'tablet, 10 mg', unit:'EA',
+   brandName:'CRESTOR', brandPrice:10.44050,
+   products:[0.09210,0.09533,0.10104,0.10822,0.11933,0.13401,0.16220,0.21330,0.30104,0.48220,0.92110,1.88200]},
+  {ing:'Amlodipine besylate', atc:'C08CA', cat:'Dihydropyridine calcium channel blockers', form:'tablet, 5 mg', unit:'EA',
+   brandName:'NORVASC', brandPrice:3.41880,
+   products:[0.02090,0.02144,0.02233,0.02341,0.02490,0.02655,0.02844,0.03102,0.03411,0.03822,0.04330,0.05011,0.05922,0.07104,0.08833,0.11220,0.15104,0.21330,0.32200,0.51100,0.88300]},
+  {ing:'Pantoprazole sodium', atc:'A02BC', cat:'Proton pump inhibitors', form:'tablet DR, 40 mg', unit:'EA',
+   brandName:'PROTONIX', brandPrice:6.18220,
+   products:[0.07440,0.07811,0.08302,0.08944,0.09822,0.11004,0.12833,0.15422,0.19330,0.26110,0.38220,0.60110,1.02200,1.94300]},
+  {ing:'Montelukast sodium', atc:'R03DC', cat:'Leukotriene receptor antagonists', form:'tablet, 10 mg', unit:'EA',
+   brandName:'SINGULAIR', brandPrice:6.02440,
+   products:[0.05770,0.06012,0.06344,0.06802,0.07440,0.08322,0.09630,0.11540,0.14822,0.21100,0.34220]},
+  {ing:'Valsartan', atc:'C09CA', cat:'Angiotensin II receptor blockers', form:'tablet, 80 mg', unit:'EA',
+   brandName:'DIOVAN', brandPrice:4.30960,
+   products:[0.16330,0.17204,0.18422,0.20110,0.22833,0.27400,0.35220,0.51100]},
+  {ing:'Levothyroxine sodium', atc:'H03AA', cat:'Thyroid hormones', form:'tablet, 100 mcg', unit:'EA',
+   brandName:'SYNTHROID', brandPrice:0.71400,
+   products:[0.09810,0.10422,0.11330,0.12604,0.14822,0.18300,0.24110]},
+  {ing:'Metformin hydrochloride', atc:'A10BA', cat:'Biguanides', form:'tablet, 500 mg', unit:'EA',
+   brandName:'GLUCOPHAGE', brandPrice:1.09220,
+   products:[0.01430,0.01472,0.01533,0.01611,0.01704,0.01822,0.01966,0.02144,0.02366,0.02644,0.02988,0.03411,0.03944,0.04622,0.05500,0.06644,0.08144,0.10120,0.12833,0.16500,0.21800,0.29400,0.41100,0.60200,0.92100]},
+  /* --- sparse. wide spreads, but drawn from two or three products --- */
+  {ing:'Tetrabenazine', atc:'N07XX', cat:'Other nervous system drugs', form:'tablet, 25 mg', unit:'EA',
+   brandName:'XENAZINE', brandPrice:88.41200, products:[6.13400,11.20800]},
+  {ing:'Deferasirox', atc:'V03AC', cat:'Iron chelating agents', form:'tablet, 180 mg', unit:'EA',
+   brandName:'JADENU', brandPrice:41.22700, products:[9.88100,14.30200]},
+  {ing:'Icatibant acetate', atc:'B06AC', cat:'Hereditary angioedema agents', form:'injection, 30 mg/3 mL', unit:'ML',
+   brandName:'FIRAZYR', brandPrice:1188.40000, products:[412.10000,498.30000,602.00000]},
+];
+GROUPS.forEach(g=>{
+  g.all = [...g.products, g.brandPrice].sort((a,b)=>a-b);
+  g.n = g.all.length;
+  g.lo = g.all[0];
+  g.hi = g.brandPrice;
+  g.ratio = g.hi / g.lo;
+  g.sparse = g.n < 5;
+});
+
+const LO=0.01, HI=2000;
+const lg=Math.log10, pos=v=>(lg(Math.max(v,LO))-lg(LO))/(lg(HI)-lg(LO));
+const money=v=> v>=100 ? '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+              : v>=1 ? '$'+v.toFixed(2) : '$'+v.toFixed(5);
+const state={sort:'spread', min:1, unit:'all'};
+
+function axisSVG(el,h,labels){
+  const w=el.clientWidth||820;
+  el.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const ticks=[0.01,0.1,1,10,100,1000];
+  el.innerHTML = ticks.map(t=>{
+    const x=pos(t)*w;
+    return `<line x1="${x}" y1="${h-8}" x2="${x}" y2="${h}" stroke="var(--hair)"/>`+
+      (labels?`<text x="${Math.min(Math.max(x,14),w-14)}" y="${h-13}" font-size="11" fill="var(--quiet)" text-anchor="middle" font-family="Source Sans 3">${t<1?'$'+t:'$'+t.toLocaleString('en-US')}</text>`:'');
+  }).join('');
+  return w;
+}
+
+function rowSVG(g,w,h,r){
+  const y=h/2;
+  const x1=pos(g.lo)*w, x2=pos(g.hi)*w;
+  const dots=g.products.map(p=>`<circle cx="${(pos(p)*w).toFixed(2)}" cy="${y}" r="${r}" fill="var(--ink)" fill-opacity=".62"/>`).join('');
+  const brandX=pos(g.brandPrice)*w, s=r+2.4;
+  return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="var(--ink)" stroke-width="1.2"
+            stroke-opacity="${g.sparse?'.85':'.30'}" ${g.sparse?'stroke-dasharray="2 3"':''}/>
+    ${dots}
+    <path d="M ${brandX-s} ${y} L ${brandX} ${y-s} L ${brandX+s} ${y} L ${brandX} ${y+s} Z" fill="var(--brand)"/>`;
+}
+
+function visible(){
+  const rows = GROUPS.filter(g=>g.n>=state.min && (state.unit==='all' || g.unit===state.unit));
+  return rows.sort((a,b)=> state.sort==='spread' ? b.ratio-a.ratio : b.brandPrice-a.brandPrice);
+}
+
+function render(){
+  const rows = visible();
+
+  // The filter sentence names every active restriction. A filter the user
+  // cannot see is a filter they will misread the numbers through.
+  const active = [
+    state.min > 1 ? `n ≥ ${state.min} surveyed products` : null,
+    state.unit !== 'all' ? `priced per ${state.unit === 'EA' ? 'EA' : 'mL'}` : null,
+  ].filter(Boolean);
+  document.getElementById('scope').innerHTML = active.length === 0
+    ? `Showing <b>all ${GROUPS.length}</b> priced groups on a log₁₀ axis of $ per dispensing unit, ordered by ${state.sort==='spread'?'spread':'brand price'}.`
+    : `Showing <b>${rows.length}</b> of <b>${GROUPS.length}</b> groups, restricted to those <b>${active.join('</b> and <b>')}</b>, on a log₁₀ axis of $ per dispensing unit, ordered by ${state.sort==='spread'?'spread':'brand price'}.`;
+
+  /* --- the specimen is always the widest spread that survives the
+         filter, and it is redrawn when the filter changes so the
+         protagonist never contradicts the list below it. --- */
+  const spEl = document.getElementById('specimen');
+  const bodyEl = document.getElementById('body');
+
+  if (!rows.length){
+    spEl.innerHTML='';
+    document.getElementById('axis').innerHTML='';
+    const byUnit = GROUPS.filter(g=>state.unit==='all'||g.unit===state.unit);
+    const blame = byUnit.length===0
+      ? {text:`No group in this extract is priced per ${state.unit==='EA'?'EA':'mL'}.`, label:'Show every dispensing unit', fix:()=>{state.unit='all';}}
+      : {text:`${byUnit.length} group${byUnit.length===1?' is':'s are'} priced per ${state.unit==='EA'?'EA':'mL'}, and the largest of them holds ${Math.max(...byUnit.map(g=>g.n))} surveyed product${Math.max(...byUnit.map(g=>g.n))===1?'':'s'} — fewer than the ${state.min} this filter requires. Injectable products are surveyed far less densely than oral solids, so the two filters rarely hold at once.`,
+         label:`Drop the n ≥ ${state.min} requirement`, fix:()=>{state.min=1;}};
+    bodyEl.innerHTML = `<div class="empty">
+      <h2>Nothing satisfies <b>n ≥ ${state.min}</b> and <b>priced per ${state.unit==='EA'?'EA':'mL'}</b> together.</h2>
+      <p>${blame.text}</p>
+      <button id="reset">${blame.label}</button></div>`;
+    document.getElementById('reset').onclick=()=>{ blame.fix(); syncTogs(); render(); };
+    return;
+  }
+
+  const sp = [...rows].sort((a,b)=>b.ratio-a.ratio)[0];
+  spEl.innerHTML = `
+    <div class="sp-head">
+      <span class="sp-name">${sp.ing}</span>
+      <span class="sp-ratio">${Math.round(sp.ratio).toLocaleString('en-US')}×</span>
+    </div>
+    <p class="sp-meta">${sp.cat} (${sp.atc}), ${sp.form}, ${sp.n} products surveyed${sp.sparse?', a very small sample':''}</p>
+    <svg class="sp-plot" id="spplot" role="img"
+      aria-label="${sp.ing}: ${sp.n} products from ${money(sp.lo)} to ${money(sp.hi)} per ${sp.unit}"></svg>
+    <p class="sp-read">The cheapest product FDA rates equivalent costs <b>${money(sp.lo)}</b> per ${sp.unit}.
+      ${sp.brandName} costs <b>${money(sp.hi)}</b>. Both sit in the same equivalence group, so a pharmacist may
+      substitute between them without contacting the prescriber.${sp.sparse?` Only ${sp.n} products in this group carry a surveyed price, so treat the multiple as an indication rather than a rate.`:''}</p>`;
+
+  const spSvg = document.getElementById('spplot');
+  const spW = spSvg.clientWidth||820;
+  spSvg.setAttribute('viewBox',`0 0 ${spW} 88`);
+  const ticks=[0.01,0.1,1,10,100,1000];
+  spSvg.innerHTML =
+    ticks.map(t=>{const x=pos(t)*spW;return `<line x1="${x}" y1="52" x2="${x}" y2="60" stroke="var(--hair)"/>
+      <text x="${Math.min(Math.max(x,16),spW-16)}" y="76" font-size="11.5" fill="var(--quiet)" text-anchor="middle" font-family="Source Sans 3">${t<1?'$'+t:'$'+t.toLocaleString('en-US')}</text>`;}).join('')
+    + `<g transform="translate(0,-14)">${rowSVG(sp,spW,88,5)}</g>`
+    + `<text x="${pos(sp.lo)*spW}" y="18" font-size="12" font-weight="600" fill="var(--ink)" font-family="Source Sans 3" text-anchor="${pos(sp.lo)*spW<70?'start':'middle'}">${money(sp.lo)}</text>`
+    + `<text x="${pos(sp.hi)*spW}" y="18" font-size="12" font-weight="600" fill="var(--brand)" font-family="Source Sans 3" text-anchor="${pos(sp.hi)*spW>spW-70?'end':'middle'}">${sp.brandName} ${money(sp.hi)}</text>`;
+
+  const w = axisSVG(document.getElementById('axis'), 24, true);
+
+  /* --- grouped by ATC level 4. the category is the unit a
+         formulary decision is actually made in. --- */
+  const cats = new Map();
+  rows.forEach(g=>{ if(!cats.has(g.atc)) cats.set(g.atc,{code:g.atc,name:g.cat,rows:[]}); cats.get(g.atc).rows.push(g); });
+  const ordered = [...cats.values()].sort((a,b)=>
+    Math.max(...b.rows.map(r=>r.ratio)) - Math.max(...a.rows.map(r=>r.ratio)));
+
+  bodyEl.innerHTML = ordered.map(c=>`
+    <section class="cat">
+      <button class="cat-h" aria-expanded="true" data-cat="${c.code}">
+        <span class="cat-code">${c.code}</span>
+        <span class="cat-name">${c.name}</span>
+        <span class="cat-n" hidden>${c.rows.length} group${c.rows.length===1?'':'s'}</span>
+      </button>
+      <div data-body="${c.code}">
+        ${c.rows.map(g=>`
+          <div class="row ${g.sparse?'sparse':''}">
+            <div class="r-name">${g.ing}<span class="r-n">${g.form}, n=${g.n}${g.sparse?', sparse':''}</span></div>
+            <svg class="r-plot" viewBox="0 0 ${w} 22" role="img"
+              aria-label="${g.ing}: ${g.n} products from ${money(g.lo)} to ${money(g.hi)} per ${g.unit}">${rowSVG(g,w,22,3)}</svg>
+            <div class="r-ratio">${Math.round(g.ratio).toLocaleString('en-US')}×<small>${money(g.lo)} → ${money(g.hi)}</small></div>
+          </div>`).join('')}
+      </div>
+    </section>`).join('');
+
+  bodyEl.querySelectorAll('.cat-h').forEach(b=>{
+    b.onclick = ()=>{
+      const body = bodyEl.querySelector(`[data-body="${b.dataset.cat}"]`);
+      const open = b.getAttribute('aria-expanded')==='true';
+      b.setAttribute('aria-expanded', String(!open));
+      body.hidden = open;
+      // The count is only worth showing when it stands in for hidden rows.
+      b.querySelector('.cat-n').hidden = !open;
+    };
+  });
+}
+
+function syncTogs(){
+  document.querySelectorAll('[data-sort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sort===state.sort)));
+  document.querySelectorAll('[data-min]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.min===state.min)));
+  document.querySelectorAll('[data-unit]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.unit===state.unit)));
+}
+document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{state.sort=b.dataset.sort;syncTogs();render();});
+document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{state.min=+b.dataset.min;syncTogs();render();});
+document.querySelectorAll('[data-unit]').forEach(b=>b.onclick=()=>{state.unit=b.dataset.unit;syncTogs();render();});
+addEventListener('resize',render);
+syncTogs(); render();
+</script>
+</body>
+</html>

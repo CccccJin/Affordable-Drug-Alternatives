@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attrition — Generic Substitution Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN B — "ATTRITION"
+   Thesis: the honest headline is not how much is saved, it is
+   how few queries ever reach a saving. The panel leads with the
+   loss and treats each stage as a piece of work still to do.
+
+   TOKENS
+   --ground  #141C24  deep slate. Chosen because attrition is
+                      subtractive: on a dark ground, "kept" is
+                      the only thing that emits light and loss
+                      needs no colour of its own.
+   --surface #1F2A35  raised panel.
+   --text    #D9E1E8  body.
+   --muted   #78889A  secondary text and axis.
+   --kept    #58A6B8  ONE job: records that survive a stage.
+   --flag    #D3A03C  ONE job: a stage whose loss is a fixable
+                      engineering gap, not an inherent limit.
+
+   DATAVIZ COLOUR: categorical, two classes (kept / flagged).
+   Not sequential: the bars encode magnitude by LENGTH, and
+   giving length and hue the same job would double-encode one
+   variable while leaving the kept/flagged distinction unsaid.
+
+   TYPE: Public Sans. Drawn for the US Web Design System to hold
+   up in dense government data tables at small sizes, which is
+   the literal job here (FDA and CMS records at 11-12px on a
+   dark ground). One family, two weights: on a dark ground
+   halation exaggerates weight differences, so mixing families
+   would make the hierarchy read as noise.
+   ============================================================ */
+:root{
+  --ground:#141C24; --surface:#1F2A35; --edge:#2E3C49;
+  --text:#D9E1E8; --muted:#78889A;
+  --kept:#58A6B8; --flag:#D3A03C;
+  --f:'Public Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--text); font-family:var(--f);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:52px 40px 90px}
+.lede{max-width:40ch;font-size:34px;line-height:1.2;font-weight:700;letter-spacing:-.02em;margin:0 0 16px}
+.lede em{font-style:normal;color:var(--kept)}
+.sub{max-width:66ch;color:var(--muted);font-size:14.5px;margin:0}
+.prov{font-size:11.5px;color:var(--muted);opacity:.8;margin-top:16px;padding-bottom:22px;border-bottom:1px solid var(--edge)}
+
+.controls{display:flex;gap:8px;align-items:center;margin:22px 0 6px;flex-wrap:wrap}
+.controls span{font-size:11.5px;color:var(--muted);margin-right:4px}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:3px;overflow:hidden}
+.seg button{font:600 12.5px var(--f);padding:7px 15px;background:transparent;border:0;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--kept);color:var(--ground)}
+.seg button:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+.scope{font-size:13px;color:var(--muted);margin:14px 0 0}
+.scope b{color:var(--text);font-weight:600}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:44px;margin-top:30px;align-items:start}
+
+/* ---- the cascade. every bar is 100% of the PREVIOUS stage, so
+        the eye reads conditional retention, not absolute size.
+        Absolute counts are printed because the ratio alone would
+        hide that stage 5 is 419 records. ---- */
+.stage{width:100%;text-align:left;background:transparent;border:0;padding:16px 0 15px;border-bottom:1px solid var(--edge);cursor:pointer;color:inherit;font:inherit;display:block}
+.stage:first-child{border-top:1px solid var(--edge)}
+.stage:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.stage[aria-pressed="true"] .s-name{color:var(--kept)}
+.s-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:9px}
+.s-name{display:block;font-size:14.5px;font-weight:600;letter-spacing:-.006em}
+.s-num{display:block;font-size:13px;color:var(--muted);white-space:nowrap}
+.s-num b{color:var(--text);font-weight:600;font-size:15px}
+.track{display:block;position:relative;height:14px;background:repeating-linear-gradient(115deg,transparent 0 5px,#22303C 5px 6px);border:1px solid var(--edge)}
+.fill{position:absolute;inset:0 auto 0 0;background:var(--kept)}
+.fill.flagged{background:var(--flag)}
+.s-loss{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+.s-loss b{color:var(--flag);font-weight:600}
+
+/* ---- detail rail. explains the selected stage. sticky so the
+        cascade stays legible while reading it. ---- */
+.rail{position:sticky;top:34px;background:var(--surface);border:1px solid var(--edge);border-radius:4px;padding:22px 22px 20px}
+.rail h2{font-size:16px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+.rail .kicker{font-size:11.5px;color:var(--muted);margin:0 0 14px}
+.rail p{font-size:13.5px;color:#B7C3CE;margin:0 0 14px}
+.rail .verdict{display:inline-block;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:3px;margin-bottom:14px}
+.verdict.fix{background:rgba(211,160,60,.16);color:var(--flag);border:1px solid rgba(211,160,60,.4)}
+.verdict.inherent{background:rgba(120,136,154,.14);color:var(--muted);border:1px solid var(--edge)}
+.bars{margin:4px 0 0}
+.brow{display:grid;grid-template-columns:1fr 46px;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
+.brow .bt{height:8px;background:#2A3844;position:relative}
+.brow .bt i{position:absolute;inset:0 auto 0 0;background:var(--kept);display:block}
+.brow .lab{color:#B7C3CE;font-size:12.5px;margin-bottom:4px;display:block}
+.brow .val{text-align:right;color:var(--muted);font-size:12px}
+.small-n{color:var(--flag);font-size:11.5px;margin-top:12px}
+.foot-note{margin-top:26px;padding-top:16px;border-top:1px solid var(--edge);font-size:12px;color:var(--muted);max-width:70ch}
+.empty{padding:26px 0}
+.empty h2{font-size:16px;margin:0 0 8px}
+.empty p{color:var(--muted);font-size:13.5px;max-width:56ch;margin:0 0 14px}
+.empty button{font:600 12.5px var(--f);padding:8px 14px;background:var(--kept);color:var(--ground);border:0;border-radius:3px;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){
+  .fill{transition:width .28s cubic-bezier(.2,.7,.3,1)}
+  .brow .bt i{transition:width .28s cubic-bezier(.2,.7,.3,1)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1 class="lede"><span id="hero-in">2,381</span> <span id="hero-unit">equivalence groups</span> go in. <em id="hero-out">419</em> come out with a price on both sides.</h1>
+<p class="sub">Each bar below is the share of the <em style="font-style:normal;color:var(--text)">previous</em> stage that survives, so the cascade reads as conditional retention rather than as five bars of decreasing size. Select a stage to see what it drops and whether that loss is fixable.</p>
+<p class="prov">Built 2026-08-31 from Orange Book <code>products.txt</code>, Purple Book <code>purplebook.csv</code>, an openFDA NDC extract of 2026-08-28, and the CMS NADAC survey covering 2025-01-01 to 2026-08-26. Every price is a pharmacy acquisition cost.</p>
+
+<div class="controls" role="group" aria-label="Data source">
+  <span>source</span>
+  <div class="seg">
+    <button data-src="ob" aria-pressed="true">Orange Book, small molecule</button>
+    <button data-src="pb" aria-pressed="false">Purple Book, biologic</button>
+  </div>
+</div>
+<p class="scope" id="scope"></p>
+
+<div class="grid">
+  <div id="cascade"></div>
+  <aside class="rail" id="rail" aria-live="polite"></aside>
+</div>
+
+<p class="foot-note">Reach, for context: of the <b style="color:var(--text)">84,818</b> named compounds this system can search, <b style="color:var(--text)">971</b> (1.1%) resolve to any FDA record at all. The cascade below starts after that step, so it measures the pipeline, not the catalogue.</p>
+
+</div>
+<script>
+/* =============================================================
+   Fake data shaped like the real pipeline. `n` counts are in a
+   single consistent unit — equivalence groups — from the first
+   stage to the last, so the retention ratios are meaningful.
+   The Purple Book series is deliberately tiny (20 -> 7); it is
+   there to check that a funnel drawn from 20 records is visibly
+   marked as such rather than being ranked against 2,381.
+   ============================================================= */
+const PIPELINE = {
+  ob: {
+    label:'Orange Book, small molecule', unit:'equivalence groups', start:2381, lowN:false,
+    stages:[
+      {name:'Extracted from products.txt', n:2381, why:'Every distinct (ingredient, dosage form, route, strength) carrying an AB-family therapeutic equivalence code.', verdict:null,
+       breakdown:[['AB',1904],['AB1–AB3',388],['AP / AT',89]]},
+      {name:'Holds at least two distinct products', n:2120, fixable:false,
+       why:'A group with one marketed product cannot express a switch. Most of these are single-source products whose exclusivity has not lapsed.',
+       verdict:'inherent',
+       breakdown:[['two or more applicants',2120],['single applicant',261]]},
+      {name:'At least two products map to an NDC', n:1486, fixable:true,
+       why:'The join from an Orange Book application number to a billing NDC runs through openFDA. It fails on repackagers, on products whose labels have not been refreshed since the last extract, and on a long tail of application-number formatting differences.',
+       verdict:'fix',
+       breakdown:[['both sides mapped',1486],['one side mapped',498],['neither mapped',136]]},
+      {name:'At least two products carry a NADAC price', n:419, fixable:true,
+       why:'CMS surveys retail pharmacy invoices. A product absent from the survey is not necessarily unsold — clinic-administered and institutional products are systematically outside it. This is the largest single loss in the pipeline and the one worth attacking next.',
+       verdict:'fix',
+       breakdown:[['both sides priced',419],['one side priced',702],['neither priced',365]]},
+      {name:'Cheapest is genuinely below dearest', n:419, fixable:false,
+       why:'A sanity gate rather than a filter: it fails only if two products in one group report the same surveyed price, which no group currently does. It stays in the cascade so that a future regression here is visible instead of silent.',
+       verdict:'inherent',
+       breakdown:[['a real reduction',419],['no reduction',0]]},
+    ]
+  },
+  pb: {
+    label:'Purple Book, biologic', unit:'reference families', start:20, lowN:true,
+    stages:[
+      {name:'Reference families with a follow-on', n:20, why:'A 351(a) reference product with at least one 351(k) biosimilar or interchangeable licensed against it.', verdict:null,
+       breakdown:[['with interchangeable',9],['biosimilar only',11]]},
+      {name:'Holds at least two distinct products', n:20, fixable:false,
+       why:'True by construction: a family is only formed when a follow-on exists.', verdict:'inherent',
+       breakdown:[['two or more',20],['single',0]]},
+      {name:'At least two products map to an NDC', n:14, fixable:true,
+       why:'Biologic BLA numbers join to NDCs less reliably than ANDA numbers do, and several follow-ons are distributed only through specialty channels.',
+       verdict:'fix', breakdown:[['both sides mapped',14],['one side mapped',5],['neither mapped',1]]},
+      {name:'At least two products carry a NADAC price', n:7, fixable:false,
+       why:'Most biologics are clinician-administered and therefore fall outside a retail pharmacy acquisition survey by design. This loss is structural, not an integration gap — a different price source would be needed, not a better join.',
+       verdict:'inherent', breakdown:[['both sides priced',7],['one side priced',6],['neither priced',7]]},
+      {name:'Cheapest is genuinely below dearest', n:7, fixable:false,
+       why:'Holds for all seven.', verdict:'inherent', breakdown:[['a real reduction',7],['no reduction',0]]},
+    ]
+  }
+};
+
+let src = 'ob', sel = 3;   /* stage 3 is the largest loss; open on it */
+
+const pct = (a,b) => b ? (a/b*100) : 0;
+const fmt = n => n.toLocaleString('en-US');
+
+function render(){
+  const p = PIPELINE[src];
+  document.getElementById('hero-in').textContent = fmt(p.start);
+  document.getElementById('hero-unit').textContent = p.unit;
+  document.getElementById('hero-out').textContent = fmt(p.stages[p.stages.length-1].n);
+  document.getElementById('scope').innerHTML =
+    `Showing <b>${p.label}</b>. ${fmt(p.start)} ${p.unit} enter the pipeline.` +
+    (p.lowN ? ` <span style="color:var(--flag)">This series has ${p.start} records; read the ratios as indicative, not as rates.</span>` : '');
+
+  document.getElementById('cascade').innerHTML = p.stages.map((s,i)=>{
+    const prev = i===0 ? p.start : p.stages[i-1].n;
+    const kept = pct(s.n, prev);
+    const lost = prev - s.n;
+    return `<button class="stage" aria-pressed="${sel===i}" data-i="${i}">
+      <span class="s-top">
+        <span class="s-name">${s.name}</span>
+        <span class="s-num"><b>${fmt(s.n)}</b> / ${fmt(prev)} &nbsp;${kept.toFixed(1)}%</span>
+      </span>
+      <span class="track"><i class="fill ${s.verdict==='fix'?'flagged':''}" style="width:${kept.toFixed(2)}%"></i></span>
+      ${lost>0
+        ? `<span class="s-loss">drops <b>${fmt(lost)}</b> ${p.unit}${s.verdict==='fix'?', a fixable integration gap':', inherent to the source'}</span>`
+        : `<span class="s-loss">drops none</span>`}
+    </button>`;
+  }).join('');
+
+  document.querySelectorAll('.stage').forEach(b=>{
+    b.onclick = ()=>{ sel = +b.dataset.i; render(); };
+  });
+
+  const s = p.stages[sel];
+  const prev = sel===0 ? p.start : p.stages[sel-1].n;
+  const max = Math.max(...s.breakdown.map(d=>d[1]));
+  document.getElementById('rail').innerHTML = `
+    <p class="kicker">stage ${sel+1} of ${p.stages.length}</p>
+    <h2>${s.name}</h2>
+    ${s.verdict ? `<span class="verdict ${s.verdict}">${s.verdict==='fix'?'fixable integration gap':'inherent to the source'}</span>` : ''}
+    <p>${s.why}</p>
+    <div class="bars">
+      ${s.breakdown.map(([lab,v])=>`
+        <div>
+          <span class="lab">${lab}</span>
+          <div class="brow">
+            <span class="bt"><i style="width:${max?pct(v,max).toFixed(1):0}%"></i></span>
+            <span class="val">${fmt(v)}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+    ${p.lowN ? `<p class="small-n">Drawn from ${p.start} families. A single reclassification moves any figure above by five percentage points.</p>` : ''}`;
+}
+
+document.querySelectorAll('.seg button').forEach(b=>{
+  b.onclick = ()=>{
+    src = b.dataset.src; sel = 3;
+    document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+    render();
+  };
+});
+render();
+</script>
+</body>
+</html>

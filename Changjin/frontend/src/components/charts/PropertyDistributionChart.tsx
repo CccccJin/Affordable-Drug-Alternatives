@@ -21,17 +21,15 @@ import {
 } from '@mui/material';
 import { BarChart as BarChartIcon, PieChart as PieChartIcon } from '@mui/icons-material';
 import type { Compound } from '../../types/api';
+import {
+  molecularWeightDistribution,
+  similarityDistribution,
+  withoutMolecularWeight,
+} from './distribution';
 
 interface PropertyDistributionChartProps {
   compounds: Compound[];
   className?: string;
-}
-
-interface DistributionData {
-  range: string;
-  count: number;
-  avgSimilarity: number;
-  [key: string]: string | number; // Index signature for Recharts compatibility
 }
 
 export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps> = ({
@@ -40,64 +38,9 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
 }) => {
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
-  // Generate molecular weight distribution data
-  const getMolecularWeightDistribution = (): DistributionData[] => {
-    const ranges = [
-      { min: 0, max: 100, label: '0-100' },
-      { min: 100, max: 200, label: '100-200' },
-      { min: 200, max: 300, label: '200-300' },
-      { min: 300, max: 400, label: '300-400' },
-      { min: 400, max: 500, label: '400-500' },
-      { min: 500, max: 1000, label: '500+' },
-    ];
-
-    return ranges.map(range => {
-      // A compound with no recorded weight is left out of the histogram. The
-      // fallback here used to bin it by `150 + smiles.length * 2`, which put it
-      // in a bucket chosen by how the SMILES happened to be written.
-      const compoundsInRange = compounds.filter(
-        c => c.molecular_weight != null
-          && c.molecular_weight >= range.min
-          && c.molecular_weight < range.max
-      );
-
-      return {
-        range: range.label,
-        count: compoundsInRange.length,
-        avgSimilarity: compoundsInRange.length > 0
-          ? compoundsInRange.reduce((sum, c) => sum + c.similarity, 0) / compoundsInRange.length
-          : 0,
-      };
-    }).filter(d => d.count > 0);
-  };
-
-  // Generate similarity distribution data
-  const getSimilarityDistribution = (): DistributionData[] => {
-    const ranges = [
-      { min: 0, max: 0.2, label: '0.0-0.2' },
-      { min: 0.2, max: 0.4, label: '0.2-0.4' },
-      { min: 0.4, max: 0.6, label: '0.4-0.6' },
-      { min: 0.6, max: 0.8, label: '0.6-0.8' },
-      { min: 0.8, max: 1.0, label: '0.8-1.0' },
-    ];
-
-    return ranges.map(range => {
-      const compoundsInRange = compounds.filter(c =>
-        c.similarity >= range.min && c.similarity < range.max
-      );
-
-      return {
-        range: range.label,
-        count: compoundsInRange.length,
-        avgSimilarity: compoundsInRange.length > 0
-          ? compoundsInRange.reduce((sum, c) => sum + c.similarity, 0) / compoundsInRange.length
-          : 0,
-      };
-    }).filter(d => d.count > 0);
-  };
-
-  const mwDistribution = getMolecularWeightDistribution();
-  const similarityDistribution = getSimilarityDistribution();
+  const mwDistribution = molecularWeightDistribution(compounds);
+  const simDistribution = similarityDistribution(compounds);
+  const unweighed = withoutMolecularWeight(compounds);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -147,6 +90,12 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
               </BarChart>
             </ResponsiveContainer>
           </Box>
+          {unweighed > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              {unweighed} of {compounds.length} results have no recorded molecular
+              weight and are not shown above.
+            </Typography>
+          )}
         </Box>
 
         {/* Similarity Distribution */}
@@ -158,7 +107,7 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
           <Box sx={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'bar' ? (
-                <BarChart data={similarityDistribution}>
+                <BarChart data={simDistribution}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="range" />
                   <YAxis />
@@ -171,7 +120,7 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
               ) : (
                 <PieChart>
                   <Pie
-                    data={similarityDistribution}
+                    data={simDistribution}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -180,7 +129,7 @@ export const PropertyDistributionChart: React.FC<PropertyDistributionChartProps>
                     fill="#8884d8"
                     dataKey="count"
                   >
-                    {similarityDistribution.map((_, idx) => (
+                    {simDistribution.map((_, idx) => (
                       <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                     ))}
                   </Pie>

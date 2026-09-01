@@ -13,6 +13,8 @@ from typing import List, Dict, Any, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import os
+
 import duckdb
 from sklearn.metrics.pairwise import cosine_similarity
 from rdkit import Chem
@@ -168,8 +170,15 @@ def load_demo_data(db_path: str = "chembl_35/chembl_35.duckdb", sample_size: int
     try:
         logger.info("Loading up to {} molecules from {}...".format(sample_size, db_path))
         
-        # Connect to DuckDB database
-        conn = duckdb.connect(db_path)
+        # Read-only, and only if it is already there. `duckdb.connect` creates
+        # the file when it is absent, so this used to leave an empty database in
+        # the repository every time the module was imported — including on every
+        # `pytest` run. Worse, a later `preprocess_database.py` with no --db then
+        # connected to that empty file instead of failing.
+        if not os.path.exists(db_path):
+            raise FileNotFoundError(
+                f"{db_path} does not exist; ChemBERTa demo data unavailable")
+        conn = duckdb.connect(db_path, read_only=True)
         
         # Get a sample of molecules with their embeddings
         query = """

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Switch Ledger — Generic Substitution Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN A — "SWITCH LEDGER"
+   Thesis: the unit of truth is one switch, from one product to
+   one other product. Aggregates are the footer, not the hero.
+
+   TOKENS
+   --paper  #EEF1F4  cool grey-blue ground. Not cream: this is a
+                     working document, and a warm ground would
+                     read as editorial.
+   --ink    #16202B  blue-black. Body text and rules.
+   --rule   #C3CCD5  structural lines only, never decorative.
+   --signal #0F6E63  DEEP TEAL. One job only: realized saving.
+                     Nothing else in the file is teal.
+   --absent #7C8794  grey. One job only: a quantity that does
+                     not exist (no NADAC price, no rating).
+   --warn   #8A4B12  one job only: low sample size (n<5).
+
+   DATAVIZ COLOUR: categorical, one class. There was a
+   sequential teal ramp here for saving %. A greyscale pass
+   showed it carried nothing: on a log axis the bar's LENGTH is
+   already the ratio, and the percentage is printed on the same
+   row. Three encodings of one variable, so the weakest went.
+
+   TYPE: IBM Plex Sans + IBM Plex Mono. Plex Mono carries true
+   tabular figures and a slashed zero, which is the whole job
+   here: the reader compares $0.037 against $0.037 down a
+   column. Plex Sans shares the skeleton so mixed rows do not
+   jitter at the baseline.
+   ============================================================ */
+:root{
+  --paper:#EEF1F4; --ink:#16202B; --rule:#C3CCD5;
+  --signal:#0F6E63; --absent:#7C8794; --warn:#8A4B12;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:56px 40px 96px}
+
+/* ---- the conclusion. one sentence, and it is the largest
+        thing on the page. everything below supports it. ---- */
+.claim{max-width:34ch;font-size:38px;line-height:1.18;font-weight:600;letter-spacing:-.021em;margin:0 0 18px}
+.claim b{color:var(--signal);font-weight:600}
+.claim-sub{max-width:62ch;color:#3D4A57;font-size:14.5px;margin:0 0 4px}
+.prov{font-family:var(--mono);font-size:11.5px;color:var(--absent);letter-spacing:.01em;margin-top:14px}
+
+/* ---- filters. state is always legible: an active filter is
+        filled, an inactive one is outlined. ---- */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:30px 0 8px;padding-top:22px;border-top:1px solid var(--rule)}
+.flabel{font-family:var(--mono);font-size:11px;color:var(--absent);text-transform:none;margin-right:4px}
+.chip{font:500 12.5px/1 var(--sans);padding:7px 12px;border-radius:2px;border:1px solid var(--rule);background:transparent;color:#3D4A57;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.chip:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.scope{margin:14px 0 0;font-size:13px;color:#3D4A57}
+.scope strong{font-family:var(--mono);font-weight:600;color:var(--ink)}
+
+/* ---- the ledger. this is the chart. ---- */
+table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:34px}
+.axis-head th{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--absent);text-align:left;vertical-align:bottom;padding:0 0 7px}
+.axis-head th.c-amt{text-align:right}
+#axis{display:block;width:100%;height:26px}
+tbody tr{border-bottom:1px solid var(--rule)}
+tbody tr:hover{background:#E4E9EE}
+td{padding:11px 0;vertical-align:middle}
+.c-name{width:300px;padding-right:20px}
+.c-bar{padding-right:20px}
+.c-amt{width:92px;text-align:right}
+.ing{font-weight:600;font-size:14px;letter-spacing:-.005em}
+.meta{font-family:var(--mono);font-size:11px;color:var(--absent);margin-top:3px;display:flex;flex-wrap:wrap;gap:3px 14px}
+.meta .warn{color:var(--warn)}
+.pct{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--signal)}
+.pct.none{color:var(--absent);font-weight:400;font-size:13px}
+.money{font-family:var(--mono);font-size:11px;color:var(--absent);display:block;margin-top:3px}
+tr.open{background:#E4E9EE}
+.detail td{padding:0 0 18px;background:#E4E9EE}
+.detail-inner{padding:4px 20px 0 0;display:grid;grid-template-columns:300px 1fr;gap:20px}
+.dl{margin:0;font-size:12.5px}
+.dl div{display:flex;gap:8px;padding:3px 0;border-bottom:1px dotted var(--rule)}
+.dl dt{color:var(--absent);min-width:104px;font-family:var(--mono);font-size:11px;padding-top:1px}
+.dl dd{margin:0;font-family:var(--mono);font-size:12px}
+.note{font-size:12.5px;color:#3D4A57;max-width:56ch;margin:0}
+
+/* ---- footer aggregates. deliberately small: they are the
+        summary of the ledger, not the point of it. ---- */
+.foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--ink);display:grid;grid-template-columns:repeat(3,auto);gap:52px;justify-content:start}
+.foot div span{display:block;font-family:var(--mono);font-size:11px;color:var(--absent);margin-bottom:5px}
+.foot div b{font-family:var(--mono);font-size:19px;font-weight:600}
+.empty{padding:40px 0 10px;max-width:56ch}
+.empty h2{font-size:17px;margin:0 0 8px;font-weight:600}
+.empty p{margin:0 0 14px;color:#3D4A57;font-size:13.5px}
+.empty button{font:500 12.5px var(--sans);padding:8px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:2px;cursor:pointer}
+.empty button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){
+  tbody tr{transition:background .12s ease}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1 class="claim">Of the switches this system can price, the median one removes <b>96.4%</b> of unit acquisition cost.</h1>
+<p class="claim-sub">Each row is one FDA therapeutic-equivalence group: the dearest product in it, and the cheapest product FDA rates equivalent. The bar is a shared logarithmic price axis, so rows are comparable to one another, not just within themselves.</p>
+<p class="prov">Built 2026-08-31 from Orange Book <code>products.txt</code> and the CMS NADAC survey covering 2025-01-01 to 2026-08-26. Prices are what a pharmacy pays to acquire a product, not what anyone is charged for it.</p>
+
+<div class="filters" role="group" aria-label="Filters">
+  <span class="flabel">rating</span>
+  <button class="chip" data-f="rating" data-v="AB" aria-pressed="false">AB (small molecule)</button>
+  <button class="chip" data-f="rating" data-v="IC" aria-pressed="false">Interchangeable biologic</button>
+  <button class="chip" data-f="rating" data-v="BS" aria-pressed="false">Biosimilar only</button>
+  <span class="flabel" style="margin-left:18px">sample</span>
+  <button class="chip" data-f="n" data-v="ge5" aria-pressed="false">n ≥ 5 only</button>
+  <span class="flabel" style="margin-left:18px">saving</span>
+  <button class="chip" data-f="sav" data-v="ge90" aria-pressed="false">≥ 90%</button>
+</div>
+<p class="scope" id="scope"></p>
+
+<table>
+  <caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Priced substitution switches</caption>
+  <thead>
+    <tr class="axis-head">
+      <th class="c-name" scope="col">equivalence group<br><span style="opacity:.75">log₁₀ scale, $ per dispensing unit</span></th>
+      <th class="c-bar" scope="col"><svg id="axis" role="img" aria-label="Logarithmic price axis, US dollars per unit"></svg></th>
+      <th class="c-amt" scope="col">saving</th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<div class="empty" id="empty" hidden></div>
+
+<div class="foot" id="foot"></div>
+
+</div>
+<script>
+/* =============================================================
+   Fake data, shaped like the real export. Prices are NADAC-scale
+   pharmacy acquisition cost in USD per unit. `n` is the number of
+   products in the equivalence group — the sample the min and max
+   are drawn from, which is why it is printed on every row.
+   Three groups are deliberately sparse (n = 2 or 3) to check that
+   low confidence stays visible when the list is sorted by saving.
+   ============================================================= */
+const SWITCHES = [
+  {ing:'ATORVASTATIN CALCIUM', atc:'C10AA', atcName:'HMG CoA reductase inhibitors', form:'TABLET, 40MG', brand:'LIPITOR', gen:'atorvastatin calcium (Apotex)', hi:19.11383, lo:0.03704, unit:'EA', n:14, rating:'AB'},
+  {ing:'ARIPIPRAZOLE', atc:'N05AX', atcName:'Other antipsychotics', form:'TABLET, 10MG', brand:'ABILIFY', gen:'aripiprazole (Torrent)', hi:32.15900, lo:0.21140, unit:'EA', n:11, rating:'AB'},
+  {ing:'SERTRALINE HYDROCHLORIDE', atc:'N06AB', atcName:'Selective serotonin reuptake inhibitors', form:'TABLET, 50MG', brand:'ZOLOFT', gen:'sertraline HCl (Greenstone)', hi:8.94210, lo:0.04880, unit:'EA', n:17, rating:'AB'},
+  {ing:'CLOPIDOGREL BISULFATE', atc:'B01AC', atcName:'Platelet aggregation inhibitors', form:'TABLET, 75MG', brand:'PLAVIX', gen:'clopidogrel (Aurobindo)', hi:9.77310, lo:0.08120, unit:'EA', n:19, rating:'AB'},
+  {ing:'ROSUVASTATIN CALCIUM', atc:'C10AA', atcName:'HMG CoA reductase inhibitors', form:'TABLET, 10MG', brand:'CRESTOR', gen:'rosuvastatin (Glenmark)', hi:10.44050, lo:0.09210, unit:'EA', n:13, rating:'AB'},
+  {ing:'MONTELUKAST SODIUM', atc:'R03DC', atcName:'Leukotriene receptor antagonists', form:'TABLET, 10MG', brand:'SINGULAIR', gen:'montelukast (Camber)', hi:6.02440, lo:0.05770, unit:'EA', n:12, rating:'AB'},
+  {ing:'PANTOPRAZOLE SODIUM', atc:'A02BC', atcName:'Proton pump inhibitors', form:'TABLET DR, 40MG', brand:'PROTONIX', gen:'pantoprazole (Kremers)', hi:6.18220, lo:0.07440, unit:'EA', n:15, rating:'AB'},
+  {ing:'AMLODIPINE BESYLATE', atc:'C08CA', atcName:'Dihydropyridine calcium channel blockers', form:'TABLET, 5MG', brand:'NORVASC', gen:'amlodipine (Zydus)', hi:3.41880, lo:0.02090, unit:'EA', n:22, rating:'AB'},
+  {ing:'VALSARTAN', atc:'C09CA', atcName:'Angiotensin II receptor blockers', form:'TABLET, 80MG', brand:'DIOVAN', gen:'valsartan (Alembic)', hi:4.30960, lo:0.16330, unit:'EA', n:9, rating:'AB'},
+  {ing:'LEVOTHYROXINE SODIUM', atc:'H03AA', atcName:'Thyroid hormones', form:'TABLET, 100MCG', brand:'SYNTHROID', gen:'levothyroxine (Mylan)', hi:0.71400, lo:0.09810, unit:'EA', n:8, rating:'AB'},
+  {ing:'METFORMIN HYDROCHLORIDE', atc:'A10BA', atcName:'Biguanides', form:'TABLET, 500MG', brand:'GLUCOPHAGE', gen:'metformin HCl (Granules)', hi:1.09220, lo:0.01430, unit:'EA', n:26, rating:'AB'},
+  /* --- sparse groups. these must not silently outrank the rest --- */
+  {ing:'TETRABENAZINE', atc:'N07XX', atcName:'Other nervous system drugs', form:'TABLET, 25MG', brand:'XENAZINE', gen:'tetrabenazine (Lupin)', hi:88.41200, lo:6.13400, unit:'EA', n:3, rating:'AB'},
+  {ing:'DEFERASIROX', atc:'V03AC', atcName:'Iron chelating agents', form:'TABLET, 180MG', brand:'JADENU', gen:'deferasirox (Cipla)', hi:41.22700, lo:9.88100, unit:'EA', n:2, rating:'AB'},
+  {ing:'ICATIBANT ACETATE', atc:'B06AC', atcName:'Hereditary angioedema agents', form:'INJECTION, 30MG/3ML', brand:'FIRAZYR', gen:'icatibant (Fresenius)', hi:1188.40000, lo:412.10000, unit:'ML', n:2, rating:'AB'},
+  /* --- biologics: a star, not a clique --- */
+  {ing:'ADALIMUMAB', atc:'L04AB', atcName:'TNF alpha inhibitors', form:'INJECTION, 40MG/0.8ML', brand:'HUMIRA', gen:'adalimumab-adaz (HYRIMOZ)', hi:3914.22000, lo:1038.00000, unit:'EA', n:9, rating:'IC'},
+  {ing:'INSULIN GLARGINE', atc:'A10AE', atcName:'Long-acting insulins', form:'INJECTION, 100 UNITS/ML', brand:'LANTUS', gen:'insulin glargine-yfgn (SEMGLEE)', hi:28.41000, lo:6.94000, unit:'ML', n:4, rating:'IC'},
+  {ing:'TRASTUZUMAB', atc:'L01FD', atcName:'HER2 inhibitors', form:'INJECTION, 150MG', brand:'HERCEPTIN', gen:'trastuzumab-anns (KANJINTI)', hi:2410.00000, lo:1602.00000, unit:'EA', n:6, rating:'BS'},
+  {ing:'BEVACIZUMAB', atc:'L01FG', atcName:'VEGF inhibitors', form:'INJECTION, 100MG/4ML', brand:'AVASTIN', gen:'bevacizumab-awwb (MVASI)', hi:158.30000, lo:104.90000, unit:'ML', n:5, rating:'BS'},
+];
+SWITCHES.forEach(s => { s.sav = (1 - s.lo / s.hi) * 100; });
+
+const RATING_LABEL = {AB:'AB rated', IC:'interchangeable', BS:'biosimilar, no interchangeability finding'};
+const MIN_N = 5;
+
+/* --- shared logarithmic scale across every row. that shared
+       scale is the reason the ledger is a chart and not a table. --- */
+const LO = 0.01, HI = 5000, PAD = 9;   /* px kept clear at each end */
+const lg = v => Math.log10(v);
+const frac = v => (lg(Math.min(Math.max(v, LO), HI)) - lg(LO)) / (lg(HI) - lg(LO));
+const posIn = (v, w) => PAD + frac(v) * (w - 2 * PAD);
+const money = v => v >= 100 ? v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+                 : v >= 1  ? v.toFixed(3) : v.toFixed(5);
+
+const state = {rating:new Set(), n:false, sav:false, open:null};
+
+function drawAxis(){
+  const el = document.getElementById('axis');
+  const w = el.getBoundingClientRect().width || 700;
+  const ticks = [0.01,0.1,1,10,100,1000];
+  el.setAttribute('viewBox',`0 0 ${w} 30`);
+  el.setAttribute('preserveAspectRatio','none');
+  el.style.height = '30px';
+  el.innerHTML = ticks.map(t=>{
+    const x = posIn(t, w);
+    const lab = t<1 ? '$'+t : '$'+t.toLocaleString('en-US');
+    const anchor = x < 22 ? 'start' : x > w - 30 ? 'end' : 'middle';
+    return `<line x1="${x}" y1="18" x2="${x}" y2="26" stroke="var(--rule)" stroke-width="1"/>
+            <text x="${x}" y="14" font-family="IBM Plex Mono" font-size="10" fill="var(--absent)" text-anchor="${anchor}">${lab}</text>`;
+  }).join('');
+}
+
+function bar(s, w){
+  const x1 = posIn(s.lo, w), x2 = posIn(s.hi, w), y = 13;
+  const sparse = s.n < MIN_N;
+  return `<svg style="display:block;width:100%" height="26" viewBox="0 0 ${w} 26" preserveAspectRatio="none" role="img"
+            aria-label="${s.ing}: cheapest equivalent $${money(s.lo)}, dearest $${money(s.hi)} per ${s.unit}, ${s.sav.toFixed(1)} percent lower">
+    <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="var(--signal)" stroke-width="${sparse?2:6}"
+          ${sparse?'stroke-dasharray="3 3"':''} stroke-linecap="butt"/>
+    <circle cx="${x1}" cy="${y}" r="4" fill="var(--signal)"/>
+    <path d="M ${x2-4.5} ${y-4.5} L ${x2+4.5} ${y-4.5} L ${x2+4.5} ${y+4.5} L ${x2-4.5} ${y+4.5} Z" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+  </svg>`;
+}
+
+function visible(){
+  return SWITCHES.filter(s =>
+    (state.rating.size === 0 || state.rating.has(s.rating)) &&
+    (!state.n   || s.n >= MIN_N) &&
+    (!state.sav || s.sav >= 90)
+  ).sort((a,b)=>b.sav-a.sav);
+}
+
+function render(){
+  const rows = visible();
+  const tb = document.getElementById('rows');
+  // One measurement for the axis and every bar: they share a table cell, so
+  // a tick and a mark at the same price land on the same pixel.
+  const colW = document.getElementById('axis').getBoundingClientRect().width || 700;
+
+  document.getElementById('scope').innerHTML = state.rating.size===0 && !state.n && !state.sav
+    ? `Showing <strong>all ${SWITCHES.length}</strong> priced groups.`
+    : `Showing <strong>${rows.length}</strong> of <strong>${SWITCHES.length}</strong> priced groups. `+
+      [state.rating.size ? [...state.rating].map(r=>RATING_LABEL[r]).join(' or ') : null,
+       state.n ? `n ≥ ${MIN_N}` : null,
+       state.sav ? 'saving ≥ 90%' : null].filter(Boolean).join(', and ');
+
+  const emptyEl = document.getElementById('empty');
+  if (!rows.length){
+    tb.innerHTML = '';
+    const culprits = [];
+    if (state.rating.size) culprits.push(`rating = ${[...state.rating].map(r=>RATING_LABEL[r]).join(' or ')}`);
+    if (state.n) culprits.push(`sample size ≥ ${MIN_N}`);
+    if (state.sav) culprits.push('saving ≥ 90%');
+    emptyEl.hidden = false;
+    emptyEl.innerHTML = `<h2>No group satisfies ${culprits.length>1?'all of these together':'this filter'}.</h2>
+      <p>${culprits.map(c=>`<code style="font-family:var(--mono);font-size:12.5px">${c}</code>`).join(' and ')}.
+      The biosimilar-only groups are the ones that fall below 90%: their published acquisition costs sit within
+      a factor of two of the reference product.</p>
+      <button id="clear">Drop the saving filter</button>`;
+    document.getElementById('clear').onclick = () => { state.sav=false; syncChips(); render(); };
+    document.getElementById('foot').innerHTML = '';
+    return;
+  }
+  emptyEl.hidden = true;
+
+  tb.innerHTML = rows.map((s,i)=>{
+    const sparse = s.n < MIN_N;
+    const isOpen = state.open === s.ing;
+    return `<tr class="${isOpen?'open':''}" tabindex="0" role="button" aria-expanded="${isOpen}" data-i="${i}">
+      <td class="c-name">
+        <div class="ing">${s.ing.split(' ')[0].toLowerCase().replace(/^./,c=>c.toUpperCase())}${s.ing.split(' ').length>1?' '+s.ing.split(' ').slice(1).join(' ').toLowerCase():''}</div>
+        <div class="meta"><span>${s.atc}</span><span>${s.form}</span><span>${RATING_LABEL[s.rating]}</span><span class="${sparse?'warn':''}">n=${s.n}${sparse?', sparse':''}</span></div>
+      </td>
+      <td class="c-bar">${bar(s,colW)}</td>
+      <td class="c-amt">
+        <span class="pct">${s.sav.toFixed(1)}%</span>
+        <span class="money">$${money(s.hi)} → $${money(s.lo)}</span>
+      </td>
+    </tr>` + (isOpen ? `<tr class="detail"><td colspan="3"><div class="detail-inner">
+        <dl class="dl">
+          <div><dt>brand</dt><dd>${s.brand}</dd></div>
+          <div><dt>equivalent</dt><dd>${s.gen}</dd></div>
+          <div><dt>ATC</dt><dd>${s.atc}</dd></div>
+          <div><dt>unit</dt><dd>$ per ${s.unit}</dd></div>
+          <div><dt>products</dt><dd>${s.n}</dd></div>
+        </dl>
+        <p class="note">${s.atcName}. ${
+          s.rating==='BS'
+            ? 'FDA has licensed this follow-on as a biosimilar but has made no interchangeability finding, so a pharmacist may not substitute it without contacting the prescriber.'
+            : s.rating==='IC'
+              ? 'FDA rates this follow-on interchangeable with the reference product only. It is not interchangeable with the other follow-ons in the family.'
+              : 'Every product in an AB group is rated therapeutically equivalent to every other, so the comparison above holds in either direction.'
+        }${sparse?' Only '+s.n+' products carry a surveyed price, so the range above is drawn from a very small sample and the ranking is not stable.':''}</p>
+      </div></td></tr>` : '');
+  }).join('');
+
+  tb.querySelectorAll('tr[data-i]').forEach(tr=>{
+    const open = ()=>{ const s=rows[+tr.dataset.i]; state.open = state.open===s.ing?null:s.ing; render(); };
+    tr.onclick = open;
+    tr.onkeydown = e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } };
+  });
+
+  const sorted = rows.map(r=>r.sav).sort((a,b)=>a-b);
+  const med = sorted[Math.floor(sorted.length/2)];
+  const sparseCount = rows.filter(r=>r.n<MIN_N).length;
+  document.getElementById('foot').innerHTML = `
+    <div><span>median saving, shown rows</span><b>${med.toFixed(1)}%</b></div>
+    <div><span>groups shown</span><b>${rows.length} / ${SWITCHES.length}</b></div>
+    <div><span>drawn from fewer than ${MIN_N} products</span><b style="color:${sparseCount?'var(--warn)':'var(--absent)'}">${sparseCount}</b></div>`;
+}
+
+function syncChips(){
+  document.querySelectorAll('.chip').forEach(c=>{
+    const on = c.dataset.f==='rating' ? state.rating.has(c.dataset.v) : state[c.dataset.f];
+    c.setAttribute('aria-pressed', String(!!on));
+  });
+}
+document.querySelectorAll('.chip').forEach(c=>{
+  c.onclick = () => {
+    if (c.dataset.f==='rating'){ state.rating.has(c.dataset.v) ? state.rating.delete(c.dataset.v) : state.rating.add(c.dataset.v); }
+    else state[c.dataset.f] = !state[c.dataset.f];
+    syncChips(); render();
+  };
+});
+addEventListener('resize', ()=>{ drawAxis(); render(); });
+drawAxis(); syncChips(); render();
+</script>
+</body>
+</html>

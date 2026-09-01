@@ -13,7 +13,7 @@
 
 ## 🚀 **Project Overview**
 
-This is a **modern, functional chemical similarity search application** built with React 18, TypeScript, and Material-UI. The application provides essential tools for:
+This is a **modern, functional chemical similarity search application** built with React 19, TypeScript, and Material-UI. The application provides essential tools for:
 
 - **🔍 Molecular Similarity Search** - SMILES-based and name-based compound searching with history
 - **🎛️ Advanced Property Filtering** - Visual range sliders for molecular properties
@@ -51,7 +51,7 @@ This is a **modern, functional chemical similarity search application** built wi
 ### **State Management & Data**
 - **Redux Toolkit** - Modern Redux with simplified patterns and excellent TypeScript support
 - **React Query** - Powerful data fetching, caching, and synchronization
-- **Mock API Layer** - Realistic data structure ready for backend integration
+- **In-browser search** - Real ECFP4 fingerprints scored against a packed binary corpus, no server
 
 ### **UI & Visualization**
 - **Material-UI v7** - Modern component library with custom chemical science theming
@@ -140,7 +140,7 @@ src/
 │   ├── useSearch.ts      # Complete search state management
 │   └── useRDKit.ts       # RDKit loading and molecule processing
 ├── services/
-│   ├── api/              # Mock API ready for backend integration
+│   ├── api/              # Static data loaders (search, FDA substitutability)
 │   ├── rdkit/            # RDKit service with CDN loading
 │   └── export/           # Data export utilities
 ├── store/
@@ -157,8 +157,13 @@ src/
 - **React Query** for server state and caching
 - **Custom hooks** for component-specific logic
 
-### **API Integration Strategy**
-- **Mock API layer** ready for backend connection
+### **How Search Works**
+- **No backend.** `staticSearchApi.ts` computes an ECFP4 fingerprint for the
+  query in the browser (RDKit WASM) and scores it against `fingerprints.bin`,
+  a packed corpus of 84,818 compounds. The fingerprints are byte-identical to
+  the ones RDKit produces in Python — `verify_fingerprints.py` pins that.
+- **`searchApi.ts`** is the unused HTTP client for the FastAPI service, kept
+  for when that service is deployed. Its methods throw today.
 - **Real-time search** with debouncing and error handling
 - **Progressive loading** for large result sets
 - **Intelligent caching** for improved performance

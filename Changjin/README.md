@@ -1,6 +1,18 @@
-# Chemical Similarity Search API
+# Chemical Similarity Search
 
-This project is a high-performance cheminformatics API built with FastAPI, RDKit, and DuckDB. It allows users to search for chemically similar molecules using a SMILES string and supports filtering based on molecular properties.
+Two things share this directory, and it matters which one you want:
+
+- **`frontend/` — the deployed product.** A React SPA that runs the whole search
+  in the browser against precomputed data, hosted at
+  <https://cccccjin.github.io/Affordable-Drug-Alternatives/>. No server. It is
+  what a visitor uses, and it is where the FDA substitutability layer lives.
+- **This Python package — the API and the data pipeline.** A FastAPI service
+  over RDKit and DuckDB, plus the scripts that build every file the frontend
+  ships. The service is containerised and tested but is *not* currently
+  deployed anywhere; the frontend does not call it.
+
+Anything below documents the Python side unless it says otherwise. For the
+frontend see `frontend/README.md`.
 
 ## Core Technology Stack
 
@@ -22,13 +34,23 @@ The project's code structure follows the principle of separation of concerns, or
 | `db.py`                          | DuckDB connection helper (`chembl_35/chembl_35.duckdb`)         |
 | `post_processing.py`             | Advanced ranking/filtering/Butina clustering                     |
 | `chemberta_service.py`           | ChemBERTa embeddings + AI similarity search (DuckDB-backed)     |
-| `preprocess_database.py`         | Compute Morgan fingerprints and fill `fingerprint_hex`           |
+| `preprocess_database.py`         | Compute Morgan fingerprints and fill `fingerprint_bin`           |
 | `preprocess_properties.py`       | Compute RDKit descriptors into `rdkit_metrics` + `compound_full` |
 | `preprocess_chemberta.py`        | Precompute ChemBERTa embeddings into `chemberta_embeddings`      |
 | `preprocess_inn.py`              | Extract INN synonyms to DuckDB `inn_list`                        |
 | `database_schema.py`             | Export DB schema to `chembl35_schema_with_desc.xlsx`             |
-| `index.html`, `app.js`, `styles.css` | Simple Bootstrap frontend + RDKit JS rendering                 |
-| `chembl_35/chembl_35.duckdb`     | DuckDB database file (ChEMBL snapshot with augments)            |
+| `fingerprint_index.py`           | In-memory fingerprint index; the scan `/search` runs against    |
+| `verify_fingerprints.py`         | Gate for the hex→binary migration (bit, score and rank identity)|
+| `check_data_freshness.py`        | Ages the FDA/CMS extracts; used by CI                            |
+| `select_demo_compounds.py`       | Choose the compounds the static frontend ships                   |
+| `export_demo_fingerprints.py`    | Write `fingerprints.bin` for in-browser similarity               |
+| `subst_data/`                    | FDA Orange/Purple Book + CMS NADAC ingest, grading and export     |
+| `subst_data/export_biologics.py` | Purple Book families → `biologics.json`                          |
+| `subst_data/biologic_sanity.py`  | Plumbing check for the biologic layer                            |
+| `price_compare.py`               | CLI entry point for the `subst_data` pipeline                    |
+| `frontend/`                      | React SPA — the deployed product (see `frontend/README.md`)      |
+| `Dockerfile`, `requirements-api.txt` | Container for the API (built and tested; not deployed)       |
+| `chembl_35/chembl_35.duckdb`     | DuckDB database file (ChEMBL snapshot with augments) — gitignored|
 | `requirements.txt`, `environment.yml` | Python deps (RDKit via Conda env)                           |
 
 ## Setup and Run
@@ -83,7 +105,7 @@ python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 Primary database file: `chembl_35/chembl_35.duckdb`.
 Key tables/views expected by the app:
-- `compound_structures` (must include `canonical_smiles`, and precomputed `fingerprint_hex`)
+- `compound_structures` (must include `canonical_smiles`, and precomputed `fingerprint_bin`; the legacy `fingerprint_hex` is still read if `fingerprint_bin` is absent)
 - `molecule_dictionary` (for `chembl_id`)
 - `compound_properties` (for MW/logP/HBD/HBA/PSA/RTB, etc.)
 - `rdkit_metrics` (optional, created by preprocessing) and view `compound_full`
@@ -116,8 +138,9 @@ Prepare/augment database with provided scripts (resume-safe):
 
 All request/response models are defined in `models.py`. Below are concise specs and examples.
 
-### GET `/` (UI)
-- Serves the simple Bootstrap frontend (`index.html`).
+### GET `/`
+- Service index: links to `/docs`, `/health` and the deployed frontend. This
+  used to serve an `index.html` that no longer exists, and answered 500.
 
 ### GET `/health`
 - Health check. Returns `{ "status": "ok" }`.
@@ -171,7 +194,7 @@ All request/response models are defined in `models.py`. Below are concise specs 
   ```
 
 ### POST `/search` (Structural similarity)
-- Compute RDKit fingerprint for input SMILES and Tanimoto (or cosine over bit vectors) vs precomputed `fingerprint_hex` in DuckDB, with optional post-processing.
+- Compute RDKit fingerprint for input SMILES and Tanimoto (or cosine over bit vectors) vs precomputed `fingerprint_bin` in DuckDB, with optional post-processing.
 - Request (`SearchRequest`):
   ```json
   {
@@ -227,7 +250,7 @@ All request/response models are defined in `models.py`. Below are concise specs 
 - **Torch/Transformers for ChemBERTa**
   - Required for `preprocess_chemberta.py` and `/search_ai`.
 - **Database not found / missing columns**
-  - Ensure `chembl_35/chembl_35.duckdb` exists and run preprocessing scripts to populate `fingerprint_hex`, `chemberta_embeddings`, etc.
+  - Ensure `chembl_35/chembl_35.duckdb` exists and run preprocessing scripts to populate `fingerprint_bin`, `chemberta_embeddings`, etc.
 - **ChEMBL client not installed**
   - `/resolve_name` will return 501 if `chembl_webresource_client` is unavailable.
 
