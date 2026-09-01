@@ -1,19 +1,19 @@
 {
-  "source": "Local ChEMBL 35 DuckDB export",
-  "records": 5000,
+  "source": "ChEMBL 35 export (chembl_export.csv)",
+  "records": 84818,
   "fields": [
-    "chembl_id",
-    "pref_name",
-    "smiles",
-    "molecular_weight",
-    "logp",
-    "polar_surface_area",
-    "h_bond_donors",
-    "h_bond_acceptors",
-    "rotatable_bonds",
-    "aromatic_rings",
-    "heavy_atoms",
-    "cns_mpo"
+    "id",
+    "n",
+    "s",
+    "mw",
+    "lp",
+    "psa",
+    "hbd",
+    "hba",
+    "rtb",
+    "ar",
+    "ha",
+    "cns"
   ],
   "notes": [
     "Static export for GitHub Pages; no local database or API required.",
@@ -27,8 +27,24 @@
     "radius": 2,
     "n_bits": 1024,
     "bytes_per_record": 128,
-    "records": 5000,
+    "records": 84818,
     "unparseable": 0,
     "note": "Row i corresponds to record i of compounds.json; regenerate both together. Matches chem.py, so scores equal the FastAPI /search endpoint's."
-  }
+  },
+  "field_names": {
+    "chembl_id": "id",
+    "pref_name": "n",
+    "smiles": "s",
+    "molecular_weight": "mw",
+    "logp": "lp",
+    "polar_surface_area": "psa",
+    "h_bond_donors": "hbd",
+    "h_bond_acceptors": "hba",
+    "rotatable_bonds": "rtb",
+    "aromatic_rings": "ar",
+    "heavy_atoms": "ha",
+    "cns_mpo": "cns"
+  },
+  "selection": "Every ChEMBL compound carrying a synonym, ordered so that anything the FDA Orange/Purple Book exports can adjudicate comes first. The 2.39M unnamed screening entries are excluded: nobody searches for them by name.",
+  "generated": "2026-09-01"
 }

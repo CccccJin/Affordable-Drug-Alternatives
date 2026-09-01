@@ -70,10 +70,11 @@ def test_unparseable_smiles_yields_an_empty_row():
 
 
 def test_build_keeps_one_row_per_compound():
+    # Short wire keys, as `select_demo_compounds.py` writes them.
     compounds = [
-        {"chembl_id": "CHEMBL1", "smiles": "CCO"},
-        {"chembl_id": "CHEMBL2", "smiles": "%%%bad%%%"},
-        {"chembl_id": "CHEMBL3", "smiles": "CC(=O)Oc1ccccc1C(=O)O"},
+        {"id": "CHEMBL1", "s": "CCO"},
+        {"id": "CHEMBL2", "s": "%%%bad%%%"},
+        {"id": "CHEMBL3", "s": "CC(=O)Oc1ccccc1C(=O)O"},
     ]
     blob, rejected = build(compounds)
 
@@ -95,12 +96,12 @@ def test_exported_blob_is_aligned_with_compounds_json():
 
     assert len(blob) == len(compounds) * FP_BYTES
 
-    # Spot-check both ends and the middle rather than all 5,000: a desync from
+    # Spot-check both ends and the middle rather than every row: a desync from
     # a partial regeneration shows up at the tail, a reordering at the middle.
     for i in (0, len(compounds) // 2, len(compounds) - 1):
         row = blob[i * FP_BYTES:(i + 1) * FP_BYTES]
-        assert row == fingerprint(compounds[i]["smiles"]), \
-            f"row {i} does not match {compounds[i]['chembl_id']}"
+        assert row == fingerprint(compounds[i]["s"]), \
+            f"row {i} does not match {compounds[i]['id']}"
 
 
 @needs_export

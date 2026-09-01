@@ -44,6 +44,37 @@ export const DEFAULT_SIMILARITY_THRESHOLD = 0.4;
 
 type StaticCompoundRecord = Omit<Compound, 'similarity'>;
 
+/**
+ * Wire format of compounds.json.
+ *
+ * Short keys, the same trade substitutability.json makes: across ~85,000
+ * records the long field names alone would be roughly 10 MB of the payload.
+ * They are expanded here, at the parse boundary, so nothing downstream sees
+ * them. `select_demo_compounds.py` writes the mapping into metadata.json as
+ * `field_names` for anyone reading the file directly.
+ */
+interface WireCompound {
+  id: string; n: string | null; s: string;
+  mw?: number; lp?: number; psa?: number;
+  hbd?: number; hba?: number; rtb?: number;
+  ar?: number; ha?: number; cns?: number;
+}
+
+const expandCompound = (c: WireCompound): StaticCompoundRecord => ({
+  chembl_id: c.id,
+  pref_name: c.n,
+  smiles: c.s,
+  molecular_weight: c.mw ?? null,
+  logp: c.lp ?? null,
+  polar_surface_area: c.psa ?? null,
+  h_bond_donors: c.hbd ?? null,
+  h_bond_acceptors: c.hba ?? null,
+  rotatable_bonds: c.rtb ?? null,
+  aromatic_rings: c.ar ?? null,
+  heavy_atoms: c.ha ?? null,
+  cns_mpo: c.cns ?? null,
+});
+
 let compoundsCache: StaticCompoundRecord[] | null = null;
 
 // Vite injects import.meta.env at build time; under Jest it is undefined, so
@@ -75,7 +106,8 @@ const loadCompounds = async (): Promise<StaticCompoundRecord[]> => {
     throw new Error(`Could not load static compound data (${response.status})`);
   }
 
-  compoundsCache = await response.json() as StaticCompoundRecord[];
+  const wire = (await response.json()) as WireCompound[];
+  compoundsCache = wire.map(expandCompound);
   return compoundsCache;
 };
 

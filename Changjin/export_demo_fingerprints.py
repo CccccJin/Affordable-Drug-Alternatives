@@ -70,9 +70,9 @@ def build(compounds: list[dict]) -> tuple[bytes, list[str]]:
     blob = bytearray()
     rejected: list[str] = []
     for record in compounds:
-        row = fingerprint(record["smiles"], gen)
+        row = fingerprint(record["s"], gen)
         if row == EMPTY_ROW:
-            rejected.append(record["chembl_id"])
+            rejected.append(record["id"])
         blob += row
     return bytes(blob), rejected
 

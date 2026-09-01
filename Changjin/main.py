@@ -34,11 +34,18 @@ from chem import smiles_to_fingerprint
 from db import get_db_connection
 from fingerprint_index import get_index
 
-# Optional ChEMBL client import
+# Optional ChEMBL client. Catching Exception rather than ImportError is
+# deliberate: this library reaches out to the ChEMBL web service while it is
+# being imported, and raises a bare Exception when it cannot. Narrowing to
+# ImportError meant an unreachable external service stopped the whole API from
+# starting — for an endpoint that already degrades to 501 without it.
 try:
     from chembl_webresource_client.new_client import new_client
-except ImportError:
+except Exception as _chembl_client_error:  # pragma: no cover - depends on network
     new_client = None
+    logging.getLogger(__name__).warning(
+        "ChEMBL web client unavailable, /resolve_name will report 501: %s",
+        _chembl_client_error)
 
 def print_startup_message():
     print("---")

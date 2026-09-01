@@ -65,18 +65,19 @@ const { StaticSearchApi, DEFAULT_SIMILARITY_THRESHOLD } = await import(
 );
 const { __resetFingerprintCache } = await import('../services/search/fingerprintStore');
 
+// Short wire keys, as compounds.json ships them; staticSearchApi expands these
+// at its parse boundary, so the fixture must be in the wire format the fetch
+// mock is standing in for.
 const COMPOUNDS = [
   {
-    chembl_id: 'CHEMBL545', pref_name: 'ETHANOL', smiles: 'CCO',
-    molecular_weight: 46.07, logp: -0.0014, polar_surface_area: 20.23,
-    h_bond_donors: 1, h_bond_acceptors: 1, rotatable_bonds: 0,
-    aromatic_rings: 0, heavy_atoms: 3, cns_mpo: 4,
+    id: 'CHEMBL545', n: 'ETHANOL', s: 'CCO',
+    mw: 46.07, lp: -0.0014, psa: 20.23,
+    hbd: 1, hba: 1, rtb: 0, ar: 0, ha: 3, cns: 4,
   },
   {
-    chembl_id: 'CHEMBL25', pref_name: 'ASPIRIN', smiles: 'CC(=O)Oc1ccccc1C(=O)O',
-    molecular_weight: 180.16, logp: 1.31, polar_surface_area: 63.6,
-    h_bond_donors: 1, h_bond_acceptors: 3, rotatable_bonds: 2,
-    aromatic_rings: 1, heavy_atoms: 13, cns_mpo: 4,
+    id: 'CHEMBL25', n: 'ASPIRIN', s: 'CC(=O)Oc1ccccc1C(=O)O',
+    mw: 180.16, lp: 1.31, psa: 63.6,
+    hbd: 1, hba: 3, rtb: 2, ar: 1, ha: 13, cns: 4,
   },
 ];
 
@@ -90,7 +91,7 @@ const metadata = {
 const blob = (): Uint8Array => {
   const out = new Uint8Array(COMPOUNDS.length * BYTES_PER_RECORD);
   COMPOUNDS.forEach((compound, i) => {
-    out.set(bytes(FINGERPRINTS[compound.smiles]), i * BYTES_PER_RECORD);
+    out.set(bytes(FINGERPRINTS[compound.s]), i * BYTES_PER_RECORD);
   });
   return out;
 };
