@@ -80,28 +80,68 @@ const loadCompounds = async (): Promise<StaticCompoundRecord[]> => {
 };
 
 /**
+ * The corpus row a query names outright, or -1.
+ *
+ * Matching is exact — normalised case and whitespace, nothing more — because
+ * deciding that two *different* SMILES strings denote the same molecule is
+ * precisely the job that needs RDKit. A miss here is not an answer, only a
+ * decision to go and load it.
+ */
+const exactCorpusRow = (
+  compounds: StaticCompoundRecord[],
+  query: string
+): number => {
+  const asSmiles = normalizeSmiles(query);
+  const asName = normalize(nameAliases[normalize(query)] || query);
+
+  for (let i = 0; i < compounds.length; i += 1) {
+    const compound = compounds[i];
+    if (asSmiles && normalizeSmiles(compound.smiles) === asSmiles) return i;
+    if (asName && (normalize(compound.pref_name || '') === asName
+                   || normalize(compound.chembl_id) === asName)) return i;
+  }
+  return -1;
+};
+
+/**
  * Resolve a query to a Morgan fingerprint of the corpus's geometry.
  *
- * A user who picks "SMILES" and types "aspirin" gets the same answer as one
- * who picks "name": an unparseable query is retried as a compound name before
- * it is reported as an error. What is *not* done is scoring the text itself --
- * the old bigram fallback made "invalid input" indistinguishable from "weakly
- * similar molecule", and both came back with a plausible-looking number.
+ * The corpus already holds a fingerprint for every compound in it, so a query
+ * that names one of them needs no RDKit at all — which matters because the WASM
+ * build is 2.08 MB over the wire and used to sit on the critical path of every
+ * search, including every search by name. Names always resolve into the corpus
+ * (`resolveName` searches nothing else), so that entire class of query now
+ * returns results without waiting for it.
+ *
+ * RDKit is still loaded for an off-corpus structure, and still loaded by
+ * MoleculeViewer to draw the results — but after they render, not before.
+ *
+ * What is *not* done is scoring the query text itself: the old bigram fallback
+ * made "invalid input" indistinguishable from "weakly similar molecule", and
+ * both came back with a plausible-looking number.
  */
 const queryFingerprint = async (
   query: string,
-  geometry: { radius: number; nBits: number }
+  corpus: FingerprintCorpus,
+  compounds: StaticCompoundRecord[]
 ): Promise<Uint8Array> => {
+  const row = exactCorpusRow(compounds, query);
+  if (row !== -1) {
+    const { bytesPerRecord } = corpus.geometry;
+    return corpus.bits.subarray(row * bytesPerRecord, (row + 1) * bytesPerRecord);
+  }
+
+  const { radius, nBits } = corpus.geometry;
   try {
-    return await rdkitService.getMorganFingerprint(query, geometry);
+    return await rdkitService.getMorganFingerprint(query, { radius, nBits });
   } catch (error) {
     if (!(error instanceof InvalidSmilesError)) {
       throw error;
     }
-    // Not a structure. Try it as a name; resolveName throws its own message
-    // naming the query if that fails too.
+    // Not a structure and not an exact corpus name. resolveName throws its own
+    // message naming the query if it cannot place it either.
     const resolved = await StaticSearchApi.resolveName({ name: query });
-    return await rdkitService.getMorganFingerprint(resolved.smiles, geometry);
+    return await rdkitService.getMorganFingerprint(resolved.smiles, { radius, nBits });
   }
 };
 
@@ -128,7 +168,7 @@ const scoreAgainstCorpus = async (query: string): Promise<ScoredCorpus> => {
     );
   }
 
-  const fingerprint = await queryFingerprint(query, corpus.geometry);
+  const fingerprint = await queryFingerprint(query, corpus, compounds);
   return { compounds, scores: scoreCorpus(corpus, fingerprint), corpus };
 };
 

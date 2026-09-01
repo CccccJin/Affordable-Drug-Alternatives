@@ -156,13 +156,37 @@ describe('StaticSearchApi.search', () => {
     expect(DEFAULT_SIMILARITY_THRESHOLD).toBeLessThan(0.7);
   });
 
-  it('falls back to name resolution when the query is not a structure', async () => {
+  it('answers a name query without loading RDKit at all', async () => {
+    // The corpus already holds this compound's fingerprint, so there is nothing
+    // for the 2 MB WASM build to compute. It used to be loaded regardless, on
+    // the critical path of every search.
     const response = await StaticSearchApi.search({ smiles: 'aspirin' });
 
     expect(response.results[0].chembl_id).toBe('CHEMBL25');
     expect(response.results[0].similarity).toBe(1);
-    // Once as a structure (rejected), then again on the resolved SMILES.
-    expect(getMorganFingerprint).toHaveBeenCalledTimes(2);
+    expect(getMorganFingerprint).not.toHaveBeenCalled();
+  });
+
+  it('answers a corpus SMILES without loading RDKit either', async () => {
+    const response = await StaticSearchApi.search({ smiles: 'CC(=O)Oc1ccccc1C(=O)O' });
+
+    expect(response.results[0].similarity).toBe(1);
+    expect(getMorganFingerprint).not.toHaveBeenCalled();
+  });
+
+  it('matches a corpus name case-insensitively', async () => {
+    await StaticSearchApi.search({ smiles: '  AsPiRiN ' });
+    expect(getMorganFingerprint).not.toHaveBeenCalled();
+  });
+
+  it('still reaches for RDKit when the structure is not in the corpus', async () => {
+    // Prazosin is fingerprintable but absent from this fixture corpus, so the
+    // fast path cannot answer and the slow one must.
+    await StaticSearchApi.search({
+      smiles: 'COc1cc2nc(N3CCN(C(=O)c4ccco4)CC3)nc(N)c2cc1OC',
+      threshold: 0,
+    });
+    expect(getMorganFingerprint).toHaveBeenCalledTimes(1);
   });
 
   it('reports an unresolvable query instead of scoring its text', async () => {

@@ -77,8 +77,22 @@ const baseUrl = (): string => import.meta.env?.BASE_URL ?? '/';
 let cache: FingerprintCorpus | null = null;
 let inFlight: Promise<FingerprintCorpus> | null = null;
 
+/**
+ * Conventional blob name, used to start its download without first waiting to
+ * be told it. Metadata still names the file and is still checked against this;
+ * the constant is an optimistic guess, not the source of truth.
+ */
+const DEFAULT_BLOB = 'fingerprints.bin';
+
 const fetchCorpus = async (): Promise<FingerprintCorpus> => {
-  const metadataResponse = await fetch(`${baseUrl()}data/metadata.json`);
+  // Both requests go out together. Fetching metadata first and only then the
+  // blob it names cost an extra round trip on the critical path of every
+  // search, to learn a filename that has never changed.
+  const [metadataResponse, binaryResponse] = await Promise.all([
+    fetch(`${baseUrl()}data/metadata.json`),
+    fetch(`${baseUrl()}data/${DEFAULT_BLOB}`),
+  ]);
+
   if (!metadataResponse.ok) {
     throw new Error(`Could not load fingerprint metadata (${metadataResponse.status})`);
   }
@@ -89,8 +103,14 @@ const fetchCorpus = async (): Promise<FingerprintCorpus> => {
       'metadata.json has no "fingerprints" section — run `python export_demo_fingerprints.py`'
     );
   }
-
-  const binaryResponse = await fetch(`${baseUrl()}data/${descriptor.file}`);
+  if (descriptor.file !== DEFAULT_BLOB) {
+    // The guess was wrong, so the parallel fetch downloaded the wrong file.
+    // Say so rather than validating a blob nobody asked for.
+    throw new Error(
+      `metadata.json names "${descriptor.file}" but this build fetches ` +
+        `"${DEFAULT_BLOB}"; update DEFAULT_BLOB in fingerprintStore.ts`
+    );
+  }
   if (!binaryResponse.ok) {
     throw new Error(`Could not load ${descriptor.file} (${binaryResponse.status})`);
   }
