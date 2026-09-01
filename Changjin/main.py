@@ -20,10 +20,19 @@ from models import (
     EmbedRequest,
     EmbedResponse
 )
-from chemberta_service import search_similar_chemberta
+# Optional: ChemBERTa search needs torch, transformers and pandas, none of
+# which the API container installs — the model alone is ~315 MB for an endpoint
+# that cannot run without it. Absent the module, /search_ai reports 501 rather
+# than the whole service failing to import.
+try:
+    from chemberta_service import search_similar_chemberta
+except ImportError as _chemberta_error:  # pragma: no cover - depends on install
+    search_similar_chemberta = None
+    _CHEMBERTA_IMPORT_ERROR = str(_chemberta_error)
 from post_processing import DrugPostProcessor
 from chem import smiles_to_fingerprint
 from db import get_db_connection
+from fingerprint_index import get_index
 
 # Optional ChEMBL client import
 try:
@@ -133,36 +142,6 @@ def health_check():
     """Lightweight health check endpoint."""
     return {"status": "ok"}
 
-def _fingerprint_column(con) -> str:
-    """Prefer the packed column, falling back to the legacy hex one.
-
-    The migration adds `fingerprint_bin` alongside `fingerprint_hex` rather than
-    replacing it, so a database that has not been reprocessed still serves.
-    `verify_fingerprints.py` proves the two produce identical scores and an
-    identical ranking before the old column is dropped.
-    """
-    columns = {row[0] for row in con.execute(
-        "SELECT column_name FROM information_schema.columns "
-        "WHERE table_name = 'compound_structures'").fetchall()}
-    if "fingerprint_bin" in columns:
-        has_rows = con.execute(
-            "SELECT 1 FROM compound_structures WHERE fingerprint_bin IS NOT NULL LIMIT 1"
-        ).fetchone()
-        if has_rows:
-            return "fingerprint_bin"
-    return "fingerprint_hex"
-
-
-def _decode_binary(value):
-    """128 packed bytes, RDKit's own bit-vector serialisation."""
-    return DataStructs.CreateFromBinaryText(value)
-
-
-def _decode_hex(value):
-    """Legacy: 1024 ASCII '0'/'1' characters, hex-encoded again."""
-    return DataStructs.CreateFromBitString(bytes.fromhex(value).decode('utf-8'))
-
-
 @app.post("/search", response_model=SearchResponse, tags=["Search"])
 def search_similar_compounds(request: SearchRequest):
     """
@@ -178,66 +157,29 @@ def search_similar_compounds(request: SearchRequest):
     if input_fp is None or len(input_fp) == 0:
         raise HTTPException(status_code=400, detail="Invalid input SMILES or could not generate fingerprint.")
 
-    con = get_db_connection()
-    fingerprint_column = _fingerprint_column(con)
-    sql_query = f"""
-        SELECT md.chembl_id, cs.canonical_smiles, cs.{fingerprint_column},
-               CAST(COALESCE(cp.mw_freebase, '0') AS FLOAT) as mw,
-               CAST(COALESCE(cp.alogp, '0') AS FLOAT) as logp,
-               COALESCE(cp.hba, 0) as hba, COALESCE(cp.hbd, 0) as hbd,
-               CAST(COALESCE(cp.psa, '0') AS FLOAT) as psa, COALESCE(cp.rtb, 0) as rtb,
-               COALESCE(cp.heavy_atoms, 0) as heavy_atoms, COALESCE(cp.aromatic_rings, 0) as aromatic_rings
-        FROM compound_structures cs
-        JOIN molecule_dictionary md ON cs.molregno = md.molregno
-        LEFT JOIN compound_properties cp ON cs.molregno = cp.molregno
-        WHERE cs.{fingerprint_column} IS NOT NULL
-    """
-    logger.info("Executing database query (fingerprint column: %s)...", fingerprint_column)
-    cursor = con.execute(sql_query)
+    # Scored against an index built once per process rather than a fresh scan
+    # of the whole table. The vectors do not change between requests; rebuilding
+    # 2.4M of them per query was the dominant cost at ChEMBL scale and made
+    # concurrency pay it several times over.
+    index = get_index(get_db_connection)
 
-    decode = _decode_binary if fingerprint_column == "fingerprint_bin" else _decode_hex
-    bulk_fn = (DataStructs.BulkCosineSimilarity if request.metric == 'cosine'
-               else DataStructs.BulkTanimotoSimilarity)
-
-    logger.info("Starting similarity calculation in batches...")
+    logger.info("Scoring against %s compounds (%s)...", f"{len(index):,}", index.column)
     results = []
     candidate_dicts = []
-    batch_size = 50000
 
-    while True:
-        chunk = cursor.fetchmany(batch_size)
-        if not chunk:
-            break
-
-        # Decode the whole chunk, then score it in one call rather than paying
-        # a fresh trip through the interpreter per comparison. Measured over
-        # 5,000 rows: 27.2 ms per-row from the hex column against 9.3 ms bulk
-        # from the packed one, both including the decode.
-        usable = []
-        fingerprints = []
-        for row in chunk:
-            try:
-                fingerprints.append(decode(row[2]))
-                usable.append(row)
-            except Exception as e:
-                logger.warning("Error decoding fingerprint for %s: %s", row[0], e)
-
-        if not usable:
+    for row, similarity in zip(index.rows, index.similarities(input_fp, request.metric)):
+        if similarity < request.threshold:
             continue
+        (chembl_id, smiles, mw, logp, hba, hbd, psa, rtb,
+         heavy_atoms, aromatic_rings) = row
+        candidate_dicts.append({
+            'smiles': smiles, 'similarity_tanimoto': similarity, 'similarity_embedding': similarity,
+            'mw': mw, 'cns_mpo': 4.5, 'cost': 100.0, 'toxicity_flag': False, 'indications': [],
+            'name': chembl_id, 'num_rotatable_bonds': rtb, 'logp': logp, 'hba': hba, 'hbd': hbd,
+            'psa': psa, 'aromatic_rings': aromatic_rings
+        })
+        results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=float(similarity)))
 
-        for row, similarity in zip(usable, bulk_fn(input_fp, fingerprints)):
-            if similarity < request.threshold:
-                continue
-            (chembl_id, smiles, _fp, mw, logp, hba, hbd, psa, rtb,
-             heavy_atoms, aromatic_rings) = row
-            candidate_dicts.append({
-                'smiles': smiles, 'similarity_tanimoto': similarity, 'similarity_embedding': similarity,
-                'mw': mw, 'cns_mpo': 4.5, 'cost': 100.0, 'toxicity_flag': False, 'indications': [],
-                'name': chembl_id, 'num_rotatable_bonds': rtb, 'logp': logp, 'hba': hba, 'hbd': hbd,
-                'psa': psa, 'aromatic_rings': aromatic_rings
-            })
-            results.append(Compound(chembl_id=chembl_id, smiles=smiles, similarity=float(similarity)))
-    con.close()
     logger.info(f"Found {len(results)} similar compounds before post-processing.")
 
     results.sort(key=lambda x: x.similarity, reverse=True)
@@ -342,6 +284,12 @@ def visualize_molecule(smiles: str):
 @app.post("/search_ai", response_model=SearchResponse, tags=["AI Search (ChemBERTa)"])
 def search_ai_demo(request: SearchRequest):
     """Performs AI-powered similarity search using a small, pre-calculated demo dataset."""
+    if search_similar_chemberta is None:
+        raise HTTPException(
+            status_code=501,
+            detail=("ChemBERTa search is unavailable in this deployment: "
+                    f"{_CHEMBERTA_IMPORT_ERROR}. It needs torch, transformers "
+                    "and precomputed embeddings."))
     try:
         results = search_similar_chemberta(request.smiles, top_k=request.max_results)
         response_results = [Compound(**res) for res in results]

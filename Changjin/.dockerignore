@@ -1,0 +1,14 @@
+# The database mounts at runtime; it is several GB.
+chembl_35/
+*.duckdb
+*.sqlite
+*.csv
+
+# Build artefacts and data-prep output that the service never reads.
+frontend/
+diagrams/
+subst_data/cache/
+__pycache__/
+.pytest_cache/
+tests/
+*.xlsx
