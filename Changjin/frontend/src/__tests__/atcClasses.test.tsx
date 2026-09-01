@@ -142,3 +142,32 @@ describe('finding a class from a name', () => {
     expect(lookupAtcClasses(data, 'SOMETHING ELSE')).toEqual([]);
   });
 });
+
+describe('reaching a class from what the page actually holds', () => {
+  /* The Alternatives page is searched by brand. The ATC index is keyed on the
+     Orange Book ingredient. Passing the query straight through found nothing
+     for every brand-name search — caught only by loading the deployed page and
+     seeing the panel missing for LIPITOR. */
+  const data = {
+    meta: { source: 's', generated: '2026-09-02', relation: 'r',
+            coverage: { classes: 1, named: 1, withPrices: 1 } },
+    classes: [statins],
+    nameIndex: { 'ATORVASTATIN CALCIUM': [0], 'ROSUVASTATIN CALCIUM': [0] },
+  };
+
+  it('finds nothing from a brand name alone', () => {
+    expect(lookupAtcClasses(data, 'LIPITOR')).toEqual([]);
+  });
+
+  it('finds the class from the ingredient the FDA layer resolved', () => {
+    expect(lookupAtcClasses(data, 'ATORVASTATIN CALCIUM')).toHaveLength(1);
+  });
+
+  it('returns one entry when two ingredients share a class', () => {
+    const seen = new Map<string, typeof statins>();
+    for (const name of ['ATORVASTATIN CALCIUM', 'ROSUVASTATIN CALCIUM']) {
+      for (const c of lookupAtcClasses(data, name)) if (!seen.has(c.code)) seen.set(c.code, c);
+    }
+    expect([...seen.values()]).toHaveLength(1);
+  });
+});

@@ -132,8 +132,16 @@ export const CheaperAlternatives: React.FC = () => {
 
   const result = useAlternatives(query);
   // Grade C, and kept last on purpose: the FDA answers come first, and this is
-  // background a reader opens rather than an answer offered to them.
-  const atcClasses = useAtcClasses(query);
+  // background a reader opens rather than an answer offered to them. Fed the
+  // ingredients FDA resolution already produced, because a brand name reaches
+  // no ATC class on its own.
+  const ingredients = React.useMemo(
+    () => (result.status === 'found'
+      ? [...new Set(result.groups.map((g) => g.ingredient))] as string[]
+      : []),
+    [result],
+  );
+  const atcClasses = useAtcClasses(ingredients);
   // The disclaimer sits above the results and so outlives them; only the states
   // that carry meta can date the extract, and the rest simply omit the age
   // rather than assuming it is current.
