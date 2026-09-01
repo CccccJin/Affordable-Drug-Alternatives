@@ -21,11 +21,15 @@ import {
 } from '@mui/icons-material';
 import type { Compound } from '../../types/api';
 import { formatSimilarity } from '../../services/utils/formatting';
+import { SubstitutabilityBadge } from './SubstitutabilityBadge';
+import type { SubstitutabilitySummary } from '../../hooks/useSubstitutabilitySummaries';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { monoStack } from '../../styles/theme';
 
 interface CompoundCardProps {
   compound: Compound;
+  /** Substitutability verdict, when the FDA exports hold one for this compound. */
+  substitutability?: SubstitutabilitySummary;
   onViewDetails?: (compound: Compound) => void;
   /** Export just this compound. Without it the button is not rendered. */
   onExport?: (compound: Compound) => void;
@@ -52,6 +56,7 @@ const PropertyItem: React.FC<PropertyItemProps> = ({ label, value }) => (
 
 export const CompoundCard: React.FC<CompoundCardProps> = ({
   compound,
+  substitutability,
   onViewDetails,
   onExport,
   showProperties = false,
@@ -218,6 +223,11 @@ export const CompoundCard: React.FC<CompoundCardProps> = ({
         >
           {compound.smiles}
         </Typography>
+
+        {/* The actionable answer, above the fold of the card. Absent when the
+            FDA exports hold nothing for this compound — which is nine cards in
+            ten, so a "no data" badge would be noise rather than information. */}
+        {substitutability && <SubstitutabilityBadge summary={substitutability} />}
 
         {/* Expandable Properties */}
         {showProperties && (

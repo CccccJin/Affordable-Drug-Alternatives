@@ -1,6 +1,6 @@
 # Stratified Evaluation — Substitutability Pipeline
 
-Generated 2026-08-29 by `python evaluate.py run`. Reported on the **TEST** split.
+Generated 2026-09-01 by `python evaluate.py run`. Reported on the **TEST** split.
 
 ## How to read these numbers
 

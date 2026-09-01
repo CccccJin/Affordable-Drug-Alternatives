@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import type { SearchResponse, Compound } from '../../types/api';
 import { CompoundCard } from './CompoundCard';
+import { useSubstitutabilitySummaries } from '../../hooks/useSubstitutabilitySummaries';
 import { ExportDialog } from '../export/ExportDialog';
 
 interface ResultsListProps {
@@ -78,6 +79,12 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   // null means "export everything on screen"; a compound means just that one.
   const [exportSubject, setExportSubject] = useState<Compound | null>(null);
+  const [onlySubstitutable, setOnlySubstitutable] = useState(false);
+
+  const shown = results?.results ?? [];
+  const summaries = useSubstitutabilitySummaries(shown);
+  const withData = shown.filter(c => summaries.has(c.chembl_id));
+  const visible = onlySubstitutable ? withData : shown;
 
   const handleSearchQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onSearchQueryChange?.(event.target.value);
@@ -223,9 +230,36 @@ export const ResultsList: React.FC<ResultsListProps> = ({
         </Box>
       </Box>
 
+      {/* Answers "which of these can I actually swap?" before the reader has to
+          open anything. Hidden when none of the results carry FDA data, where a
+          banner reading "0 of 40" is noise rather than an offer. */}
+      {withData.length > 0 && (
+        <Alert
+          severity="success"
+          variant="outlined"
+          sx={{ mb: 3 }}
+          action={
+            <Button
+              size="small"
+              onClick={() => setOnlySubstitutable(v => !v)}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              {onlySubstitutable ? 'Show all results' : 'Show only these'}
+            </Button>
+          }
+        >
+          <Typography variant="body2">
+            <strong>{withData.length}</strong> of {shown.length} result
+            {shown.length === 1 ? '' : 's'} {withData.length === 1 ? 'has' : 'have'} an
+            FDA-rated equivalent — the cards below say what a pharmacist may do and
+            what it saves.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Results Grid */}
       <Box sx={RESULTS_GRID_SX}>
-        {results.results.map((compound, index) => (
+        {visible.map((compound, index) => (
           <Box
             key={compound.chembl_id}
             className="anim-fade-up"
@@ -233,6 +267,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           >
             <CompoundCard
               compound={compound}
+              substitutability={summaries.get(compound.chembl_id)}
               onViewDetails={onViewDetails}
               onExport={(subject) => {
                 setExportSubject(subject);
