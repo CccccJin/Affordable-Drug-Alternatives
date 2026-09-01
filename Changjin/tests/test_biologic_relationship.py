@@ -131,6 +131,22 @@ def test_the_exported_payload_records_where_B5_applies():
             assert any(m["g"] == "reference" for m in group["mem"])
 
 
+EXPORT_PATH = ROOT / "frontend" / "public" / "data" / "biologics.json"
+DB_PATH = ROOT / "subst_data" / "cache" / "substitutability.sqlite"
+
+
+def require_sanity_inputs():
+    """Skip unless both inputs `check()` reads are present.
+
+    `check()` opens the export *and* the SQLite cache. Guarding on only the
+    export passes locally, where both exist, and fails on a fresh checkout,
+    where the gitignored cache does not — which is how this blocked every
+    deploy between 21244d0 and its fix.
+    """
+    if not (EXPORT_PATH.exists() and DB_PATH.exists()):
+        pytest.skip("run `python price_compare.py export-biologics`")
+
+
 class TestBiologicSanityCheck:
     """The sanity check must fail when the export and grade.py disagree.
 
@@ -141,11 +157,7 @@ class TestBiologicSanityCheck:
     def test_the_committed_export_agrees_with_grade_py(self):
         from subst_data.biologic_sanity import check
 
-        export = ROOT / "frontend" / "public" / "data" / "biologics.json"
-        db = ROOT / "subst_data" / "cache" / "substitutability.sqlite"
-        if not (export.exists() and db.exists()):
-            pytest.skip("run `python price_compare.py export-biologics`")
-
+        require_sanity_inputs()
         findings = check()["findings"]
         assert findings == [], f"{len(findings)} disagreement(s): {findings[:3]}"
 
@@ -155,12 +167,8 @@ class TestBiologicSanityCheck:
 
         from subst_data.biologic_sanity import check
 
-        export = ROOT / "frontend" / "public" / "data" / "biologics.json"
-        db = ROOT / "subst_data" / "cache" / "substitutability.sqlite"
-        if not (export.exists() and db.exists()):
-            pytest.skip("run `python price_compare.py export-biologics`")
-
-        payload = json.loads(export.read_text(encoding="utf-8"))
+        require_sanity_inputs()
+        payload = json.loads(EXPORT_PATH.read_text(encoding="utf-8"))
         family = next(g for g in payload["groups"]
                       if any(m["g"] == "B" for m in g["mem"]))
         member = next(m for m in family["mem"] if m["g"] == "B")
@@ -180,11 +188,8 @@ class TestBiologicSanityCheck:
 
         from subst_data.biologic_sanity import check
 
-        export = ROOT / "frontend" / "public" / "data" / "biologics.json"
-        if not export.exists():
-            pytest.skip("run `python price_compare.py export-biologics`")
-
-        payload = json.loads(export.read_text(encoding="utf-8"))
+        require_sanity_inputs()
+        payload = json.loads(EXPORT_PATH.read_text(encoding="utf-8"))
         family = next(g for g in payload["groups"] if g["b5"])
         family["b5"] = False
 
