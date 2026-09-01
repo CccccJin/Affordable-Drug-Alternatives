@@ -43,28 +43,48 @@ CORPUS = [
 ]
 
 
-def _fingerprint_hex(smiles: str) -> str:
-    """The storage format `preprocess_database.py` writes today.
-
-    Kept spelled out here rather than imported: these tests exist to prove the
-    endpoint's behaviour is unchanged when that format is replaced, so they must
-    not move with it.
-    """
+def _fingerprint(smiles: str):
     from rdkit import Chem
     from rdkit.Chem import rdFingerprintGenerator
 
     generator = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
-    fp = generator.GetFingerprint(Chem.MolFromSmiles(smiles))
-    return fp.ToBitString().encode("utf-8").hex()
+    return generator.GetFingerprint(Chem.MolFromSmiles(smiles))
 
 
-@pytest.fixture(scope="session")
-def fixture_db(tmp_path_factory) -> Path:
-    path = tmp_path_factory.mktemp("chembl") / "fixture.duckdb"
+def _fingerprint_hex(smiles: str) -> str:
+    """The legacy format: 1024 ASCII '0'/'1' characters, hex-encoded again.
+
+    Spelled out here rather than imported, because these tests exist to prove
+    the endpoint behaves identically whichever column it reads — so they must
+    not move when the production encoder does.
+    """
+    return _fingerprint(smiles).ToBitString().encode("utf-8").hex()
+
+
+def _fingerprint_bin(smiles: str) -> bytes:
+    """The packed format: 128 bytes, RDKit's own serialisation."""
+    from rdkit.DataStructs import BitVectToBinaryText
+
+    return BitVectToBinaryText(_fingerprint(smiles))
+
+
+@pytest.fixture(scope="session", params=["hex", "bin"], ids=["legacy-hex", "packed-bin"])
+def fixture_db(request, tmp_path_factory) -> Path:
+    """One database per storage format.
+
+    Every assertion below runs twice — once against the legacy hex column and
+    once against the packed binary one. Identical results are what makes the
+    migration safe; a difference in either direction fails here rather than in
+    production.
+    """
+    layout = request.param
+    path = tmp_path_factory.mktemp(f"chembl-{layout}") / "fixture.duckdb"
     conn = duckdb.connect(str(path))
+    column = ("fingerprint_hex VARCHAR" if layout == "hex"
+              else "fingerprint_hex VARCHAR, fingerprint_bin BLOB")
     conn.execute(
-        "CREATE TABLE compound_structures ("
-        "  molregno BIGINT, canonical_smiles VARCHAR, fingerprint_hex VARCHAR)"
+        f"CREATE TABLE compound_structures ("
+        f"  molregno BIGINT, canonical_smiles VARCHAR, {column})"
     )
     conn.execute("CREATE TABLE molecule_dictionary (molregno BIGINT, chembl_id VARCHAR, pref_name VARCHAR)")
     conn.execute(
@@ -73,8 +93,12 @@ def fixture_db(tmp_path_factory) -> Path:
         "  psa VARCHAR, rtb BIGINT, heavy_atoms BIGINT, aromatic_rings BIGINT)"
     )
     for i, (chembl_id, smiles, mw, logp) in enumerate(CORPUS, start=1):
-        conn.execute("INSERT INTO compound_structures VALUES (?,?,?)",
-                     [i, smiles, _fingerprint_hex(smiles)])
+        if layout == "hex":
+            conn.execute("INSERT INTO compound_structures VALUES (?,?,?)",
+                         [i, smiles, _fingerprint_hex(smiles)])
+        else:
+            conn.execute("INSERT INTO compound_structures VALUES (?,?,?,?)",
+                         [i, smiles, _fingerprint_hex(smiles), _fingerprint_bin(smiles)])
         conn.execute("INSERT INTO molecule_dictionary VALUES (?,?,?)",
                      [i, chembl_id, chembl_id.replace("CHEMBL", "NAME")])
         conn.execute("INSERT INTO compound_properties VALUES (?,?,?,?,?,?,?,?,?)",
@@ -84,7 +108,7 @@ def fixture_db(tmp_path_factory) -> Path:
 
 
 @pytest.fixture(scope="session")
-def client(fixture_db):
+def client(fixture_db):  # noqa: D401
     from fastapi.testclient import TestClient
 
     os.environ["CHEMBL_DUCKDB_PATH"] = str(fixture_db)
@@ -212,4 +236,67 @@ class TestSearchScoresAreStableAcrossTheFormatChange:
             assert result["similarity"] == pytest.approx(expected, abs=1e-9), (
                 f"{result['smiles']} scored {result['similarity']}, "
                 f"RDKit says {expected}"
+            )
+
+
+class TestPostProcessing:
+    """Two faults profiling the endpoint turned up."""
+
+    def test_the_enable_flag_is_actually_honoured(self, client):
+        """It was declared, documented, and never read."""
+        on = client.post("/search", json={
+            "smiles": ASPIRIN, "threshold": MIN_THRESHOLD,
+            "enable_post_processing": True})
+        off = client.post("/search", json={
+            "smiles": ASPIRIN, "threshold": MIN_THRESHOLD,
+            "enable_post_processing": False})
+
+        assert on.json()["post_processed"] is not None
+        assert off.json()["post_processed"] is None
+        # Skipping the work must not change which compounds come back.
+        assert ([r["chembl_id"] for r in on.json()["results"]]
+                == [r["chembl_id"] for r in off.json()["results"]])
+
+    def test_normalizing_scores_is_linear_in_the_candidate_count(self):
+        """`normalize_scores` recomputed a whole-set maximum per candidate.
+
+        Timing is a poor assertion, so this counts the work instead: the cost
+        denominator must be derived once, not once per candidate.
+        """
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+        from post_processing import DrugPostProcessor, CandidateMolecule
+
+        calls = {"n": 0}
+
+        class CountingCost(float):
+            """Counts how often the cost of a candidate is read."""
+
+        def candidate(i: int) -> CandidateMolecule:
+            return CandidateMolecule(
+                smiles="CCO", similarity_tanimoto=0.5, similarity_embedding=0.5,
+                mw=100.0 + i, cns_mpo=4.0, cost=10.0 + i, toxicity_flag=False,
+                indications=[], name=f"C{i}", num_rotatable_bonds=1,
+            )
+
+        processor = DrugPostProcessor()
+        small = [candidate(i) for i in range(10)]
+        large = [candidate(i) for i in range(200)]
+
+        import builtins
+        real_max = builtins.max
+        for batch, label in ((small, "10"), (large, "200")):
+            calls["n"] = 0
+            builtins.max = lambda *a, **k: (calls.__setitem__("n", calls["n"] + 1),
+                                            real_max(*a, **k))[1]
+            try:
+                processor.normalize_scores(batch)
+            finally:
+                builtins.max = real_max
+            # One max() for the denominator, not one per candidate.
+            assert calls["n"] <= 2, (
+                f"{label} candidates triggered {calls['n']} max() calls — "
+                "the whole-set denominator is being recomputed in the loop"
             )

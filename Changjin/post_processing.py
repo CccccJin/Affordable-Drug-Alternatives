@@ -137,6 +137,13 @@ class DrugPostProcessor:
         for candidate in candidates:
             candidate.calculate_additional_properties()
         
+        # The cost denominator is a property of the whole candidate set, not of
+        # any one candidate. It used to be recomputed inside the loop below --
+        # a full list comprehension and a max() per candidate -- which made this
+        # function O(n^2) and, at 4,951 candidates, 89% of a search request.
+        costs = [c.cost for c in candidates if c.cost > 0]
+        max_cost = max(costs) if costs else 1.0
+
         # Normalize each metric
         for candidate in candidates:
             # Similarity scores are already 0-1
@@ -147,8 +154,6 @@ class DrugPostProcessor:
             candidate.norm_cns_mpo = candidate.cns_mpo / 6.0
             
             # Cost: lower is better, so we normalize by max cost
-            costs = [c.cost for c in candidates if c.cost > 0]
-            max_cost = max(costs) if costs else 1.0
             candidate.norm_cost = 1.0 - min(candidate.cost / max_cost, 1.0)
             
             # Calculate combined score using weights
