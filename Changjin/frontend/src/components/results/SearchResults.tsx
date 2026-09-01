@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -7,6 +7,7 @@ import {
   Stack,
   Tabs,
   Tab,
+  CircularProgress,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -18,7 +19,9 @@ import { setSelectedCompound } from '../../store/slices/resultsSlice';
 import { ResultsList } from './ResultsList';
 import { SimilarityCaveat } from './SimilarityCaveat';
 import { CompoundDetails } from './CompoundDetails';
-import { AnalyticsDashboard } from '../charts/AnalyticsDashboard';
+/** Behind the Analytics tab, and the rest of this page's recharts weight. */
+const AnalyticsDashboard = lazy(() =>
+  import('../charts/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
 import {
   DEFAULT_SIMILARITY_THRESHOLD,
   StaticSearchApi,
@@ -224,7 +227,9 @@ export const SearchResults: React.FC = () => {
             onSearchQueryChange={setFilterQuery}
           />
         ) : (
-          <AnalyticsDashboard compounds={visibleResults?.results || []} />
+          <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress size={24} /></Box>}>
+            <AnalyticsDashboard compounds={visibleResults?.results || []} />
+          </Suspense>
         )}
       </Box>
 
@@ -240,8 +245,9 @@ export const SearchResults: React.FC = () => {
           Similarity is a real Morgan/Tanimoto computation (ECFP4, radius 2,
           1024 bits) run in your browser against <strong>public/data</strong>, so
           scores match what the FastAPI <code>/search</code> endpoint returns.
-          What the static build limits is <em>coverage</em>: 5,000 compounds
-          rather than the full ChEMBL 35 export.
+          What the static build limits is <em>coverage</em>: the named subset of
+          ChEMBL rather than its full 2.4M rows, which are mostly unnamed
+          screening entries.
         </Typography>
       </Alert>
     </Box>

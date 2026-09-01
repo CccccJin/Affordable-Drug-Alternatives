@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import {
   TextField,
   Button,
@@ -31,8 +31,15 @@ import {
 } from '../../store/slices/searchSlice';
 import { useCompoundSearch } from '../../hooks/useSearch';
 import { AdvancedPropertyFilters } from '../filters/AdvancedPropertyFilters';
-import { ResearchResults } from '../research/ResearchResults';
+/**
+ * Below the fold and the only thing on this page that pulls in recharts, so it
+ * is fetched after the search box is usable rather than before it appears.
+ */
+const ResearchResults = lazy(() =>
+  import('../research/ResearchResults').then(m => ({ default: m.ResearchResults })));
 import { brand, serifStack } from '../../styles/theme';
+import { useCorpusSize } from '../../hooks/useCorpusSize';
+import { WhenVisible } from '../common/WhenVisible';
 
 const FEATURES = [
   {
@@ -66,6 +73,7 @@ export const SearchForm: React.FC = () => {
   );
 
   const { searchBySMILES, searchByName, isLoading } = useCompoundSearch();
+  const corpusSize = useCorpusSize();
 
   const handleSearch = async () => {
     if (!localQuery.trim()) {
@@ -183,8 +191,9 @@ export const SearchForm: React.FC = () => {
             mx: 'auto',
           }}
         >
-          Search 5,000 ChEMBL compounds by structure or name. Similarity is a
-          real Morgan/Tanimoto computation, run in your browser.
+          Search {corpusSize ? corpusSize.toLocaleString() : 'the'} named ChEMBL
+          compounds by structure or name. Similarity is a real Morgan/Tanimoto
+          computation, run in your browser.
         </Typography>
       </Box>
 
@@ -383,7 +392,13 @@ export const SearchForm: React.FC = () => {
 
     {/* Research Results — directly below the property filter, wider column for charts */}
     <Box sx={{ maxWidth: 1040, mx: 'auto' }}>
-      <ResearchResults />
+      {/* Gated on visibility, not just split: a lazy component that always
+          renders downloads its chunk on first paint regardless. */}
+      <WhenVisible minHeight={400}>
+        <Suspense fallback={<Box sx={{ py: 8 }} />}>
+          <ResearchResults />
+        </Suspense>
+      </WhenVisible>
     </Box>
     </>
   );

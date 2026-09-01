@@ -147,7 +147,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>
           {results?.best_similarity != null && results.threshold != null ? (
             <>
-              Nothing in the 5,000-compound demo set reaches the{' '}
+              Nothing in the demo corpus reaches the{' '}
               {results.threshold.toFixed(2)} Tanimoto threshold. The closest is{' '}
               <strong>{results.best_similarity.toFixed(3)}</strong> — the query is
               genuinely unlike anything in the subset, rather than mismatched.
