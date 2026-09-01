@@ -13,6 +13,7 @@
  */
 import { jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
+import { TextField, InputAdornment } from '@mui/material';
 
 jest.unstable_mockModule('../hooks/useRDKit', () => ({
   useRDKit: () => ({
@@ -54,5 +55,40 @@ describe('molecule drawings announce what they are', () => {
       return !wrapper && !svg.getAttribute('aria-label') && svg.getAttribute('aria-hidden') !== 'true';
     });
     expect(unnamed).toHaveLength(0);
+  });
+});
+
+describe('the results filter announces itself', () => {
+  /* `aria-label` on a MUI TextField lands on the outer FormControl and never
+     reaches the <input>. The attribute is present in the source, the field is
+     still nameless in the DOM, and nothing errors — which is how the first
+     attempt at this shipped and had to be caught by re-auditing the live page.
+     Querying by role is what distinguishes the two. */
+  const Filter = ({ useInputProps }: { useInputProps: boolean }) =>
+    useInputProps ? (
+      <TextField
+        placeholder="Filter results…"
+        inputProps={{ 'aria-label': 'Filter these results by name, ChEMBL id or SMILES' }}
+        InputProps={{ startAdornment: <InputAdornment position="start">x</InputAdornment> }}
+      />
+    ) : (
+      <TextField
+        placeholder="Filter results…"
+        aria-label="Filter these results by name, ChEMBL id or SMILES"
+      />
+    );
+
+  it('names the input itself', () => {
+    render(<Filter useInputProps />);
+    expect(screen.getByRole('textbox', {
+      name: 'Filter these results by name, ChEMBL id or SMILES',
+    })).toBeInTheDocument();
+  });
+
+  it('shows why aria-label on the TextField is not enough', () => {
+    render(<Filter useInputProps={false} />);
+    expect(screen.queryByRole('textbox', {
+      name: 'Filter these results by name, ChEMBL id or SMILES',
+    })).not.toBeInTheDocument();
   });
 });

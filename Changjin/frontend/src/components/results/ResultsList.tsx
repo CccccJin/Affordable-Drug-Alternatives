@@ -191,9 +191,14 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <TextField
             size="small"
             placeholder="Filter results…"
-            aria-label="Filter these results by name, ChEMBL id or SMILES"
             value={searchQuery}
             onChange={handleSearchQueryChange}
+            // `inputProps`, not `aria-label` on the TextField: the latter lands
+            // on the outer FormControl and never reaches the <input>, so the
+            // field still announced as blank. Verified against the rendered DOM.
+            inputProps={{
+              'aria-label': 'Filter these results by name, ChEMBL id or SMILES',
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
