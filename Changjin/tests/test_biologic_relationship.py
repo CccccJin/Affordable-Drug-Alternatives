@@ -129,3 +129,67 @@ def test_the_exported_payload_records_where_B5_applies():
         )
         if group["ref"] is not None:
             assert any(m["g"] == "reference" for m in group["mem"])
+
+
+class TestBiologicSanityCheck:
+    """The sanity check must fail when the export and grade.py disagree.
+
+    A check that passes unconditionally is worse than no check: it reports
+    agreement it never looked for.
+    """
+
+    def test_the_committed_export_agrees_with_grade_py(self):
+        from subst_data.biologic_sanity import check
+
+        export = ROOT / "frontend" / "public" / "data" / "biologics.json"
+        db = ROOT / "subst_data" / "cache" / "substitutability.sqlite"
+        if not (export.exists() and db.exists()):
+            pytest.skip("run `python price_compare.py export-biologics`")
+
+        findings = check()["findings"]
+        assert findings == [], f"{len(findings)} disagreement(s): {findings[:3]}"
+
+    def test_it_notices_a_grade_the_rules_do_not_support(self, tmp_path):
+        """Corrupt one grade and the check must say so."""
+        import json
+
+        from subst_data.biologic_sanity import check
+
+        export = ROOT / "frontend" / "public" / "data" / "biologics.json"
+        db = ROOT / "subst_data" / "cache" / "substitutability.sqlite"
+        if not (export.exists() and db.exists()):
+            pytest.skip("run `python price_compare.py export-biologics`")
+
+        payload = json.loads(export.read_text(encoding="utf-8"))
+        family = next(g for g in payload["groups"]
+                      if any(m["g"] == "B" for m in g["mem"]))
+        member = next(m for m in family["mem"] if m["g"] == "B")
+        member["g"] = "A"          # claim a biosimilar is interchangeable
+        member["rule"] = "A3"
+
+        tampered = tmp_path / "biologics.json"
+        tampered.write_text(json.dumps(payload), encoding="utf-8")
+
+        findings = check(export_path=tampered)["findings"]
+        assert any(member["t"] in f for f in findings), (
+            "the check passed an export that contradicts grade.py"
+        )
+
+    def test_it_notices_an_unflagged_B5_family(self, tmp_path):
+        import json
+
+        from subst_data.biologic_sanity import check
+
+        export = ROOT / "frontend" / "public" / "data" / "biologics.json"
+        if not export.exists():
+            pytest.skip("run `python price_compare.py export-biologics`")
+
+        payload = json.loads(export.read_text(encoding="utf-8"))
+        family = next(g for g in payload["groups"] if g["b5"])
+        family["b5"] = False
+
+        tampered = tmp_path / "biologics.json"
+        tampered.write_text(json.dumps(payload), encoding="utf-8")
+
+        findings = check(export_path=tampered)["findings"]
+        assert any("b5=False" in f for f in findings)

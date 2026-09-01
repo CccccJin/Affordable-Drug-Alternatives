@@ -421,6 +421,11 @@ def _cmd_export_biologics(args):
     export_main()
 
 
+def _cmd_biologic_sanity(args):
+    from subst_data.biologic_sanity import main as sanity_main
+    sanity_main(output=args.output)
+
+
 def _cmd_sanity(args):
     from subst_data.sanity_check import main as sanity_main
     sanity_main(output=args.output)
@@ -455,6 +460,11 @@ def main(argv=None):
     xb = sub.add_parser("export-biologics",
                         help="write the Purple Book biologic export")
     xb.set_defaults(func=_cmd_export_biologics)
+
+    bs = sub.add_parser("biologic-sanity",
+                        help="check the biologic export against grade.py")
+    bs.add_argument("-o", "--output", default=None, help="output markdown path")
+    bs.set_defaults(func=_cmd_biologic_sanity)
 
     s = sub.add_parser("sanity", help="run the 20-pair brand/generic sanity check")
     s.add_argument("-o", "--output", default=None)
