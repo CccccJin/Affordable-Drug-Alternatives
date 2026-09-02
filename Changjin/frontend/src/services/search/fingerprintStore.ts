@@ -84,6 +84,75 @@ let inFlight: Promise<FingerprintCorpus> | null = null;
  */
 const DEFAULT_BLOB = 'fingerprints.bin';
 
+/**
+ * Bytes downloaded so far, for the caller to show.
+ *
+ * The corpus is about 7.5 MB gzipped between this blob and compounds.json.
+ * That is under half a second on a fast link and forty seconds at 1.5 Mbps,
+ * and for those forty seconds the page said "Searching compounds…" — which
+ * understates the wait and misattributes it, since nothing is being searched
+ * yet. `total` is 0 when the server sends no Content-Length, in which case the
+ * caller shows bytes rather than a percentage instead of inventing one.
+ */
+export interface LoadProgress {
+  loaded: number;
+  total: number;
+}
+
+type ProgressHandler = (progress: LoadProgress) => void;
+
+const listeners = new Set<ProgressHandler>();
+
+/** Subscribe to corpus download progress. Returns an unsubscribe function. */
+export const onCorpusProgress = (handler: ProgressHandler): (() => void) => {
+  listeners.add(handler);
+  return () => listeners.delete(handler);
+};
+
+const report = (progress: LoadProgress): void => {
+  for (const listener of listeners) listener(progress);
+};
+
+/**
+ * Read a response body, reporting progress as it arrives.
+ *
+ * Falls back to `arrayBuffer()` where streaming is unavailable — older Safari,
+ * and jsdom — so the only thing lost there is the progress, not the download.
+ */
+const readWithProgress = async (
+  response: Response,
+  onProgress: (loaded: number, total: number) => void
+): Promise<Uint8Array> => {
+  // Both guards are for shapes a real `Response` always has and a stand-in may
+  // not: 24 existing tests supply a body with no `headers`, and reading through
+  // them unguarded turned a progress feature into a search outage.
+  const total = Number(response.headers?.get?.('Content-Length')) || 0;
+  if (!response.body?.getReader) {
+    const buffer = new Uint8Array(await response.arrayBuffer());
+    onProgress(buffer.length, total || buffer.length);
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    loaded += value.length;
+    onProgress(loaded, total);
+  }
+
+  const out = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return out;
+};
+
 const fetchCorpus = async (): Promise<FingerprintCorpus> => {
   // Both requests go out together. Fetching metadata first and only then the
   // blob it names cost an extra round trip on the critical path of every
@@ -115,7 +184,8 @@ const fetchCorpus = async (): Promise<FingerprintCorpus> => {
     throw new Error(`Could not load ${descriptor.file} (${binaryResponse.status})`);
   }
 
-  const bits = new Uint8Array(await binaryResponse.arrayBuffer());
+  const bits = await readWithProgress(binaryResponse, (loaded, total) =>
+    report({ loaded, total }));
   const expected = descriptor.records * descriptor.bytes_per_record;
   if (bits.length !== expected) {
     // A truncated blob would still "work" and quietly mis-score every compound

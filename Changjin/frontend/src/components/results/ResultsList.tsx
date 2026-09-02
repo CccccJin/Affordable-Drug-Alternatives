@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  LinearProgress,
   Typography,
   Box,
   Alert,
@@ -24,6 +25,7 @@ import {
 import type { SearchResponse, Compound } from '../../types/api';
 import { CompoundCard } from './CompoundCard';
 import { useSubstitutabilitySummaries } from '../../hooks/useSubstitutabilitySummaries';
+import { useCorpusProgress } from '../../hooks/useCorpusProgress';
 import { ExportDialog } from '../export/ExportDialog';
 
 interface ResultsListProps {
@@ -62,6 +64,9 @@ const SkeletonCard: React.FC = () => (
   </Card>
 );
 
+/** Bytes as MB, because the corpus is measured in megabytes and always will be. */
+const formatBytes = (n: number): string => `${(n / 1024 / 1024).toFixed(1)} MB`;
+
 export const ResultsList: React.FC<ResultsListProps> = ({
   results,
   isLoading,
@@ -83,6 +88,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
   const shown = results?.results ?? [];
   const summaries = useSubstitutabilitySummaries(shown);
+  const corpusProgress = useCorpusProgress();
   const withData = shown.filter(c => summaries.has(c.chembl_id));
   const visible = onlySubstitutable ? withData : shown;
 
@@ -95,8 +101,19 @@ export const ResultsList: React.FC<ResultsListProps> = ({
     return (
       <Box aria-busy="true" aria-live="polite">
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Searching compounds… this may take a few moments.
+          {corpusProgress
+            ? `Downloading the compound library — ${formatBytes(corpusProgress.loaded)}${
+                corpusProgress.total ? ` of ${formatBytes(corpusProgress.total)}` : ''
+              }. This happens once; later searches reuse it.`
+            : 'Searching compounds… this may take a few moments.'}
         </Typography>
+        {corpusProgress && corpusProgress.total > 0 && (
+          <LinearProgress
+            variant="determinate"
+            value={Math.min(100, (corpusProgress.loaded / corpusProgress.total) * 100)}
+            sx={{ mb: 3, height: 4, borderRadius: 2 }}
+          />
+        )}
         <Box sx={RESULTS_GRID_SX}>
           {Array.from({ length: 6 }).map((_, index) => (
             <SkeletonCard key={index} />
