@@ -49,7 +49,7 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
   // computing with RDKit when it does not. Requesting them here means the
   // fallback is reserved for compounds genuinely missing a value, rather than
   // for every compound simply because the file had not been fetched.
-  useDescriptors();
+  useDescriptors(open);
   const [calculatedProperties, setCalculatedProperties] = useState<MoleculeProperties | null>(null);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
 

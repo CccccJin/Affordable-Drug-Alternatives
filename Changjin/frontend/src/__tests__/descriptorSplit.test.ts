@@ -17,6 +17,8 @@
  *    filtered.
  */
 import { jest } from '@jest/globals';
+import { readFileSync, readdirSync } from 'fs';
+import { join } from 'path';
 import {
   StaticSearchApi,
   loadDescriptors,
@@ -156,5 +158,43 @@ describe('filtering waits for what it filters on', () => {
   it('skips the wait when a filter object carries no actual bound', async () => {
     await StaticSearchApi.search({ smiles: 'CCO', filters: {} });
     expect(descriptorFetches).toBe(0);
+  });
+});
+
+describe('nobody pulls the descriptors back onto the search path', () => {
+  /* The split works only if the callers ask at the right moment.
+     `CompoundDetails` is mounted behind every results page with `open={false}`,
+     so an unconditional `useDescriptors()` there fetched the file on every
+     search and undid the whole change — invisible to the tests above, which
+     drive the API directly, and caught by watching the deployed page's network
+     requests. Asserting on the call sites is what holds it. */
+  const read = (...parts: string[]) =>
+    readFileSync(join(process.cwd(), ...parts), 'utf8');
+
+  it('asks only while the details dialog is open', () => {
+    const source = read('src', 'components', 'results', 'CompoundDetails.tsx');
+    expect(source).toMatch(/useDescriptors\(open\)/);
+    expect(source).not.toMatch(/useDescriptors\(\s*\)/);
+  });
+
+  it('has no unconditional caller outside the Analytics tab', () => {
+    /* AnalyticsDashboard may ask unconditionally: it is rendered only when the
+       tab is selected, and every chart in it plots a descriptor. */
+    const allowed = new Set(['AnalyticsDashboard.tsx']);
+    const roots = [
+      ['src', 'components', 'results'],
+      ['src', 'components', 'search'],
+      ['src', 'components', 'alternatives'],
+    ];
+    const offenders: string[] = [];
+    for (const root of roots) {
+      const dir = join(process.cwd(), ...root);
+      for (const name of readdirSync(dir)) {
+        if (!name.endsWith('.tsx') || allowed.has(name)) continue;
+        const src = readFileSync(join(dir, name), 'utf8');
+        if (/useDescriptors\(\s*\)/.test(src)) offenders.push(name);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });
