@@ -17,6 +17,7 @@ import {
   Paper,
 } from '@mui/material';
 import type { Compound } from '../../types/api';
+import { useDescriptors } from '../../hooks/useDescriptors';
 import { formatSimilarity } from '../../services/utils/formatting';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { useRDKit } from '../../hooks/useRDKit';
@@ -44,6 +45,11 @@ export const CompoundDetails: React.FC<CompoundDetailsProps> = ({
   onClose,
 }) => {
   const { getMoleculeProperties, isLoading: rdkitLoading } = useRDKit();
+  // The dialog shows the corpus descriptors when it has them and falls back to
+  // computing with RDKit when it does not. Requesting them here means the
+  // fallback is reserved for compounds genuinely missing a value, rather than
+  // for every compound simply because the file had not been fetched.
+  useDescriptors();
   const [calculatedProperties, setCalculatedProperties] = useState<MoleculeProperties | null>(null);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
 

@@ -4,16 +4,7 @@
   "fields": [
     "id",
     "n",
-    "s",
-    "mw",
-    "lp",
-    "psa",
-    "hbd",
-    "hba",
-    "rtb",
-    "ar",
-    "ha",
-    "cns"
+    "s"
   ],
   "notes": [
     "Static export for GitHub Pages; no local database or API required.",
@@ -46,5 +37,21 @@
     "cns_mpo": "cns"
   },
   "selection": "Every ChEMBL compound carrying a synonym, ordered so that anything the FDA Orange/Purple Book exports can adjudicate comes first. The 2.39M unnamed screening entries are excluded: nobody searches for them by name.",
-  "generated": "2026-09-01"
+  "generated": "2026-09-01",
+  "descriptors": {
+    "file": "descriptors.json",
+    "fields": [
+      "mw",
+      "lp",
+      "psa",
+      "hbd",
+      "hba",
+      "rtb",
+      "ar",
+      "ha",
+      "cns"
+    ],
+    "records": 84818,
+    "note": "Row-aligned with compounds.json: rows[i] describes compounds[i]. Loaded only when something needs a descriptor."
+  }
 }

@@ -55,25 +55,48 @@ type StaticCompoundRecord = Omit<Compound, 'similarity'>;
  */
 interface WireCompound {
   id: string; n: string | null; s: string;
-  mw?: number; lp?: number; psa?: number;
-  hbd?: number; hba?: number; rtb?: number;
-  ar?: number; ha?: number; cns?: number;
+}
+
+/**
+ * Wire format of descriptors.json.
+ *
+ * Row-aligned with compounds.json rather than keyed by id: `rows[i]` describes
+ * `compounds[i]`. Repeating nine key names across 84,818 records would cost
+ * 0.26 MB gzipped to say nothing, and an id per row another 0.9 MB.
+ */
+interface WireDescriptors {
+  fields: string[];
+  rows: (number | null)[][];
 }
 
 const expandCompound = (c: WireCompound): StaticCompoundRecord => ({
   chembl_id: c.id,
   pref_name: c.n,
   smiles: c.s,
-  molecular_weight: c.mw ?? null,
-  logp: c.lp ?? null,
-  polar_surface_area: c.psa ?? null,
-  h_bond_donors: c.hbd ?? null,
-  h_bond_acceptors: c.hba ?? null,
-  rotatable_bonds: c.rtb ?? null,
-  aromatic_rings: c.ar ?? null,
-  heavy_atoms: c.ha ?? null,
-  cns_mpo: c.cns ?? null,
+  // Descriptors arrive separately and are merged in by `loadDescriptors`.
+  molecular_weight: null,
+  logp: null,
+  polar_surface_area: null,
+  h_bond_donors: null,
+  h_bond_acceptors: null,
+  rotatable_bonds: null,
+  aromatic_rings: null,
+  heavy_atoms: null,
+  cns_mpo: null,
 });
+
+/** Wire key -> the field it becomes on a Compound. */
+const DESCRIPTOR_FIELDS: Record<string, keyof StaticCompoundRecord> = {
+  mw: 'molecular_weight',
+  lp: 'logp',
+  psa: 'polar_surface_area',
+  hbd: 'h_bond_donors',
+  hba: 'h_bond_acceptors',
+  rtb: 'rotatable_bonds',
+  ar: 'aromatic_rings',
+  ha: 'heavy_atoms',
+  cns: 'cns_mpo',
+};
 
 /**
  * The corpus plus the indices every lookup needs.
@@ -98,6 +121,8 @@ interface CompoundCorpus {
 }
 
 let compoundsCache: CompoundCorpus | null = null;
+let descriptorsLoaded = false;
+let descriptorsInFlight: Promise<void> | null = null;
 
 // Vite injects import.meta.env at build time; under Jest it is undefined, so
 // fall back to the site root rather than throwing on a property of undefined.
@@ -156,6 +181,64 @@ const loadCompounds = async (): Promise<CompoundCorpus> => {
 };
 
 /**
+ * Merge the RDKit descriptors into the corpus already in memory.
+ *
+ * They live in their own file because they are 43% of what compounds.json used
+ * to weigh — 1.0 MB gzipped of 3.6 — and the search path never reads one. A
+ * first search downloads 5.65 MB instead of 7.18 MB, and this arrives later,
+ * only for the things that actually need it: the property filters, the
+ * Analytics charts and the details dialog.
+ *
+ * Merging in place rather than returning a second structure means every search
+ * after the load carries descriptors without any caller knowing there were two
+ * files.
+ */
+export const loadDescriptors = async (): Promise<void> => {
+  if (descriptorsLoaded) return;
+  if (descriptorsInFlight) return descriptorsInFlight;
+
+  descriptorsInFlight = (async () => {
+    const corpus = await loadCompounds();
+    const response = await fetch(`${baseUrl()}data/descriptors.json`);
+    if (!response.ok) {
+      throw new Error(`Could not load descriptors (${response.status})`);
+    }
+    const payload = (await response.json()) as WireDescriptors;
+
+    if (payload.rows.length !== corpus.records.length) {
+      // Row alignment is the whole contract between the two files. A mismatch
+      // would silently describe every compound with another compound's
+      // properties, so refuse rather than merge.
+      throw new Error(
+        `descriptors.json has ${payload.rows.length} rows but compounds.json ` +
+          `has ${corpus.records.length} records; regenerate both with ` +
+          '`python select_demo_compounds.py`'
+      );
+    }
+
+    const targets = payload.fields.map(f => DESCRIPTOR_FIELDS[f]);
+    for (let i = 0; i < payload.rows.length; i += 1) {
+      const row = payload.rows[i];
+      const record = corpus.records[i] as unknown as Record<string, unknown>;
+      for (let f = 0; f < targets.length; f += 1) {
+        const field = targets[f];
+        if (field) record[field] = row[f] ?? null;
+      }
+    }
+    descriptorsLoaded = true;
+  })();
+
+  try {
+    await descriptorsInFlight;
+  } finally {
+    descriptorsInFlight = null;
+  }
+};
+
+/** Whether descriptors are already in memory. */
+export const hasDescriptors = (): boolean => descriptorsLoaded;
+
+/**
  * The corpus row a query names outright, or -1.
  *
  * Matching is exact — normalised case and whitespace, nothing more — because
@@ -176,7 +259,23 @@ const exactCorpusRow = (corpus: CompoundCorpus, query: string): number => {
 /** Exposed for tests; resets the module-level corpus, like its siblings. */
 export const __resetCompoundsCache = (): void => {
   compoundsCache = null;
+  descriptorsLoaded = false;
+  descriptorsInFlight = null;
 };
+
+/**
+ * Whether any property filter is actually set.
+ *
+ * A filter compares against a descriptor, and an unloaded descriptor is null,
+ * which `filterRejection` treats as "cannot judge, so keep". Searching with
+ * filters before the descriptors arrive would therefore return everything and
+ * report that nothing was filtered — wrong, and quietly so. The search awaits
+ * the descriptors when this is true and skips the wait when it is not.
+ */
+const hasActiveFilter = (filters?: PropertyFilters): boolean =>
+  Boolean(filters) &&
+  Object.values(filters as Record<string, unknown>)
+    .some(v => v !== undefined && v !== null && v !== '');
 
 /**
  * Resolve a query to a Morgan fingerprint of the corpus's geometry.
@@ -398,6 +497,11 @@ export class StaticSearchApi {
   static async search(request: SearchRequest): Promise<SearchResponse> {
     const threshold = request.threshold ?? DEFAULT_SIMILARITY_THRESHOLD;
     const maxResults = request.max_results ?? 50;
+
+    // A filter compares against a descriptor, and descriptors now arrive in
+    // their own file. Without this the filters would see null everywhere,
+    // keep every compound, and report that nothing had been filtered.
+    if (hasActiveFilter(request.filters)) await loadDescriptors();
 
     const { compounds, scores, corpus } = await scoreAgainstCorpus(request.smiles);
 

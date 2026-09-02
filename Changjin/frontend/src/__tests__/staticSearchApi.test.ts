@@ -68,17 +68,24 @@ const { __resetFingerprintCache } = await import('../services/search/fingerprint
 // at its parse boundary, so the fixture must be in the wire format the fetch
 // mock is standing in for.
 const COMPOUNDS = [
-  {
-    id: 'CHEMBL545', n: 'ETHANOL', s: 'CCO',
-    mw: 46.07, lp: -0.0014, psa: 20.23,
-    hbd: 1, hba: 1, rtb: 0, ar: 0, ha: 3, cns: 4,
-  },
-  {
-    id: 'CHEMBL25', n: 'ASPIRIN', s: 'CC(=O)Oc1ccccc1C(=O)O',
-    mw: 180.16, lp: 1.31, psa: 63.6,
-    hbd: 1, hba: 3, rtb: 2, ar: 1, ha: 13, cns: 4,
-  },
+  { id: 'CHEMBL545', n: 'ETHANOL', s: 'CCO' },
+  { id: 'CHEMBL25', n: 'ASPIRIN', s: 'CC(=O)Oc1ccccc1C(=O)O' },
 ];
+
+/**
+ * descriptors.json: row-aligned with COMPOUNDS, not keyed by id.
+ *
+ * The descriptors moved out of compounds.json because they are 1.0 MB gzipped
+ * that no search path reads. `rows[i]` describes `COMPOUNDS[i]`, and that
+ * alignment is the entire contract between the two files.
+ */
+const DESCRIPTORS = {
+  fields: ['mw', 'lp', 'psa', 'hbd', 'hba', 'rtb', 'ar', 'ha', 'cns'],
+  rows: [
+    [46.07, -0.0014, 20.23, 1, 1, 0, 0, 3, 4],   // ETHANOL
+    [180.16, 1.31, 63.6, 1, 3, 2, 1, 13, 4],     // ASPIRIN
+  ],
+};
 
 const metadata = {
   fingerprints: {
@@ -107,6 +114,9 @@ beforeEach(() => {
     }
     if (href.endsWith('compounds.json')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve(COMPOUNDS) });
+    }
+    if (href.endsWith('descriptors.json')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(DESCRIPTORS) });
     }
     return Promise.resolve({
       ok: true,
@@ -219,6 +229,9 @@ describe('StaticSearchApi.search', () => {
       }
       if (href.endsWith('compounds.json')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve(COMPOUNDS) });
+      }
+      if (href.endsWith('descriptors.json')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(DESCRIPTORS) });
       }
       return Promise.resolve({
         ok: true,

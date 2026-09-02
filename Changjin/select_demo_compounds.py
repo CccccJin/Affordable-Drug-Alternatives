@@ -135,16 +135,44 @@ def select(limit: int | None = None, source: Path = SOURCE) -> list[dict]:
     return out
 
 
+#: Identity, and the only fields a search or a result card reads.
+CORE_KEYS = ("chembl_id", "pref_name", "smiles")
+
+#: RDKit descriptors. Split into their own file because they are 43% of the
+#: payload and the search path never touches them: they are read by the
+#: property filters, the Analytics charts and the details dialog, none of which
+#: a visitor reaches before their first result. Written row-aligned with
+#: compounds.json — index i in one is index i in the other — because repeating
+#: nine key names across 84,818 records costs 0.26 MB gzipped on its own.
+DESCRIPTOR_KEYS = ("molecular_weight", "logp", "polar_surface_area",
+                   "h_bond_donors", "h_bond_acceptors", "rotatable_bonds",
+                   "aromatic_rings", "heavy_atoms", "cns_mpo")
+
+
 def write(compounds: list[dict]) -> None:
-    wire = [{WIRE[k]: v for k, v in c.items()} for c in compounds]
+    core = [{WIRE[k]: c.get(k) for k in CORE_KEYS} for c in compounds]
     out = DATA / "compounds.json"
-    out.write_text(json.dumps(wire, separators=(",", ":")), encoding="utf-8")
+    out.write_text(json.dumps(core, separators=(",", ":")), encoding="utf-8")
+
+    rows = [[c.get(k) for k in DESCRIPTOR_KEYS] for c in compounds]
+    desc_out = DATA / "descriptors.json"
+    desc_out.write_text(
+        json.dumps({"fields": [WIRE[k] for k in DESCRIPTOR_KEYS], "rows": rows},
+                   separators=(",", ":")),
+        encoding="utf-8")
 
     metadata = json.loads((DATA / "metadata.json").read_text(encoding="utf-8"))
     metadata["source"] = "ChEMBL 35 export (chembl_export.csv)"
     metadata["records"] = len(compounds)
-    metadata["fields"] = list(WIRE.values())
+    metadata["fields"] = [WIRE[k] for k in CORE_KEYS]
     metadata["field_names"] = WIRE
+    metadata["descriptors"] = {
+        "file": "descriptors.json",
+        "fields": [WIRE[k] for k in DESCRIPTOR_KEYS],
+        "records": len(compounds),
+        "note": ("Row-aligned with compounds.json: rows[i] describes "
+                 "compounds[i]. Loaded only when something needs a descriptor."),
+    }
     metadata["selection"] = (
         "Every ChEMBL compound carrying a synonym, ordered so that anything the "
         "FDA Orange/Purple Book exports can adjudicate comes first. The 2.39M "
@@ -155,9 +183,10 @@ def write(compounds: list[dict]) -> None:
                                         encoding="utf-8")
 
     import gzip
-    raw = out.stat().st_size
-    gz = len(gzip.compress(out.read_bytes(), 6))
-    print(f"  wrote {out.name}: {raw / 1e6:.1f} MB raw, {gz / 1e6:.1f} MB gzipped")
+    for path in (out, desc_out):
+        raw = path.stat().st_size
+        gz = len(gzip.compress(path.read_bytes(), 6))
+        print(f"  wrote {path.name}: {raw / 1e6:.1f} MB raw, {gz / 1e6:.1f} MB gzipped")
 
 
 def main(argv=None) -> int:

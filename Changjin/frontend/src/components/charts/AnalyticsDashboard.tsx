@@ -7,6 +7,7 @@ import { useSubstitutabilitySummaries } from '../../hooks/useSubstitutabilitySum
 import { substitutabilityQueryKey } from '../../hooks/useSubstitutability';
 import { loadSubstitutability } from '../../services/api/substitutabilityApi';
 import { spreadRowsFor } from './spreadData';
+import { useDescriptors } from '../../hooks/useDescriptors';
 import { PriceSpread } from './PriceSpread';
 import type { Compound } from '../../types/api';
 
@@ -65,6 +66,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // Same query key and staleTime as the summaries hook, so React Query serves
   // both from one fetch rather than pulling the 166 KB payload twice.
+  // The structural charts below plot molecular weight, which now arrives in a
+  // separate file. Asking for it here starts the fetch as soon as the tab is
+  // opened rather than when a chart first renders.
+  const descriptors = useDescriptors();
+
   const substitutability = useQuery({
     queryKey: substitutabilityQueryKey,
     queryFn: loadSubstitutability,
@@ -164,10 +170,20 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         How these results are shaped as molecules, which is a separate question
         from whether any of them may be substituted for another.
       </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { lg: '1fr 1fr' }, gap: 3 }}>
-        <PropertyDistributionChart compounds={compounds} />
-        <ClusteringVisualization compounds={compounds} />
-      </Box>
+      {descriptors.error ? (
+        <Typography variant="body2" color="text.secondary">
+          Molecular properties could not be loaded: {descriptors.error}
+        </Typography>
+      ) : !descriptors.ready ? (
+        <Typography variant="body2" color="text.secondary">
+          Loading molecular properties…
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { lg: '1fr 1fr' }, gap: 3 }}>
+          <PropertyDistributionChart compounds={compounds} />
+          <ClusteringVisualization compounds={compounds} />
+        </Box>
+      )}
     </Box>
   );
 };

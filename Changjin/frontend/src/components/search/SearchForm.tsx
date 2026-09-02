@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
 import {
+  Link as MuiLink,
   TextField,
   Button,
   Box,
@@ -21,7 +22,7 @@ import {
   TuneOutlined as TuneIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import type { RootState } from '../../store/store';
 import {
   setFilters,
@@ -162,8 +163,14 @@ export const SearchForm: React.FC = () => {
           </Typography>
         </Box>
 
+        {/* "Find affordable drug alternatives" promised a consumer price
+            comparison. This is a cheminformatics tool: it scores structural
+            similarity and looks up what FDA has published, and the results page
+            says in as many words that similarity is not substitutability. A
+            headline that promises the other thing sets a visitor up to read
+            every number on the site as advice about their own medication. */}
         <Typography variant="h1" component="h1" sx={{ mb: 2.5 }}>
-          Find{' '}
+          Search{' '}
           <Box
             component="em"
             sx={{
@@ -177,9 +184,9 @@ export const SearchForm: React.FC = () => {
               pr: '0.06em',
             }}
           >
-            affordable
+            chemical
           </Box>{' '}
-          drug alternatives
+          similarity
         </Typography>
 
         <Typography
@@ -191,9 +198,13 @@ export const SearchForm: React.FC = () => {
             mx: 'auto',
           }}
         >
-          Search {corpusSize ? corpusSize.toLocaleString() : 'the'} named ChEMBL
-          compounds by structure or name. Similarity is a real Morgan/Tanimoto
-          computation, run in your browser.
+          {corpusSize ? corpusSize.toLocaleString() : 'Named'} ChEMBL compounds,
+          scored by Morgan/Tanimoto fingerprint in your browser. For what FDA
+          rates substitutable, and what CMS publishes it costs, use the{' '}
+          <MuiLink component={RouterLink} to="/alternatives">
+            therapeutic equivalence lookup
+          </MuiLink>
+          . Neither is medical advice.
         </Typography>
       </Box>
 
