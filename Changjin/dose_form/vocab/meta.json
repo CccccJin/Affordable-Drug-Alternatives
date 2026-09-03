@@ -1,0 +1,20 @@
+{
+  "snapshot_date": "2026-09-03",
+  "note": "Vocabularies are data, not code: updating a table must not require a code change. Every row carries the source it was derived from.",
+  "tables": {
+    "basic_dose_form.csv":      {"facet": "basic_dose_form",      "authority": "EDQM Standard Terms (ISO 11239) basic dose form"},
+    "release.csv":              {"facet": "release",              "authority": "EDQM Standard Terms release characteristics"},
+    "transformation.csv":       {"facet": "transformation",       "authority": "EDQM Standard Terms transformation"},
+    "intended_site.csv":        {"facet": "intended_site",        "authority": "EDQM Standard Terms intended site"},
+    "administration_method.csv":{"facet": "administration_method","authority": "EDQM Standard Terms administration method"},
+    "carrier.csv":              {"facet": "carrier",              "authority": "PROJECT EXTENSION - not an EDQM characteristic; see design.md 2.2"},
+    "moiety_release.csv":       {"facet": "release (suppression)", "authority": "SNOMED International EDQM to SNOMED CT Dose Form Map Guide, 4.1"},
+    "unit.csv":                 {"facet": "strength units",       "authority": "conventional SI / USP units"}
+  },
+  "provenance": {
+    "EDQM Standard Terms": "https://standardterms.edqm.eu/",
+    "SNOMED EDQM Dose Form Map Guide 4.1": "https://docs.snomed.org/implementation-guides/edqm-to-snomed-ct-dose-form-map-guide/4-mapping-principles/4.1-the-semantics-of-the-source-and-target-dose-forms",
+    "Ahnfelt et al. 2025": "https://doi.org/10.1007/s43441-025-00838-3",
+    "RxNorm TTY appendix": "https://www.nlm.nih.gov/research/umls/rxnorm/docs/appendix5.html"
+  }
+}

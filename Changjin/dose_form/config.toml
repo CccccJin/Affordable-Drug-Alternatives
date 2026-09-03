@@ -1,0 +1,12 @@
+# Tunables. Nothing here may be duplicated as a literal in the code.
+
+[strength]
+# Strength is an exactly expressible quantity. A loose tolerance does not make
+# the system kinder, it hides parse errors, so the default is strict.
+relative_tolerance = 1e-6
+absolute_tolerance_mg = 0.0
+
+[dose_form]
+# Basic dose forms that may be interchangeable but must never be silently
+# equated. Each pair is downgraded to EQUIVALENT_WITH_CAVEAT by rule R-08.
+downgrade_pairs = [["tablet", "capsule"]]
