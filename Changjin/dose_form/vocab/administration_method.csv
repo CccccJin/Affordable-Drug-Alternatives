@@ -1,0 +1,15 @@
+pattern,value,source,snapshot_date
+ORAL,swallowing,EDQM administration method,2026-09-03
+INTRAVENOUS,injection,EDQM administration method,2026-09-03
+INTRAMUSCULAR,injection,EDQM administration method,2026-09-03
+SUBCUTANEOUS,injection,EDQM administration method,2026-09-03
+INJECTION,injection,EDQM administration method,2026-09-03
+OPHTHALMIC,instillation,EDQM administration method,2026-09-03
+OTIC,instillation,EDQM administration method,2026-09-03
+NASAL,instillation,EDQM administration method,2026-09-03
+TOPICAL,application,EDQM administration method,2026-09-03
+TRANSDERMAL,application,EDQM administration method,2026-09-03
+INHALATION,inhalation,EDQM administration method,2026-09-03
+SUBLINGUAL,sublingual use,EDQM administration method,2026-09-03
+CHEWABLE,chewing,EDQM administration method; from the dose form string not the route,2026-09-03
+EFFERVESCENT,dispersion before use,EDQM administration method; from the dose form string,2026-09-03

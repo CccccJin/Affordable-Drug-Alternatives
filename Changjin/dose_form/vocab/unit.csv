@@ -1,0 +1,16 @@
+unit,canonical,factor,source,snapshot_date
+MG,MG,1,mass,2026-09-03
+G,MG,1000,mass,2026-09-03
+GM,MG,1000,mass,2026-09-03
+MCG,MG,0.001,mass,2026-09-03
+UG,MG,0.001,mass,2026-09-03
+KG,MG,1000000,mass,2026-09-03
+ML,ML,1,volume,2026-09-03
+L,ML,1000,volume,2026-09-03
+CC,ML,1,volume,2026-09-03
+UNIT,UNITS,1,activity,2026-09-03
+UNITS,UNITS,1,activity,2026-09-03
+IU,UNITS,1,activity,2026-09-03
+U,UNITS,1,activity,2026-09-03
+MEQ,MEQ,1,amount of substance,2026-09-03
+MMOL,MMOL,1,amount of substance,2026-09-03

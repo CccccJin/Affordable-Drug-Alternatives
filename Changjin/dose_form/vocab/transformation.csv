@@ -1,0 +1,6 @@
+pattern,value,source,snapshot_date
+FOR SUSPENSION,for_suspension,EDQM transformation,2026-09-03
+FOR SOLUTION,for_solution,EDQM transformation,2026-09-03
+FOR INJECTION,for_injection,EDQM transformation,2026-09-03
+FOR RECONSTITUTION,for_reconstitution,EDQM transformation,2026-09-03
+FOR INHALATION SOLUTION,for_solution,EDQM transformation,2026-09-03

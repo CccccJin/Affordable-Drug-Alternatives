@@ -1,0 +1,52 @@
+pattern,value,source,snapshot_date
+TABLET,tablet,EDQM basic dose form,2026-09-03
+CAPSULE,capsule,EDQM basic dose form,2026-09-03
+SOLUTION,solution,EDQM basic dose form,2026-09-03
+SUSPENSION,suspension,EDQM basic dose form,2026-09-03
+INJECTABLE,injection,EDQM basic dose form,2026-09-03
+INJECTION,injection,EDQM basic dose form,2026-09-03
+CREAM,cream,EDQM basic dose form,2026-09-03
+OINTMENT,ointment,EDQM basic dose form,2026-09-03
+GEL,gel,EDQM basic dose form,2026-09-03
+LOTION,lotion,EDQM basic dose form,2026-09-03
+PATCH,patch,EDQM basic dose form,2026-09-03
+FILM,film,EDQM basic dose form,2026-09-03
+POWDER,powder,EDQM basic dose form,2026-09-03
+GRANULE,granule,EDQM basic dose form,2026-09-03
+SUPPOSITORY,suppository,EDQM basic dose form,2026-09-03
+SYRUP,syrup,EDQM basic dose form,2026-09-03
+ELIXIR,elixir,EDQM basic dose form,2026-09-03
+IMPLANT,implant,EDQM basic dose form,2026-09-03
+INSERT,insert,EDQM basic dose form,2026-09-03
+SPRAY,spray,EDQM basic dose form,2026-09-03
+AEROSOL,aerosol,EDQM basic dose form,2026-09-03
+FOAM,foam,EDQM basic dose form,2026-09-03
+PASTE,paste,EDQM basic dose form,2026-09-03
+SHAMPOO,shampoo,EDQM basic dose form,2026-09-03
+EMULSION,emulsion,EDQM basic dose form,2026-09-03
+PELLET,pellet,EDQM basic dose form,2026-09-03
+TROCHE/LOZENGE,lozenge,Orange Book DF string,2026-09-03
+LOZENGE,lozenge,EDQM basic dose form,2026-09-03
+DRUG-ELUTING CONTACT LENS,ocular insert,Orange Book DF string observed in products.txt,2026-09-03
+INTRAUTERINE DEVICE,intrauterine device,Orange Book DF string observed in products.txt,2026-09-03
+GUM CHEWING,chewing gum,Orange Book DF string observed in products.txt,2026-09-03
+BAR,bar,Orange Book DF string observed in products.txt,2026-09-03
+CLOTH,cloth,Orange Book DF string observed in products.txt,2026-09-03
+CONCENTRATE,concentrate,Orange Book DF string observed in products.txt,2026-09-03
+DISC,disc,Orange Book DF string observed in products.txt,2026-09-03
+DRESSING,dressing,Orange Book DF string observed in products.txt,2026-09-03
+ENEMA,enema,Orange Book DF string observed in products.txt,2026-09-03
+FIBER,fibre,Orange Book DF string observed in products.txt,2026-09-03
+GAS,gas,Orange Book DF string observed in products.txt,2026-09-03
+INHALANT,inhalant,Orange Book DF string observed in products.txt,2026-09-03
+JELLY,jelly,Orange Book DF string observed in products.txt,2026-09-03
+LIQUID,liquid,Orange Book DF string observed in products.txt,2026-09-03
+OIL,oil,Orange Book DF string observed in products.txt,2026-09-03
+PASTILLE,pastille,Orange Book DF string observed in products.txt,2026-09-03
+RING,ring,Orange Book DF string observed in products.txt,2026-09-03
+SOAP,soap,Orange Book DF string observed in products.txt,2026-09-03
+SPONGE,sponge,Orange Book DF string observed in products.txt,2026-09-03
+SWAB,swab,Orange Book DF string observed in products.txt,2026-09-03
+SYSTEM,delivery system,Orange Book DF string observed in products.txt,2026-09-03
+TAMPON,tampon,Orange Book DF string observed in products.txt,2026-09-03
+TAPE,tape,Orange Book DF string observed in products.txt,2026-09-03

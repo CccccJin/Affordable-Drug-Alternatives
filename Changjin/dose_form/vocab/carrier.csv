@@ -1,0 +1,7 @@
+pattern,value,source,snapshot_date
+LIPOSOMAL,liposomal,Orange Book DF string; project extension,2026-09-03
+LIPOSOME,liposomal,Orange Book DF string; project extension,2026-09-03
+LIPID COMPLEX,lipid_complex,Orange Book DF string; project extension,2026-09-03
+NANOPARTICLE,nanoparticle,Orange Book DF string; project extension,2026-09-03
+PROTEIN-BOUND,nanoparticle,Orange Book DF string; project extension,2026-09-03
+PEGYLATED,pegylated,project extension,2026-09-03

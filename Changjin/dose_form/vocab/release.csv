@@ -1,0 +1,16 @@
+pattern,value,source,snapshot_date
+DELAYED RELEASE,delayed,EDQM release characteristics,2026-09-03
+DELAYED REL,delayed,Orange Book abbreviation,2026-09-03
+ENTERIC COATED,delayed,EDQM synonym; gastro-resistant,2026-09-03
+ENTERIC-COATED,delayed,EDQM synonym; gastro-resistant,2026-09-03
+GASTRO-RESISTANT,delayed,EDQM Standard Terms,2026-09-03
+GASTRO RESISTANT,delayed,EDQM Standard Terms,2026-09-03
+EXTENDED RELEASE,prolonged,EDQM release characteristics,2026-09-03
+EXTENDED REL,prolonged,Orange Book abbreviation,2026-09-03
+PROLONGED RELEASE,prolonged,EDQM release characteristics,2026-09-03
+SUSTAINED RELEASE,prolonged,EDQM synonym,2026-09-03
+CONTROLLED RELEASE,prolonged,EDQM synonym,2026-09-03
+MODIFIED RELEASE,prolonged,EDQM release characteristics,2026-09-03
+PULSATILE RELEASE,pulsatile,EDQM release characteristics,2026-09-03
+IMMEDIATE RELEASE,conventional,EDQM release characteristics,2026-09-03
+ORALLY DISINTEGRATING,conventional,EDQM; ODT is immediate release,2026-09-03

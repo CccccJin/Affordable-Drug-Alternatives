@@ -202,17 +202,38 @@ class TestSymmetry:
 class TestVocabulariesAreData:
     """Updating a vocabulary must never require touching the code."""
 
+    #: The tables `meta.json` promises. Named rather than globbed, because a
+    #: glob over a directory with no CSVs in it iterates nothing and the test
+    #: passes vacuously — which is exactly what happened: a blanket `*.csv`
+    #: rule in .gitignore shipped the package with an empty vocab directory,
+    #: every local test passed, and CI could not load a single table.
+    REQUIRED_TABLES = (
+        "basic_dose_form.csv", "release.csv", "transformation.csv",
+        "intended_site.csv", "administration_method.csv", "carrier.csv",
+        "moiety_release.csv", "unit.csv",
+    )
+
+    def test_every_promised_table_is_present(self):
+        import json
+
+        vocab = ROOT / "dose_form" / "vocab"
+        declared = set(json.loads((vocab / "meta.json").read_text())["tables"])
+        assert declared == set(self.REQUIRED_TABLES), (
+            "meta.json and this test disagree about which tables exist")
+        missing = [n for n in self.REQUIRED_TABLES if not (vocab / n).exists()]
+        assert missing == [], f"vocabulary tables not shipped: {missing}"
+
     def test_every_table_carries_its_source_and_snapshot(self):
         import csv
 
         vocab = ROOT / "dose_form" / "vocab"
-        for path in sorted(vocab.glob("*.csv")):
-            with path.open(encoding="utf-8") as fh:
+        for name in self.REQUIRED_TABLES:
+            with (vocab / name).open(encoding="utf-8") as fh:
                 rows = list(csv.DictReader(fh))
-            assert rows, f"{path.name} is empty"
+            assert rows, f"{name} is empty"
             for row in rows:
-                assert row.get("source"), f"{path.name} has a row with no source"
-                assert row.get("snapshot_date"), f"{path.name}: no snapshot_date"
+                assert row.get("source"), f"{name} has a row with no source"
+                assert row.get("snapshot_date"), f"{name}: no snapshot_date"
 
     def test_a_new_synonym_needs_no_code_change(self, tmp_path, monkeypatch):
         """Add a row, get the behaviour; nothing recompiled, nothing edited."""

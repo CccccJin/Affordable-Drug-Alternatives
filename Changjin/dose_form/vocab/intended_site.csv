@@ -1,0 +1,51 @@
+pattern,value,source,snapshot_date
+ORAL,oral,EDQM intended site,2026-09-03
+INTRAVENOUS,intravenous,EDQM intended site,2026-09-03
+INTRAMUSCULAR,intramuscular,EDQM intended site,2026-09-03
+SUBCUTANEOUS,subcutaneous,EDQM intended site,2026-09-03
+INJECTION,parenteral,Orange Book route; unspecified parenteral,2026-09-03
+OPHTHALMIC,ophthalmic,EDQM intended site,2026-09-03
+OTIC,otic,EDQM intended site,2026-09-03
+NASAL,nasal,EDQM intended site,2026-09-03
+TOPICAL,topical,EDQM intended site,2026-09-03
+TRANSDERMAL,transdermal,EDQM intended site,2026-09-03
+RECTAL,rectal,EDQM intended site,2026-09-03
+VAGINAL,vaginal,EDQM intended site,2026-09-03
+INHALATION,inhalation,EDQM intended site,2026-09-03
+SUBLINGUAL,sublingual,EDQM intended site,2026-09-03
+BUCCAL,buccal,EDQM intended site,2026-09-03
+INTRATHECAL,intrathecal,EDQM intended site,2026-09-03
+IRRIGATION URETHRAL,urethral,Orange Book Route string observed in products.txt,2026-09-03
+PERFUSION BILIARY,biliary,Orange Book Route string observed in products.txt,2026-09-03
+PERFUSION CARDIAC,cardiac,Orange Book Route string observed in products.txt,2026-09-03
+INTRALYMPHATIC INTRAUTERINE,multiple,Orange Book Route string observed in products.txt,2026-09-03
+IONTOPHORESIS TRANSDERMAL,transdermal,Orange Book Route string observed in products.txt,2026-09-03
+DENTAL,dental,Orange Book Route string observed in products.txt,2026-09-03
+ENDOCERVICAL,endocervical,Orange Book Route string observed in products.txt,2026-09-03
+ENTERAL,enteral,Orange Book Route string observed in products.txt,2026-09-03
+EPIDURAL,epidural,Orange Book Route string observed in products.txt,2026-09-03
+IMPLANTATION,implantation,Orange Book Route string observed in products.txt,2026-09-03
+INFILTRATION,infiltration,Orange Book Route string observed in products.txt,2026-09-03
+INTRA-ANAL,anal,Orange Book Route string observed in products.txt,2026-09-03
+INTRA-ARTERIAL,intra-arterial,Orange Book Route string observed in products.txt,2026-09-03
+INTRA-ARTICULAR,intra-articular,Orange Book Route string observed in products.txt,2026-09-03
+INTRACAMERAL,intracameral,Orange Book Route string observed in products.txt,2026-09-03
+INTRACRANIAL,intracranial,Orange Book Route string observed in products.txt,2026-09-03
+INTRADERMAL,intradermal,Orange Book Route string observed in products.txt,2026-09-03
+INTRAOCULAR,intraocular,Orange Book Route string observed in products.txt,2026-09-03
+INTRAPERITONEAL,intraperitoneal,Orange Book Route string observed in products.txt,2026-09-03
+INTRAPLEURAL,intrapleural,Orange Book Route string observed in products.txt,2026-09-03
+INTRATRACHEAL,intratracheal,Orange Book Route string observed in products.txt,2026-09-03
+INTRAUTERINE,intrauterine,Orange Book Route string observed in products.txt,2026-09-03
+INTRAVESICAL,intravesical,Orange Book Route string observed in products.txt,2026-09-03
+INTRAVITREAL,intravitreal,Orange Book Route string observed in products.txt,2026-09-03
+IONTOPHORESIS,iontophoresis,Orange Book Route string observed in products.txt,2026-09-03
+IRRIGATION,irrigation,Orange Book Route string observed in products.txt,2026-09-03
+PERIARTICULAR,periarticular,Orange Book Route string observed in products.txt,2026-09-03
+PERIODONTAL,periodontal,Orange Book Route string observed in products.txt,2026-09-03
+PYELOCALYCEAL,pyelocalyceal,Orange Book Route string observed in products.txt,2026-09-03
+SPINAL,spinal,Orange Book Route string observed in products.txt,2026-09-03
+TRANSMUCOSAL,transmucosal,Orange Book Route string observed in products.txt,2026-09-03
+URETERAL,ureteral,Orange Book Route string observed in products.txt,2026-09-03
+URETHRAL,urethral,Orange Book Route string observed in products.txt,2026-09-03
+IM-IV,multiple,Orange Book Route string observed in products.txt,2026-09-03

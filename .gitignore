@@ -220,6 +220,11 @@ __marimo__/
 *.sqlite
 *.sqlite3
 *.csv
+# ...except the dose form vocabularies, which are the data half of a design
+# that deliberately keeps vocabularies out of the code. They were caught by
+# the blanket *.csv rule and shipped as an empty directory: every test passed
+# locally, and a fresh checkout could not load a single table.
+!Changjin/dose_form/vocab/*.csv
 chembl_35/
 
 
