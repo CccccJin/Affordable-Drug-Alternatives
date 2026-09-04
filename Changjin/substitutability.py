@@ -24,7 +24,12 @@ Grades
  C   Different active ingredient, therapeutically related via WHO ATC --
      level-5 substance class (salt/ester variants) or level-4 chemical
      subgroup.  A prescribing decision, not a substitution.
- D   No substitutability relationship found.
+ D   Both concepts are described by these sources, and nothing relates them.
+ U   Not adjudicated.  A source needed to answer is missing -- the identifier
+     did not resolve (``U0``), WHO has not classified one side (``U1``), or
+     none of these sources describes it (``U2``).  This is a gap in coverage,
+     not a finding about the pair, and it is deliberately not a position on
+     the A-B-C-D axis.  See ``docs/adr/0002-unknown-is-not-a-grade-d.md``.
 ==== =========================================================================
 
 Data sources
@@ -82,9 +87,12 @@ def judge(rxcui_a: str, rxcui_b: str, *, adjudicator: Adjudicator | None = None,
     Returns
     -------
     Verdict
-        ``.grade`` is one of ``A``/``B``/``C``/``D``; ``.evidence`` is the list
-        of source-field citations behind it; ``.explain()`` renders it for a
-        human reviewer and ``.to_dict()`` for a machine.
+        ``.grade`` is one of ``A``/``B``/``C``/``D``, or ``U`` when the pair
+        could not be adjudicated at all -- see the grade table above. ``U`` is
+        not a position on the A-to-D axis, so a caller that treats "not A, B or
+        C" as D will mistake a coverage gap for a finding. ``.evidence`` is the
+        list of source-field citations behind the verdict; ``.explain()``
+        renders it for a human reviewer and ``.to_dict()`` for a machine.
     """
     adj = adjudicator or get_adjudicator(offline=offline)
     return adj.judge(rxcui_a, rxcui_b)

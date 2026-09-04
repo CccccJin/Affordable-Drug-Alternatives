@@ -12,7 +12,11 @@ Grades
 ``C``  Different active ingredient, but therapeutically related through WHO ATC
        (same level-5 substance class, or same level-4 chemical subgroup).
        Requires a prescribing decision.
-``D``  No substitutability relationship found in the authoritative sources.
+``D``  Both concepts are described by the authoritative sources, and nothing
+       relates them.
+``U``  Not adjudicated: a source needed to answer is missing. Not a position on
+       the A-B-C-D axis -- it says the question could not be answered, where
+       ``D`` says it was answered "no".
 
 Every verdict carries :class:`Evidence` rows naming the source file, the record
 key and the exact field the conclusion was drawn from, so a reviewer can open
@@ -182,9 +186,6 @@ RULE_CATALOGUE = _catalogue(
          "A different drug of the same chemical subgroup. This is a "
          "classification, not an FDA equivalence finding: members differ in "
          "potency and dosing and may not be substituted for one another."),
-    Rule("D0", "D", "RXCUI {rxcui} not found in RxNorm", _ACTION["D"],
-         "The identifier did not resolve, so the pair could not be "
-         "adjudicated."),
     Rule("D1", "D", "no equivalence or therapeutic-class relationship found",
          _ACTION["D"],
          "Different ingredients and unrelated ATC classes."),
@@ -192,6 +193,29 @@ RULE_CATALOGUE = _catalogue(
          _ACTION["D"],
          "Biologics and small-molecule drugs have no common equivalence "
          "pathway, so no FDA determination is possible."),
+
+    # Gaps. Not positions on the A-B-C-D axis and not comparable with it:
+    # these say the question could not be answered, where D says it was
+    # answered "no". Each names a different missing source, because each
+    # leaves the reader a different thing to do about it.
+    Rule("U0", "U", "RXCUI {rxcui} not found in RxNorm",
+         "Not adjudicated: the identifier did not resolve. Check it and "
+         "try again.",
+         "Nothing could be looked up, so no source was consulted."),
+    Rule("U1", "U",
+         "RXCUI {rxcui} carries no ATC code, so the pair cannot be compared "
+         "by class",
+         "Not adjudicated: WHO has not classified one of these, so no "
+         "class comparison is possible.",
+         "The drug is described by the FDA sources but WHO has not filed it "
+         "under a chemical subgroup, which is what a class comparison needs."),
+    Rule("U2", "U",
+         "RXCUI {rxcui} appears in none of the sources this module "
+         "adjudicates from",
+         "Not adjudicated: this product is outside the sources consulted "
+         "here.",
+         "Neither the FDA listings nor the WHO classification describes this "
+         "concept, so there is nothing to compare the other side against."),
 )
 
 _UNIT_TO_MG = {"MG": 1.0, "G": 1000.0, "GM": 1000.0, "MCG": 0.001, "UG": 0.001, "NG": 1e-6}
@@ -574,7 +598,7 @@ class Adjudicator:
 
         for side in (a, b):
             if not side.concept.found:
-                return verdict("D0", fmt={"rxcui": side.rxcui},
+                return verdict("U0", fmt={"rxcui": side.rxcui},
                                caveats=[f"{side.rxcui} did not resolve; cannot adjudicate."],
                                confidence="high")
 
@@ -986,10 +1010,22 @@ class Adjudicator:
             why.append(f"RXCUI {a.rxcui} maps to no Orange/Purple Book product")
         if not b.ob_rows and not b.pb_rows:
             why.append(f"RXCUI {b.rxcui} maps to no Orange/Purple Book product")
+        # A gap is not a finding. Report the more completely missing side
+        # first: a concept none of these sources describes is outside what this
+        # module covers, while one that is merely unclassified is a drug the
+        # FDA lists and WHO has not filed. `confidence` no longer carries this
+        # distinction -- the grade does, so an aggregate keyed on the letter
+        # cannot count "we could not tell" as "confirmed unrelated".
+        for side, codes in ((a, atc_a), (b, atc_b)):
+            if not codes and not side.ob_rows and not side.pb_rows:
+                return verdict("U2", fmt={"rxcui": side.rxcui}, caveats=why)
+        for side, codes in ((a, atc_a), (b, atc_b)):
+            if not codes:
+                return verdict("U1", fmt={"rxcui": side.rxcui}, caveats=why)
+
         return verdict(
             "D1",
-            caveats=why or ["Different ingredients and unrelated ATC classes."],
-            confidence="high" if (atc_a and atc_b) else "low")
+            caveats=why or ["Different ingredients and unrelated ATC classes."])
 
 
 _CACHED: dict[tuple, Adjudicator] = {}

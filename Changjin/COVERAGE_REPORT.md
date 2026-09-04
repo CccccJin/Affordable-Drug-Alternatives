@@ -1,6 +1,6 @@
 # Drug Substitutability — Data Coverage Report
 
-Generated 2026-08-29 by `python substitutability.py coverage`.
+Generated 2026-09-04 by `python substitutability.py coverage`.
 
 This report states what the substitutability module can and cannot adjudicate, and why. Percentages that look alarming in isolation are decomposed against the denominator that actually matters.
 
@@ -53,7 +53,7 @@ Those failures are not random — they are product classes that have no FDA appl
 | UNAPPROVED MEDICAL GAS | 16 |
 | EMERGENCY USE AUTHORIZATION | 5 |
 
-OTC monograph drugs, homeopathic and unapproved listings and bulk ingredients are outside the Orange Book by design. A substitutability verdict is not meaningful for them, and the module returns grade **D** with that reason attached rather than guessing.
+OTC monograph drugs, homeopathic and unapproved listings and bulk ingredients are outside the Orange Book by design. A substitutability verdict is not meaningful for them, and the module returns a grade **U** rule naming the source that does not describe them, rather than a **D** that would read as a finding about the pair.
 
 ### 2.2 Where NDC records lose the join
 
@@ -166,7 +166,7 @@ The module compares TE codes by **set intersection**, so these resolve to grade 
 | reach an `AB*`-rated product (grade **A** possible) | 4,526 | 27.2% |
 | reach a Purple Book biologic | 2,212 | 13.3% |
 
-An RXCUI outside these sets is not a silent failure: the module returns grade **D** (or **C** when ATC relates the substances) with the specific reason recorded in the evidence chain.
+An RXCUI outside these sets is not a silent failure. Where ATC relates the substances the module returns grade **C**; where nothing does, it returns a grade **U** rule naming the source that is missing -- `U1` when the FDA listings describe the concept but WHO has not classified it, `U2` when none of these sources describes it at all. Neither is a **D**, which would assert that the pair was checked and found unrelated. The specific reason is recorded in the evidence chain.
 
 ## 6. Price data coverage (CMS NADAC)
 

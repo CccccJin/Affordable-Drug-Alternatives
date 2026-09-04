@@ -14,6 +14,7 @@ import { render, screen } from '@testing-library/react';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { AtcClassPanel } from '../components/substitutability/AtcClassPanel';
+import { C2_FALLBACK } from '../components/substitutability/ruleFallback';
 import { __resetAtcCache, loadAtcClasses, lookupAtcClasses } from '../services/api/atcApi';
 import type { AtcClass } from '../types/api';
 
@@ -101,11 +102,27 @@ describe('it names the rule it is showing', () => {
     expect(screen.getByText(/differ in potency/i)).toBeInTheDocument();
   });
 
-  it('renders nothing about the rule when the payload explains none', () => {
+  it('states the rule even when the payload explains none', () => {
     const { container } = render(
       <AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />,
     );
-    expect(container.textContent).not.toMatch(/therapeutic interchange/i);
+    expect(container.textContent).toMatch(/therapeutic interchange/i);
+  });
+
+  /**
+   * The fallback exists so the disclaimer does not depend on cache state, and
+   * this is what stops it becoming a second, drifting copy: it must say
+   * exactly what the committed payload says, and that payload is pinned
+   * against `RULE_CATALOGUE` by `test_export_atc_classes.py`.
+   */
+  it('carries a fallback that matches the committed payload word for word', () => {
+    const payload = JSON.parse(
+      readFileSync(
+        join(process.cwd(), 'public', 'data', 'atc_classes.json'),
+        'utf-8',
+      ),
+    );
+    expect(C2_FALLBACK).toEqual(payload.meta.rules[payload.meta.rule]);
   });
 
   /**

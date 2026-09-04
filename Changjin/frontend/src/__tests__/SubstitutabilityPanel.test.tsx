@@ -126,3 +126,21 @@ describe('formatPrice', () => {
     expect(formatPrice(null)).toBe('—');
   });
 });
+
+/**
+ * `U*` and `D*` are different answers: one says the sources could not be
+ * consulted, the other that they were and nothing relates the pair
+ * (`docs/adr/0002-unknown-is-not-a-grade-d.md`). This panel only ever has the
+ * first to report -- the static export carries no adjudicated pairs -- so the
+ * invariant to hold is that it never phrases a gap as a finding.
+ */
+describe('a gap is never phrased as a finding', () => {
+  it('says the data is missing, not that a relationship was ruled out', async () => {
+    renderPanel('NOT-IN-THE-ORANGE-BOOK');
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/no FDA therapeutic-equivalence data/i);
+    expect(alert.textContent).not.toMatch(
+      /no relationship|not related|unrelated|not substitutable/i,
+    );
+  });
+})

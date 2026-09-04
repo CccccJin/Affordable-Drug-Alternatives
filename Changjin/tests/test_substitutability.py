@@ -181,9 +181,14 @@ def test_ab_verdict_cites_matching_strength_and_te_code(adj):
 
 
 @needs_db
-def test_unknown_rxcui_is_grade_d_not_an_exception(adj):
+def test_unknown_rxcui_is_grade_u_not_an_exception(adj):
+    """An identifier that does not resolve is a gap, not a finding.
+
+    It used to be `D0`, which shares a grade -- and so an action, and every
+    aggregate keyed on the letter -- with "these two are confirmed unrelated".
+    """
     v = adj.judge("999999999", "617311")
-    assert v.grade == "D" and v.rule_id == "D0"
+    assert v.grade == "U" and v.rule_id == "U0"
     assert v.caveats
 
 
@@ -211,7 +216,10 @@ EXPECTED_RULES = {
     "B1": "B", "B2": "B", "B3": "B", "B4": "B",
     "B5": "B", "B6": "B", "B7": "B",
     "C1": "C", "C2": "C",
-    "D0": "D", "D1": "D", "D2": "D",
+    "D1": "D", "D2": "D",
+    # Gaps in what can be adjudicated, not findings about the pair. See
+    # docs/adr/0002-unknown-is-not-a-grade-d.md.
+    "U0": "U", "U1": "U", "U2": "U",
 }
 
 
@@ -277,7 +285,10 @@ EXPECTED_ACTION_GROUPS = {
     frozenset({"B1", "B2", "B3", "B4", "B5", "B6", "B7"}),
     frozenset({"C1"}),
     frozenset({"C2"}),
-    frozenset({"D0", "D1", "D2"}),
+    frozenset({"D1", "D2"}),
+    # Each gap leaves the reader a different next step, so none of them can
+    # share a sentence with another.
+    frozenset({"U0"}), frozenset({"U1"}), frozenset({"U2"}),
 }
 
 
@@ -317,3 +328,74 @@ def test_the_catalogue_serialises_the_rules_a_payload_may_carry():
     assert payload["C2"]["grade"] == "C"
     assert payload["C2"]["action"] and payload["C2"]["meaning"]
     assert "label" not in payload["C2"], "the label is per-verdict, not per-rule"
+
+
+# --------------------------------------------------------------------------
+# Unknown
+#
+# `U*` says the module could not answer; `D*` says it answered "no". The two
+# used to share grade D, separated only by a `confidence` field that any
+# aggregate keyed on the letter ignored.
+# --------------------------------------------------------------------------
+
+def _blanked(adj, monkeypatch, rxcui, *, atc=None, fda=True):
+    """Resolve `rxcui` normally, then remove a source from what it resolved to.
+
+    Blanking after resolution keeps the test on `judge()`'s public path while
+    reaching pairs the committed database has no natural example of.
+    """
+    import dataclasses
+    real = adj.resolve
+
+    def resolve(cui):
+        side = real(cui)
+        if cui != rxcui:
+            return side
+        if atc is not None:
+            side = dataclasses.replace(
+                side, concept=dataclasses.replace(side.concept, atc=atc))
+        if not fda:
+            side = dataclasses.replace(side, ob_rows=[], pb_rows=[])
+        return side
+
+    monkeypatch.setattr(adj, "resolve", resolve)
+
+
+@needs_db
+def test_a_side_in_none_of_the_sources_is_unknown_not_unrelated(adj, monkeypatch):
+    _blanked(adj, monkeypatch, "308191", atc=(), fda=False)
+    v = adj.judge("617311", "308191")
+    assert v.grade == "U" and v.rule_id == "U2", v.explain()
+
+
+@needs_db
+def test_a_side_with_no_atc_but_an_fda_record_cannot_be_classified(adj, monkeypatch):
+    _blanked(adj, monkeypatch, "308191", atc=())
+    v = adj.judge("617311", "308191")
+    assert v.grade == "U" and v.rule_id == "U1", v.explain()
+
+
+@needs_db
+def test_two_fully_described_drugs_with_nothing_in_common_stay_a_finding(adj):
+    """`D1` keeps meaning what it said: both sides known, and unrelated."""
+    v = adj.judge("617311", "308191")
+    assert v.grade == "D" and v.rule_id == "D1"
+    assert v.confidence == "high"
+
+
+@needs_db
+def test_a_gap_on_one_side_does_not_hide_a_finding_on_the_other(adj, monkeypatch):
+    """Unknown is not on the A-B-C-D axis, and never outranks an answer.
+
+    Blanking atorvastatin's ATC leaves the Orange Book branch untouched, and
+    that branch still has the evidence for A1.
+    """
+    _blanked(adj, monkeypatch, "617311", atc=())
+    v = adj.judge("617311", "617320")
+    assert v.grade == "A" and v.rule_id == "A1", v.explain()
+
+
+def test_unknown_is_not_a_position_on_the_ordered_axis():
+    from subst_data.grade import RULE_CATALOGUE
+    ordered = {r.grade for r in RULE_CATALOGUE.values()} - {"U"}
+    assert ordered == {"A", "B", "C", "D"}

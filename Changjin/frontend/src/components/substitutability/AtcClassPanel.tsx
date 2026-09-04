@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { AtcClass, RuleEntry } from '../../types/api';
+import { C2_FALLBACK } from './ruleFallback';
 
 /**
  * Drugs sharing a WHO ATC level-4 chemical subgroup.
@@ -61,8 +62,9 @@ export const AtcClassPanel: React.FC<{
 
   // A cached payload predating the catalogue carries no `rules` at all.
   // Reading through it unguarded threw during render and took the whole
-  // results view with it; a stale payload should cost at most this sentence.
-  const entry = rules?.[rule];
+  // results view with it; falling back keeps the disclaimer independent of
+  // what a cache happens to hold.
+  const entry = rules?.[rule] ?? C2_FALLBACK;
 
   return (
     <Box sx={{ mt: 5 }}>
@@ -82,26 +84,23 @@ export const AtcClassPanel: React.FC<{
         </Typography>
         <Typography variant="body2">
           The products below share a WHO chemical subgroup with {queryName}.
-          {entry ? ` ${entry.meaning}` : ''} Nothing here says any of them would
-          work for a particular person, or that a cheaper one is a reasonable
-          choice.
+          {` ${entry.meaning}`} Nothing here says any of them would work for a
+          particular person, or that a cheaper one is a reasonable choice.
         </Typography>
 
-        {entry && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mt: 1 }}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mt: 1 }}
+        >
+          <Box
+            component="span"
+            sx={{ fontFamily: 'monospace', fontWeight: 700, mr: 0.75 }}
           >
-            <Box
-              component="span"
-              sx={{ fontFamily: 'monospace', fontWeight: 700, mr: 0.75 }}
-            >
-              {rule}
-            </Box>
-            {entry.action}
-          </Typography>
-        )}
+            {rule || 'C2'}
+          </Box>
+          {entry.action}
+        </Typography>
       </Alert>
 
       {classes.map(atc => (

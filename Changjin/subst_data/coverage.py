@@ -136,8 +136,9 @@ class Report:
             self.w()
             self.w("OTC monograph drugs, homeopathic and unapproved listings and bulk "
                    "ingredients are outside the Orange Book by design. A substitutability "
-                   "verdict is not meaningful for them, and the module returns grade **D** "
-                   "with that reason attached rather than guessing.")
+                   "verdict is not meaningful for them, and the module returns a grade "
+                   "**U** rule naming the source that does not describe them, rather "
+                   "than a **D** that would read as a finding about the pair.")
             self.w()
 
         self.w("### 2.2 Where NDC records lose the join")
@@ -358,9 +359,13 @@ class Report:
                f"{pct(ab_capable, rx_all)} |")
         self.w(f"| reach a Purple Book biologic | {rx_pb:,} | {pct(rx_pb, rx_all)} |")
         self.w()
-        self.w("An RXCUI outside these sets is not a silent failure: the module returns "
-               "grade **D** (or **C** when ATC relates the substances) with the specific "
-               "reason recorded in the evidence chain.")
+        self.w("An RXCUI outside these sets is not a silent failure. Where ATC relates "
+               "the substances the module returns grade **C**; where nothing does, it "
+               "returns a grade **U** rule naming the source that is missing -- `U1` "
+               "when the FDA listings describe the concept but WHO has not classified "
+               "it, `U2` when none of these sources describes it at all. Neither is a "
+               "**D**, which would assert that the pair was checked and found "
+               "unrelated. The specific reason is recorded in the evidence chain.")
         self.w()
 
     def nadac(self):
