@@ -8,10 +8,12 @@ level-4 code means only that WHO files two substances under one chemical
 subgroup. Atorvastatin and rosuvastatin are both C10AA; they are different
 drugs at different doses, and no pharmacist may swap one for the other.
 
-`grade.py` already says this — rule C2 carries the caveat "class members differ
-in potency and dosing; this is a therapeutic-interchange decision, not a
-substitution". The export exists to put that same relation on the page without
-letting it read as the FDA layers do.
+`grade.py` already says this, and says it exactly once: rule ``C2`` in
+``RULE_CATALOGUE`` carries both the relationship and the action. This module
+ships that entry in the payload rather than repeating it, so the sentence the
+page shows and the sentence the adjudicator applies cannot drift apart. The
+export exists to put the relation on the page without letting it read as the
+FDA layers above it do.
 
 Three decisions follow from that, and each is a deliberate omission:
 
@@ -37,6 +39,13 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
+try:
+    from .grade import catalogue_payload
+except ImportError:                                   # direct script execution
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from subst_data.grade import catalogue_payload
+
 CACHE = Path(__file__).resolve().parent / "cache"
 ATC_PKL = CACHE / "ingredient_atc.pkl"
 DB_PATH = CACHE / "substitutability.sqlite"
@@ -55,7 +64,10 @@ def class_names(codes, backend=None) -> dict[str, str]:
     on-disk HTTP cache the rest of the RxNav work uses, so a re-run is free and
     an offline run degrades to codes rather than failing.
     """
-    from . import rxnav
+    try:
+        from . import rxnav
+    except ImportError:                               # direct script execution
+        from subst_data import rxnav
 
     backend = backend or rxnav.RxNavREST()
     names: dict[str, str] = {}
@@ -161,12 +173,11 @@ def build(atc_path: Path | None = None, db_path: Path | None = None,
         "meta": {
             "source": "WHO ATC via RxNorm/RxClass",
             "generated": date.today().isoformat(),
-            "relation": (
-                "Shared WHO ATC level-4 chemical subgroup. This is a "
-                "classification, not an FDA equivalence finding. Members differ "
-                "in potency and dosing and may not be substituted for one "
-                "another."
-            ),
+            # This panel is one rule. Naming it, and carrying its catalogue
+            # entry, replaces the sentence this export used to restate -- a
+            # second copy of what `grade.py` says about C2, free to drift.
+            "rule": "C2",
+            "rules": catalogue_payload(["C2"]),
             # Every figure behind these counts is NADAC. This module computes
             # no saving, so the count below is "has a surveyed cost at all" --
             # a different measure from the other two exports' "a saving could

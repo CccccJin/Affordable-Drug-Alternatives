@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { loadAtcClasses, lookupAtcClasses } from '../services/api/atcApi';
-import type { AtcClass } from '../types/api';
+import type { AtcClass, RuleEntry } from '../types/api';
 
 export const atcQueryKey = ['atc-classes'] as const;
 
@@ -16,14 +16,26 @@ export const atcQueryKey = ['atc-classes'] as const;
  * Its own query key and its own 40 KB payload, so the FDA answers above never
  * wait on a file most visitors never open.
  */
-export const useAtcClasses = (ingredients: string[]): AtcClass[] => {
+/**
+ * The classes, plus the rule they all report and what the payload says it
+ * means. The panel needs the rule as much as the members: without it the
+ * component has to restate the finding in its own words, which is how the
+ * same sentence came to live in three files.
+ */
+export interface AtcClasses {
+  classes: AtcClass[];
+  rule: string;
+  rules: Record<string, RuleEntry>;
+}
+
+export const useAtcClasses = (ingredients: string[]): AtcClasses => {
   const { data } = useQuery({
     queryKey: atcQueryKey,
     queryFn: loadAtcClasses,
     staleTime: Infinity,
     enabled: ingredients.length > 0,
   });
-  if (!data) return [];
+  if (!data) return { classes: [], rule: '', rules: {} };
 
   const seen = new Map<string, AtcClass>();
   for (const ingredient of ingredients) {
@@ -31,5 +43,10 @@ export const useAtcClasses = (ingredients: string[]): AtcClass[] => {
       if (!seen.has(atc.code)) seen.set(atc.code, atc);
     }
   }
-  return [...seen.values()];
+  return {
+    classes: [...seen.values()],
+    // A payload predating the catalogue has neither field.
+    rule: data.meta.rule ?? '',
+    rules: data.meta.rules ?? {},
+  };
 };

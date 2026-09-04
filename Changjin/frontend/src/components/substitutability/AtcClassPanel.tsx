@@ -5,7 +5,7 @@ import {
   Typography, alpha,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import type { AtcClass } from '../../types/api';
+import type { AtcClass, RuleEntry } from '../../types/api';
 
 /**
  * Drugs sharing a WHO ATC level-4 chemical subgroup.
@@ -28,6 +28,13 @@ import type { AtcClass } from '../../types/api';
  * - **No saving and no ranking.** The export computes neither, and neither is
  *   derived here. Members appear alphabetically, each with its own price range,
  *   so the class can be seen to be expensive without a switch being proposed.
+ * - **The rule is named, and states itself.** Everything here is one finding
+ *   -- C2 -- and both sentences describing it come from the payload:
+ *   `meaning` says what the relationship is, `action` says what a reader may
+ *   do about it. This file contributes only what the catalogue cannot know:
+ *   the drug that was asked about, and that nothing here speaks to whether a
+ *   given member suits a given person. Restating the rest is how one sentence
+ *   came to live in three files.
  */
 
 const money = (v: number): string =>
@@ -45,8 +52,17 @@ const priceCell = (m: AtcClass['members'][number]): string => {
 export const AtcClassPanel: React.FC<{
   classes: AtcClass[];
   queryName: string;
-}> = ({ classes, queryName }) => {
+  /** The rule this panel reports, as the export names it. */
+  rule: string;
+  /** Catalogue entries from the payload; empty when it explains none. */
+  rules: Record<string, RuleEntry>;
+}> = ({ classes, queryName, rule, rules }) => {
   if (classes.length === 0) return null;
+
+  // A cached payload predating the catalogue carries no `rules` at all.
+  // Reading through it unguarded threw during render and took the whole
+  // results view with it; a stale payload should cost at most this sentence.
+  const entry = rules?.[rule];
 
   return (
     <Box sx={{ mt: 5 }}>
@@ -65,13 +81,27 @@ export const AtcClassPanel: React.FC<{
           A pharmacist may not substitute between these.
         </Typography>
         <Typography variant="body2">
-          The products below share a WHO chemical subgroup with {queryName}. That
-          is a classification, <strong>not an FDA equivalence finding</strong>.
-          They are different drugs, given at different doses, and moving between
-          them is a decision only a prescriber can make. Nothing here says any of
-          them would work for a particular person, or that a cheaper one is a
-          reasonable choice.
+          The products below share a WHO chemical subgroup with {queryName}.
+          {entry ? ` ${entry.meaning}` : ''} Nothing here says any of them would
+          work for a particular person, or that a cheaper one is a reasonable
+          choice.
         </Typography>
+
+        {entry && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 1 }}
+          >
+            <Box
+              component="span"
+              sx={{ fontFamily: 'monospace', fontWeight: 700, mr: 0.75 }}
+            >
+              {rule}
+            </Box>
+            {entry.action}
+          </Typography>
+        )}
       </Alert>
 
       {classes.map(atc => (

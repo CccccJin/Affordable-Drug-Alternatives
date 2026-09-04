@@ -93,11 +93,14 @@ def _catalogue(*rules: Rule) -> dict:
     return by_id
 
 
+#: The sentence every rule of a grade shares, where they can share one.
+#: Grade C is absent on purpose: `C1` is one substance in another form and
+#: `C2` is a different drug of the same class, so they ask the reader to do
+#: different things and each writes its own.
 _ACTION = {
-    "A": 'Pharmacist may substitute directly (subject to state substitution law).',
-    "B": 'Not automatically substitutable; prescriber authorisation required.',
-    "C": 'Therapeutically related only; requires a prescribing decision.',
-    "D": 'No substitutability relationship established.',
+    "A": "Pharmacist may substitute directly (subject to state substitution law).",
+    "B": "Not automatically substitutable; prescriber authorisation required.",
+    "D": "No substitutability relationship established.",
 }
 
 #: Every rule the adjudicator may emit, and the single authority for what each
@@ -111,8 +114,10 @@ _ACTION = {
 #: accident. Both producers of a grade -- `judge()` and `biologic_relationship`
 #: -- read the letter from here.
 #:
-#: `meaning` has no consumer yet: it is written for the human-facing legend the
-#: export payload will carry, and nothing renders it as of this commit.
+#: `meaning` and `action` are the reader-facing halves: what the relationship
+#: is, and what may be done about it. `catalogue_payload` ships them, and the
+#: surfaces that explain a rule render them rather than restating them --
+#: editing one of these strings changes what the page says.
 RULE_CATALOGUE = _catalogue(
     Rule("A0", "A", "identical RxNorm concept", _ACTION["A"],
          "The same RxNorm concept on both sides."),
@@ -165,14 +170,18 @@ RULE_CATALOGUE = _catalogue(
          "was reached; they may differ in dosage form, strength or route."),
     Rule("C1", "C",
          "same WHO ATC level-5 substance class, different active ingredient "
-         "(typically a salt, ester or isomer variant)", _ACTION["C"],
+         "(typically a salt, ester or isomer variant)",
+         "One substance in another form: a prescriber must confirm the dose "
+         "conversion before switching.",
          "One substance in two forms. Salt and ester forms differ in "
          "bioavailability, so a prescriber must confirm the dose conversion."),
     Rule("C2", "C",
          "same WHO ATC level-4 chemical subgroup, different substance",
-         _ACTION["C"],
+         "Moving between them is a decision only a prescriber can make: a "
+         "therapeutic interchange, not a substitution.",
          "A different drug of the same chemical subgroup. This is a "
-         "therapeutic-interchange decision, not a substitution."),
+         "classification, not an FDA equivalence finding: members differ in "
+         "potency and dosing and may not be substituted for one another."),
     Rule("D0", "D", "RXCUI {rxcui} not found in RxNorm", _ACTION["D"],
          "The identifier did not resolve, so the pair could not be "
          "adjudicated."),
@@ -984,6 +993,25 @@ class Adjudicator:
 
 
 _CACHED: dict[tuple, Adjudicator] = {}
+
+
+def catalogue_payload(rule_ids) -> dict:
+    """The catalogue entries an export ships, keyed by rule id.
+
+    Carries `grade`, `action` and `meaning` -- everything a reader-facing
+    surface needs in order to explain a rule -- but not `label`, which is
+    written per verdict and cites the codes that verdict was drawn from. An
+    export ships only the rules it can emit, and a consumer that restates any
+    of this has made a second source of truth for it.
+    """
+    return {
+        rule_id: {
+            "grade": RULE_CATALOGUE[rule_id].grade,
+            "action": RULE_CATALOGUE[rule_id].action,
+            "meaning": RULE_CATALOGUE[rule_id].meaning,
+        }
+        for rule_id in rule_ids
+    }
 
 
 def get_adjudicator(db_path=None, offline: bool = False) -> Adjudicator:

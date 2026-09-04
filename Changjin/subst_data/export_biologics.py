@@ -183,7 +183,10 @@ def build_payload(conn) -> dict:
         keys = {group["i"]}
         keys.update(m["t"].upper() for m in group["mem"] if m["t"])
         keys.update(m["ref"].upper() for m in group["mem"] if m["ref"])
-        for key in keys:
+        # Sorted: iterating the set directly gave a different key order on
+        # every interpreter run, so the committed export changed without its
+        # contents changing and no byte comparison against it could hold.
+        for key in sorted(keys):
             if key:
                 name_index.setdefault(key, []).append(idx)
 

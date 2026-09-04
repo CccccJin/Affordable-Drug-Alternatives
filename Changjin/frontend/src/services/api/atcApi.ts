@@ -1,4 +1,4 @@
-import type { AtcClass, AtcData, AtcMember } from '../../types/api';
+import type { AtcClass, AtcData, AtcMember, RuleEntry } from '../../types/api';
 
 /**
  * WHO ATC level-4 classes, precomputed by `subst_data/export_atc_classes.py`.
@@ -22,7 +22,8 @@ interface WireMember {
 interface WireGroup { c: string; n: string; np: number; mem: WireMember[] }
 interface WirePayload {
   meta: {
-    source: string; generated: string; relation: string;
+    source: string; generated: string;
+    rule: string; rules: Record<string, RuleEntry>;
     cost_basis: string;
     coverage: {
       classes: number; named: number;
@@ -67,7 +68,8 @@ export const loadAtcClasses = async (): Promise<AtcData> => {
       meta: {
         source: wire.meta.source,
         generated: wire.meta.generated,
-        relation: wire.meta.relation,
+        rule: wire.meta.rule,
+        rules: wire.meta.rules,
         costBasis: wire.meta.cost_basis,
         coverage: {
           classes: wire.meta.coverage.classes,

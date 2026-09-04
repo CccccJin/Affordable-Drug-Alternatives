@@ -266,3 +266,54 @@ def test_a_verdict_carries_the_action_its_rule_declares(adj, a, b, grade, rule, 
     v = adj.judge(a, b)
     assert v.action == RULE_CATALOGUE[v.rule_id].action, desc
     assert v.label and "{" not in v.label, desc
+
+
+#: Rules that legitimately share one sentence of advice. A grade groups rules
+#: into an action class, so sharing inside a group is the point; sharing across
+#: one is a distinction the catalogue has lost. Pinned so an edit that collapses
+#: `C1` back into `C2` fails here rather than on a result card.
+EXPECTED_ACTION_GROUPS = {
+    frozenset({"A0", "A1", "A2", "A3"}),
+    frozenset({"B1", "B2", "B3", "B4", "B5", "B6", "B7"}),
+    frozenset({"C1"}),
+    frozenset({"C2"}),
+    frozenset({"D0", "D1", "D2"}),
+}
+
+
+def test_rules_asking_for_different_actions_do_not_share_a_sentence():
+    from subst_data.grade import RULE_CATALOGUE
+    by_action = {}
+    for rule in RULE_CATALOGUE.values():
+        by_action.setdefault(rule.action, set()).add(rule.rule_id)
+    assert {frozenset(ids) for ids in by_action.values()} == EXPECTED_ACTION_GROUPS
+
+
+def test_c1_and_c2_ask_the_reader_to_do_different_things():
+    """C1 is one substance in two forms; C2 is a different drug of the class.
+
+    One needs a dose conversion confirmed, the other is a decision to change
+    therapy. They share the letter C, which is why the letter cannot be what
+    the reader is shown.
+    """
+    from subst_data.grade import RULE_CATALOGUE
+    c1, c2 = RULE_CATALOGUE["C1"], RULE_CATALOGUE["C2"]
+    assert c1.grade == c2.grade == "C"
+    assert c1.action != c2.action
+    assert "conversion" in c1.action.lower()
+    assert "interchange" in c2.action.lower()
+    # Both name the prescriber, for different reasons: C1 to confirm a dose
+    # conversion, C2 because the choice of drug is theirs to make. A reader
+    # who only ever sees one of these must still be told who decides.
+    assert "prescriber" in c1.action.lower()
+    assert "prescriber" in c2.action.lower()
+
+
+def test_the_catalogue_serialises_the_rules_a_payload_may_carry():
+    """Exports ship the entries they can emit, so no frontend restates them."""
+    from subst_data.grade import catalogue_payload
+    payload = catalogue_payload(["C2"])
+    assert set(payload) == {"C2"}
+    assert payload["C2"]["grade"] == "C"
+    assert payload["C2"]["action"] and payload["C2"]["meaning"]
+    assert "label" not in payload["C2"], "the label is per-verdict, not per-rule"

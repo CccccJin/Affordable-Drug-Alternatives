@@ -28,9 +28,27 @@ const statins: AtcClass = {
   ],
 };
 
+/**
+ * The catalogue as the payload actually carries it. The panel's two safety
+ * claims live in `grade.py` now, so a test that renders without them is
+ * testing a payload no deploy produces.
+ */
+const C2_RULES = {
+  C2: {
+    grade: 'C',
+    action:
+      'Moving between them is a decision only a prescriber can make: a '
+      + 'therapeutic interchange, not a substitution.',
+    meaning:
+      'A different drug of the same chemical subgroup. This is a '
+      + 'classification, not an FDA equivalence finding: members differ in '
+      + 'potency and dosing and may not be substituted for one another.',
+  },
+};
+
 describe('the panel leads with what cannot be done', () => {
   it('states the prohibition before naming the class', () => {
-    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     const prohibition = screen.getByText('A pharmacist may not substitute between these.');
     const className = screen.getByText('HMG CoA reductase inhibitors');
     expect(prohibition.compareDocumentPosition(className))
@@ -38,18 +56,73 @@ describe('the panel leads with what cannot be done', () => {
   });
 
   it('says this is not an FDA finding, in those words', () => {
-    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={C2_RULES} />);
     expect(screen.getByText(/not an FDA equivalence finding/)).toBeInTheDocument();
   });
 
   it('names the prescriber as the only route', () => {
-    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={C2_RULES} />);
     expect(screen.getByText(/only a prescriber can make/)).toBeInTheDocument();
   });
 
   it('renders nothing at all when the drug is in no class', () => {
-    const { container } = render(<AtcClassPanel classes={[]} queryName="X" />);
+    const { container } = render(<AtcClassPanel classes={[]} queryName="X" rule="C2" rules={{}} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/**
+ * The panel is one rule -- C2 -- and used never to say so. A reader saw a
+ * classification and a price range with nothing naming the finding behind it,
+ * and the authoritative sentence lived in three places: `grade.py`, the
+ * export's `relation` string, and this component's own prose.
+ */
+describe('it names the rule it is showing', () => {
+  const rules = C2_RULES;
+
+  it('shows the full rule id, not a bare grade letter', () => {
+    render(
+      <AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={rules} />,
+    );
+    expect(screen.getByText(/\bC2\b/)).toBeInTheDocument();
+  });
+
+  it('states the action the catalogue gives that rule, not one of its own', () => {
+    render(
+      <AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={rules} />,
+    );
+    expect(screen.getByText(/therapeutic interchange, not a substitution/i)).toBeInTheDocument();
+  });
+
+  it('states what the catalogue says the rule means, not its own wording', () => {
+    render(
+      <AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={rules} />,
+    );
+    expect(screen.getByText(/differ in potency/i)).toBeInTheDocument();
+  });
+
+  it('renders nothing about the rule when the payload explains none', () => {
+    const { container } = render(
+      <AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />,
+    );
+    expect(container.textContent).not.toMatch(/therapeutic interchange/i);
+  });
+
+  /**
+   * A cached payload predating this change carries no `rules` at all. Reading
+   * through it unguarded threw during render and unmounted the whole results
+   * view; a stale payload used to mean at most a missing panel.
+   */
+  it('survives a payload with no catalogue and still refuses the substitution', () => {
+    const { container } = render(
+      <AtcClassPanel
+        classes={[statins]}
+        queryName="LIPITOR"
+        rule={undefined as unknown as string}
+        rules={undefined as unknown as Record<string, never>}
+      />,
+    );
+    expect(container.textContent).toMatch(/may not substitute/i);
   });
 });
 
@@ -58,7 +131,7 @@ describe('the claims it must not make', () => {
     /* The word "cheaper" does appear — inside the sentence denying that a
        cheaper member is therefore a reasonable choice. What must not appear is
        a *quantity*: a percentage, or a "save $x" claim. */
-    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     const text = container.textContent || '';
     expect(text).not.toMatch(/\d\s*%/);
     expect(text).not.toMatch(/\bsaves?\b|\bsavings?\b/i);
@@ -66,7 +139,7 @@ describe('the claims it must not make', () => {
   });
 
   it('never uses the success colour that means "can substitute" elsewhere', () => {
-    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     expect(container.querySelector('.MuiAlert-colorSuccess')).toBeNull();
     expect(container.querySelector('.MuiChip-colorSuccess')).toBeNull();
   });
@@ -75,7 +148,7 @@ describe('the claims it must not make', () => {
     /* Queried through the DOM rather than by role: the class is collapsed by
        default, so its table is present but hidden from the accessibility tree.
        That is the intent, not an accident — see the test below. */
-    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     const names = [...container.querySelectorAll('tbody tr')]
       .map(row => row.querySelector('td')?.textContent?.trim())
       .filter((n): n is string => Boolean(n));
@@ -85,20 +158,20 @@ describe('the claims it must not make', () => {
   });
 
   it('starts collapsed, so the class is opened rather than offered', () => {
-    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    const { container } = render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     const summary = container.querySelector('.MuiAccordionSummary-root');
     expect(summary?.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('shows an unpriced substance as unpriced, not as free', () => {
-    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     const row = screen.getByText('SIMVASTATIN').closest('tr');
     expect(row?.textContent).toContain('—');
     expect(row?.textContent).not.toMatch(/\$0\b|\$0\.00/);
   });
 
   it('says the range spans strengths, so a wide range is not a choice', () => {
-    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" />);
+    render(<AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C2" rules={{}} />);
     expect(screen.getByText(/across all strengths/)).toBeInTheDocument();
     expect(screen.getByText(/the order carries no recommendation/)).toBeInTheDocument();
   });
@@ -108,7 +181,8 @@ describe('finding a class from a name', () => {
   const wire = {
     meta: {
       source: 'WHO ATC via RxNorm/RxClass', generated: '2026-09-02',
-      relation: 'Shared WHO ATC level-4 chemical subgroup. This is a classification, not an FDA equivalence finding.',
+      rule: 'C2',
+      rules: { C2: { grade: 'C', action: 'a', meaning: 'm' } },
       cost_basis: 'acquisition_cost',
       coverage: {
         classes: 1, named: 1, with_prices: 1, with_acquisition_cost: 1,
@@ -155,7 +229,8 @@ describe('reaching a class from what the page actually holds', () => {
      seeing the panel missing for LIPITOR. */
   const data = {
     meta: {
-      source: 's', generated: '2026-09-02', relation: 'r',
+      source: 's', generated: '2026-09-02',
+      rule: 'C2', rules: { C2: { grade: 'C', action: 'a', meaning: 'm' } },
       costBasis: 'acquisition_cost',
       coverage: { classes: 1, named: 1, withPrices: 1, withAcquisitionCost: 1 },
     },

@@ -176,10 +176,15 @@ class TestTheOmissionsThatMakeThisSafe:
             )
 
     def test_the_relation_is_stated_as_a_classification(self, atc_pkl, priced_db):
+        """The statement moved from a restated `relation` into rule C2 itself.
+
+        Same two claims, one source: `grade.py` now owns them and every
+        surface that explains C2 reads them from there.
+        """
         payload = build(atc_pkl, priced_db)
-        relation = payload["meta"]["relation"].lower()
-        assert "not an fda equivalence finding" in relation
-        assert "may not be substituted" in relation
+        meaning = payload["meta"]["rules"]["C2"]["meaning"].lower()
+        assert "not an fda equivalence finding" in meaning
+        assert "may not be substituted" in meaning
 
 
 def test_the_committed_export_matches_what_build_produces():
@@ -192,7 +197,11 @@ def test_the_committed_export_matches_what_build_produces():
     payload = json.loads(export.read_text(encoding="utf-8"))
     assert payload["meta"]["coverage"]["classes"] == len(payload["groups"])
     assert all(len(g["mem"]) >= mod.MIN_MEMBERS for g in payload["groups"])
-    assert "not an FDA equivalence finding" in payload["meta"]["relation"]
+    # The claim moved out of a restated `relation` string and into rule C2,
+    # which `grade.py` owns and the payload now carries.
+    assert payload["meta"]["rule"] == "C2"
+    assert ("not an FDA equivalence finding"
+            in payload["meta"]["rules"]["C2"]["meaning"])
 
 
 def test_meta_declares_the_cost_basis_and_the_qualified_coverage_name(
@@ -207,3 +216,24 @@ def test_meta_declares_the_cost_basis_and_the_qualified_coverage_name(
     cov = meta["coverage"]
     assert cov["with_prices"] == cov["with_acquisition_cost"]
     assert "with_acquisition_cost_saving" not in cov
+
+
+def test_meta_names_the_rule_and_ships_its_catalogue_entry(atc_pkl, priced_db):
+    """The panel is one rule -- C2 -- and used to restate it in free text.
+
+    `relation` was a second copy of what `grade.py` already says about C2, so
+    the two could drift. The payload now names the rule and carries the entry.
+    """
+    meta = build(atc_pkl, priced_db)["meta"]
+    assert meta["rule"] == "C2"
+    assert "relation" not in meta, "the restated sentence should be gone"
+    entry = meta["rules"]["C2"]
+    assert entry["grade"] == "C"
+    assert "interchange" in entry["action"].lower()
+    assert entry["meaning"]
+
+
+def test_the_class_rule_does_not_share_its_action_with_c1(atc_pkl, priced_db):
+    from subst_data.grade import RULE_CATALOGUE
+    entry = build(atc_pkl, priced_db)["meta"]["rules"]["C2"]
+    assert entry["action"] != RULE_CATALOGUE["C1"].action

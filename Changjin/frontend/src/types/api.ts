@@ -288,6 +288,19 @@ export interface AtcMember {
   surveyedProducts: number;
 }
 
+/**
+ * What a rule means, carried in the payload so no surface restates it.
+ *
+ * `grade.py`'s `RULE_CATALOGUE` is the only place these are written. `label`
+ * is deliberately absent: it is composed per verdict and cites the codes that
+ * verdict was drawn from, so it is not a property of the rule.
+ */
+export interface RuleEntry {
+  grade: string;
+  action: string;
+  meaning: string;
+}
+
 export interface AtcClass {
   code: string;                 // e.g. "C10AA"
   className: string;            // e.g. "HMG CoA reductase inhibitors"
@@ -299,7 +312,8 @@ export interface AtcData {
   meta: {
     source: string;
     generated: string;
-    relation: string;           // the disclaimer, carried from the export
+    rule: string;               // the rule this whole panel reports: C2
+    rules: Record<string, RuleEntry>;
     costBasis: string;
     coverage: {
       // An ATC Class is not an Equivalence Group or a Biologic Family;

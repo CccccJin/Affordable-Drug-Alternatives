@@ -301,7 +301,12 @@ export const CheaperAlternatives: React.FC = () => {
 
           {/* Grade C, last and collapsed: the FDA findings above answer the
               question, this is background a reader chooses to open. */}
-          <AtcClassPanel classes={atcClasses} queryName={query} />
+          <AtcClassPanel
+            classes={atcClasses.classes}
+            queryName={query}
+            rule={atcClasses.rule}
+            rules={atcClasses.rules}
+          />
 
           <NadacDisclaimer />
 
