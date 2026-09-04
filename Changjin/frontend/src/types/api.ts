@@ -117,6 +117,13 @@ export interface PricedMember {
   teCode: string;              // Orange Book therapeutic-equivalence code
   isBrand: boolean;            // from NADAC's own classification, not appl_type
   pricePerUnit: number | null; // null when CMS does not survey this product
+  /**
+   * The same figure as `pricePerUnit`, under a name that says which money it
+   * is: what a pharmacy pays to acquire the drug, not a copay, a cash price or
+   * a reimbursement rate (`CONTEXT.md`). `pricePerUnit` is withdrawn once every
+   * caller has moved.
+   */
+  acquisitionCost: number | null;
   pricingUnit: string | null;  // "EA" | "ML" | "GM"
 }
 
@@ -127,6 +134,11 @@ export interface EquivalenceGroup {
   strength: string;
   memberCount: number;
   savingPercent: number | null; // null when no priced brand exists
+  /**
+   * The pricing unit the saving was computed in. $/EA and $/ML do not compare,
+   * so a percentage with no unit behind it cannot be checked.
+   */
+  savingPricingUnit: string | null;
   members: PricedMember[];
 }
 
@@ -135,8 +147,16 @@ export interface SubstitutabilityMeta {
   nadacWeek: string;
   openFdaNdc: string;
   generated: string;
-  priceBasis: string;          // the acquisition-cost disclaimer
-  coverage: { groups: number; withSavings: number; members: number };
+  priceBasis: string;          // the acquisition-cost disclaimer, for a reader
+  costBasis: string;           // which money this payload holds, for a caller
+  coverage: {
+    // An Equivalence Group is not a Biologic Family or an ATC Class; these
+    // counts describe different memberships and may not be added together.
+    groups: number;
+    withSavings: number;
+    withAcquisitionCostSaving: number;
+    members: number;
+  };
 }
 
 export interface SubstitutabilityData {
@@ -203,6 +223,8 @@ export interface BiologicMember {
   dosageForm: string;
   strength: string;
   pricePerUnit: number | null;
+  /** Same figure, named for which money it is. See `PricedMember`. */
+  acquisitionCost: number | null;
   pricingUnit: string | null;
   referenceProduct: string | null;
 }
@@ -237,7 +259,15 @@ export interface BiologicFamily {
 export interface BiologicsMeta {
   purpleBook: string;
   generated: string;
-  coverage: { families: number; members: number; withSavings: number };
+  costBasis: string;           // which money this payload holds, for a caller
+  coverage: {
+    // A Biologic Family is not an Equivalence Group or an ATC Class; these
+    // counts may not be added together.
+    families: number;
+    members: number;
+    withSavings: number;
+    withAcquisitionCostSaving: number;
+  };
 }
 
 export interface BiologicsData {
@@ -270,7 +300,16 @@ export interface AtcData {
     source: string;
     generated: string;
     relation: string;           // the disclaimer, carried from the export
-    coverage: { classes: number; named: number; withPrices: number };
+    costBasis: string;
+    coverage: {
+      // An ATC Class is not an Equivalence Group or a Biologic Family;
+      // these counts may not be added together. This export computes no
+      // saving, so it counts classes holding a cost at all.
+      classes: number;
+      named: number;
+      withPrices: number;
+      withAcquisitionCost: number;
+    };
   };
   classes: AtcClass[];
   nameIndex: Record<string, number[]>;

@@ -157,3 +157,76 @@ def test_meta_carries_the_price_basis_disclaimer(conn):
 
     assert "not a copay" in meta["price_basis"]
     assert meta["coverage"]["groups"] == len(build_payload(conn)["groups"])
+
+
+# --------------------------------------------------------------------------
+# Pricing unit
+#
+# `export_biologics` groups its savings by pricing unit, because $/EA and $/ML
+# do not compare -- one implementation of that rule already exists in this repo.
+# This branch did not have it, so a group holding both units produced a figure
+# subtracting a per-millilitre price from a per-each one.
+# --------------------------------------------------------------------------
+
+@pytest.fixture
+def mixed_unit_conn():
+    """One equivalence group whose brand is priced per ML and generic per EA.
+
+    An oral solution is rated AB and surveyed per millilitre, but NADAC assigns
+    the unit per NDC, so one member of a group can carry EA. Both figures are
+    correct on their own and their difference is meaningless.
+    """
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    connection.executescript(SCHEMA)
+    connection.executemany(
+        "INSERT INTO ob_product VALUES (?,?,?,?,?,?,?,?,?)",
+        [("NDA030001", "BRANDSOL", "MAKER", "AB",
+          "SOMEDRUG", "SOLUTION", "ORAL", "50MG/ML", "RX"),
+         ("ANDA030002", "SOMEDRUG", "GENCO", "AB",
+          "SOMEDRUG", "SOLUTION", "ORAL", "50MG/ML", "RX")],
+    )
+    ing = json.dumps([{"name": "SOMEDRUG", "strength": "50MG/ML"}])
+    connection.executemany(
+        "INSERT INTO ndc_product VALUES (?,?,?)",
+        [("000030001", "NDA030001", ing), ("000030002", "ANDA030002", ing)],
+    )
+    connection.executemany(
+        "INSERT INTO nadac_price VALUES (?,?,?,?)",
+        [("000030001", 90.00, "ML", "B"),
+         ("000030002", 3.00, "EA", "G")],
+    )
+    connection.executemany(
+        "INSERT INTO build_stat VALUES (?,?,?)",
+        [("nadac", "price_as_of", "2026-08-26"),
+         ("openfda_ndc", "export_date", "2026-08-28")],
+    )
+    yield connection
+    connection.close()
+
+
+def test_no_saving_is_computed_across_pricing_units(mixed_unit_conn):
+    payload = build_payload(mixed_unit_conn)
+    group = [g for g in payload["groups"] if g["i"] == "SOMEDRUG"][0]
+    assert group["sv"] is None, (
+        "subtracted a per-EA price from a per-ML one: "
+        f"{[(m['t'], m['p'], m['u']) for m in group['mem']]}")
+
+
+def test_a_saving_names_the_pricing_unit_it_was_computed_in(conn):
+    group = only_group(build_payload(conn))
+    assert group["sv"] is not None
+    assert group["su"] == "EA"
+
+
+def test_meta_declares_the_cost_basis_in_a_machine_readable_field(conn):
+    meta = build_payload(conn)["meta"]
+    assert meta["cost_basis"] == "acquisition_cost"
+    # The human-readable disclaimer stays: it is what a reader sees.
+    assert "NADAC" in meta["price_basis"]
+
+
+def test_coverage_carries_both_the_old_and_the_basis_qualified_count(conn):
+    """Expand step: the old key stays until every caller has moved."""
+    cov = build_payload(conn)["meta"]["coverage"]
+    assert cov["with_savings"] == cov["with_acquisition_cost_saving"]

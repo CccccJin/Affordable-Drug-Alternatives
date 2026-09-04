@@ -191,10 +191,18 @@ def build_payload(conn) -> dict:
         "meta": {
             "purple_book": "purplebook.csv",
             "generated": date.today().isoformat(),
+            # Every figure here is NADAC. Stated for a caller, not a reader.
+            "cost_basis": "acquisition_cost",
             "coverage": {
+                # A Biologic Family is not an Equivalence Group or an ATC
+                # Class; the three counts describe different memberships and
+                # may not be added together (`CONTEXT.md`).
                 "families": len(groups),
                 "members": sum(g["n"] for g in groups),
                 "with_savings": sum(1 for g in groups if g["sav"]),
+                # Expand step: the basis-qualified name beside the old one.
+                "with_acquisition_cost_saving":
+                    sum(1 for g in groups if g["sav"]),
             },
         },
         "groups": groups,

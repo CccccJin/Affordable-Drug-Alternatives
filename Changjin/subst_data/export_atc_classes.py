@@ -167,10 +167,21 @@ def build(atc_path: Path | None = None, db_path: Path | None = None,
                 "in potency and dosing and may not be substituted for one "
                 "another."
             ),
+            # Every figure behind these counts is NADAC. This module computes
+            # no saving, so the count below is "has a surveyed cost at all" --
+            # a different measure from the other two exports' "a saving could
+            # be computed", which is why it keeps a different name.
+            "cost_basis": "acquisition_cost",
             "coverage": {
+                # An ATC Class is not an Equivalence Group or a Biologic
+                # Family; the three counts may not be added together
+                # (`CONTEXT.md`).
                 "classes": len(groups),
                 "named": sum(1 for g in groups if g["n"] != g["c"]),
                 "with_prices": sum(1 for g in groups if g["np"] > 0),
+                # Expand step: the basis-qualified name beside the old one.
+                "with_acquisition_cost":
+                    sum(1 for g in groups if g["np"] > 0),
             },
         },
         "groups": groups,

@@ -154,3 +154,11 @@ def test_members_are_ordered_reference_first_then_cheapest(conn):
     assert members[0]["t"] == "Humira"
     followon_prices = [m["p"] for m in members[1:] if m["p"] is not None]
     assert followon_prices == sorted(followon_prices)
+
+
+def test_meta_declares_the_cost_basis_and_the_qualified_coverage_name(conn):
+    """Expand step: the old key stays until every caller has moved."""
+    meta = build_payload(conn)["meta"]
+    assert meta["cost_basis"] == "acquisition_cost"
+    cov = meta["coverage"]
+    assert cov["with_savings"] == cov["with_acquisition_cost_saving"]

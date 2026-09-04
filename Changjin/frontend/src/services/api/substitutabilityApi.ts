@@ -24,13 +24,16 @@ interface WireMember {
 }
 interface WireGroup {
   i: string; df: string; r: string; s: string;
-  n: number; sv: number | null; mem: WireMember[];
+  n: number; sv: number | null; su: string | null; mem: WireMember[];
 }
 interface WirePayload {
   meta: {
     orange_book: string; nadac_week: string; openfda_ndc: string;
-    generated: string; price_basis: string;
-    coverage: { groups: number; with_savings: number; members: number };
+    generated: string; price_basis: string; cost_basis: string;
+    coverage: {
+      groups: number; with_savings: number;
+      with_acquisition_cost_saving: number; members: number;
+    };
   };
   groups: WireGroup[];
   name_index: Record<string, number[]>;
@@ -43,6 +46,7 @@ const expandMember = (m: WireMember): PricedMember => ({
   teCode: m.te,
   isBrand: m.b === 1,
   pricePerUnit: m.p,
+  acquisitionCost: m.p,
   pricingUnit: m.u,
 });
 
@@ -53,6 +57,7 @@ const expandGroup = (g: WireGroup): EquivalenceGroup => ({
   strength: g.s,
   memberCount: g.n,
   savingPercent: g.sv,
+  savingPricingUnit: g.su,
   members: g.mem.map(expandMember),
 });
 
@@ -62,9 +67,11 @@ const expandMeta = (m: WirePayload['meta']): SubstitutabilityMeta => ({
   openFdaNdc: m.openfda_ndc,
   generated: m.generated,
   priceBasis: m.price_basis,
+  costBasis: m.cost_basis,
   coverage: {
     groups: m.coverage.groups,
     withSavings: m.coverage.with_savings,
+    withAcquisitionCostSaving: m.coverage.with_acquisition_cost_saving,
     members: m.coverage.members,
   },
 });

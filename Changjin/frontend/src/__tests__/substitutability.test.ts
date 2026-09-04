@@ -11,12 +11,15 @@ const wire = {
     orange_book: 'products.txt', nadac_week: '2026-08-26',
     openfda_ndc: '2026-08-28', generated: '2026-08-29',
     price_basis: 'NADAC is what pharmacies pay to acquire a drug.',
-    coverage: { groups: 2, with_savings: 1, members: 3 },
+    cost_basis: 'acquisition_cost',
+    coverage: {
+      groups: 2, with_savings: 1, with_acquisition_cost_saving: 1, members: 3,
+    },
   },
   groups: [
     {
       i: 'ATORVASTATIN CALCIUM', df: 'TABLET', r: 'ORAL', s: 'EQ 40MG BASE',
-      n: 2, sv: 99.8,
+      n: 2, sv: 99.8, su: 'EA',
       mem: [
         { a: 'ANDA090548', t: 'ATORVASTATIN CALCIUM', m: 'APOTEX', te: 'AB', b: 0, p: 0.03704, u: 'EA' },
         { a: 'NDA020702', t: 'LIPITOR', m: 'UPJOHN', te: 'AB', b: 1, p: 19.11383, u: 'EA' },
@@ -24,7 +27,7 @@ const wire = {
     },
     {
       i: 'METOPROLOL SUCCINATE', df: 'TABLET, EXTENDED RELEASE', r: 'ORAL', s: '50MG',
-      n: 1, sv: null,
+      n: 1, sv: null, su: null,
       mem: [{ a: 'ANDA000001', t: 'METOPROLOL', m: 'X', te: 'AB', b: 0, p: null, u: null }],
     },
   ],
@@ -56,6 +59,33 @@ describe('substitutabilityApi', () => {
   it('carries the acquisition-cost disclaimer through to the parsed meta', async () => {
     const data = await loadSubstitutability();
     expect(data.meta.priceBasis).toMatch(/acquire/i);
+  });
+
+  /**
+   * Expand step of the cost-vocabulary rename. The basis-qualified names sit
+   * beside the old ones so no caller has to move in the same commit; the old
+   * names are withdrawn in the contract step.
+   */
+  it('exposes the acquisition cost under a name that says which money it is', async () => {
+    const data = await loadSubstitutability();
+    const member = data.groups[0].members[1];
+    expect(member.acquisitionCost).toBe(member.pricePerUnit);
+    expect(member.acquisitionCost).toBe(19.11383);
+    expect(member.pricingUnit).toBe('EA');
+  });
+
+  it('names the pricing unit a saving was computed in', async () => {
+    const data = await loadSubstitutability();
+    expect(data.groups[0].savingPricingUnit).toBe('EA');
+    expect(data.groups[1].savingPricingUnit).toBeNull();
+  });
+
+  it('carries the machine-readable cost basis beside the human disclaimer', async () => {
+    const data = await loadSubstitutability();
+    expect(data.meta.costBasis).toBe('acquisition_cost');
+    expect(data.meta.coverage.withAcquisitionCostSaving).toBe(
+      data.meta.coverage.withSavings,
+    );
   });
 
   it('caches, so several mounted cards share one request', async () => {

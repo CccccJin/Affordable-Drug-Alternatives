@@ -110,18 +110,41 @@ def build_payload(conn) -> dict:
             })
         members.sort(key=lambda m: (m["p"] is None, m["p"] or 0.0))
 
-        brands = [m for m in members if m["b"] and m["p"] is not None]
-        generics = [m for m in members if not m["b"] and m["p"] is not None]
-        saving = None
-        if brands and generics and brands[-1]["p"]:
+        # $/EA and $/ML are each correct and their difference is meaningless,
+        # so a saving is computed inside one pricing unit. `export_biologics`
+        # already applies this rule; this branch did not, and an injectable
+        # group carrying both units produced a figure subtracting a per-each
+        # price from a per-millilitre one. Units are tried in order of how many
+        # priced members they hold, and the first that yields a saving is the
+        # one reported -- a populous unit whose dearest brand is priced at zero
+        # falls through to a smaller one. `su` names whichever unit answered,
+        # so a reader is never left inferring it.
+        by_unit: dict[str, list[dict]] = {}
+        for member in members:
+            if member["p"] is not None and member["u"]:
+                by_unit.setdefault(member["u"], []).append(member)
+
+        saving = saving_unit = None
+        for unit, priced in sorted(by_unit.items(),
+                                   key=lambda kv: (-len(kv[1]), kv[0])):
+            # `members` is sorted by ascending price, so each unit's slice is
+            # too: the dearest brand is last and the cheapest generic first.
+            brands = [m for m in priced if m["b"]]
+            generics = [m for m in priced if not m["b"]]
             # The brand baseline is the dearest brand-classified product; taking
             # the cheapest would understate the switch.
-            baseline = brands[-1]["p"]
-            saving = round((baseline - generics[0]["p"]) / baseline * 100, 1)
+            if brands and generics and brands[-1]["p"]:
+                baseline = brands[-1]["p"]
+                saving = round((baseline - generics[0]["p"]) / baseline * 100, 1)
+                saving_unit = unit
+                break
 
         groups.append({
             "i": g["ingredient_key"], "df": g["dosage_form"], "r": g["route"],
-            "s": g["strength_key"], "n": len(members), "sv": saving, "mem": members,
+            "s": g["strength_key"], "n": len(members), "sv": saving,
+            # The pricing unit the saving was computed in. A percentage with no
+            # unit behind it cannot be checked.
+            "su": saving_unit, "mem": members,
         })
 
     # Index on the Orange Book ingredient, on the salt-stripped moiety, and on
@@ -147,9 +170,18 @@ def build_payload(conn) -> dict:
             "openfda_ndc": note("openfda_ndc", "export_date"),
             "generated": date.today().isoformat(),
             "price_basis": DISCLAIMER,
+            # What kind of money this payload holds, for a caller rather than a
+            # reader. Every figure here is NADAC, so it is one value today; it
+            # is stated anyway, because a number whose basis is implied is how
+            # an acquisition cost gets read as a copay.
+            "cost_basis": "acquisition_cost",
             "coverage": {
                 "groups": len(groups),
                 "with_savings": sum(1 for g in groups if g["sv"] is not None),
+                # Expand step: the basis-qualified name beside the old one, so
+                # callers can move over before the old key is withdrawn.
+                "with_acquisition_cost_saving":
+                    sum(1 for g in groups if g["sv"] is not None),
                 "members": sum(g["n"] for g in groups),
             },
         },

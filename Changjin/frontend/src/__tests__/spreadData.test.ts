@@ -31,7 +31,7 @@ const member = (
   applicant: 'ACME',
   teCode: 'AB',
   isBrand,
-  pricePerUnit: price,
+  pricePerUnit: price, acquisitionCost: price,
   pricingUnit: unit,
 });
 
@@ -41,7 +41,7 @@ const group = (members: PricedMember[]): EquivalenceGroup => ({
   route: 'ORAL',
   strength: 'EQ 40MG BASE',
   memberCount: members.length,
-  savingPercent: null,
+  savingPercent: null, savingPricingUnit: null,
   members,
 });
 
@@ -123,7 +123,10 @@ describe('collecting rows for the compounds on screen', () => {
     meta: {
       orangeBook: 'products.txt', nadacWeek: '2026-08-26', openFdaNdc: '2026-08-28',
       generated: '2026-08-31', priceBasis: 'acquisition cost',
-      coverage: { groups: 1, withSavings: 1, members: 2 },
+      costBasis: 'acquisition_cost',
+      coverage: {
+        groups: 1, withSavings: 1, withAcquisitionCostSaving: 1, members: 2,
+      },
     },
     groups: [group([member(0.037), member(19.11, 'EA', true, 'LIPITOR')])],
     nameIndex: { ATORVASTATIN: [0], 'ATORVASTATIN CALCIUM': [0] },

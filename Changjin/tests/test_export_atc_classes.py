@@ -193,3 +193,17 @@ def test_the_committed_export_matches_what_build_produces():
     assert payload["meta"]["coverage"]["classes"] == len(payload["groups"])
     assert all(len(g["mem"]) >= mod.MIN_MEMBERS for g in payload["groups"])
     assert "not an FDA equivalence finding" in payload["meta"]["relation"]
+
+
+def test_meta_declares_the_cost_basis_and_the_qualified_coverage_name(
+        atc_pkl, priced_db):
+    """`with_acquisition_cost` counts classes holding a cost, not a saving.
+
+    This module computes no saving, so it keeps a name distinct from the other
+    two exports' `with_acquisition_cost_saving`.
+    """
+    meta = build(atc_pkl, priced_db)["meta"]
+    assert meta["cost_basis"] == "acquisition_cost"
+    cov = meta["coverage"]
+    assert cov["with_prices"] == cov["with_acquisition_cost"]
+    assert "with_acquisition_cost_saving" not in cov

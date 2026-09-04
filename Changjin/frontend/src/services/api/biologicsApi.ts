@@ -32,7 +32,11 @@ interface WireGroup {
 interface WirePayload {
   meta: {
     purple_book: string; generated: string;
-    coverage: { families: number; members: number; with_savings: number };
+    cost_basis: string;
+    coverage: {
+      families: number; members: number;
+      with_savings: number; with_acquisition_cost_saving: number;
+    };
   };
   groups: WireGroup[];
   name_index: Record<string, number[]>;
@@ -50,6 +54,7 @@ const expandMember = (m: WireMember): BiologicMember => ({
   dosageForm: m.df,
   strength: m.s,
   pricePerUnit: m.p,
+  acquisitionCost: m.p,
   pricingUnit: m.u,
   referenceProduct: m.ref,
 });
@@ -76,10 +81,12 @@ const expandFamily = (g: WireGroup): BiologicFamily => ({
 const expandMeta = (m: WirePayload['meta']): BiologicsMeta => ({
   purpleBook: m.purple_book,
   generated: m.generated,
+  costBasis: m.cost_basis,
   coverage: {
     families: m.coverage.families,
     members: m.coverage.members,
     withSavings: m.coverage.with_savings,
+    withAcquisitionCostSaving: m.coverage.with_acquisition_cost_saving,
   },
 });
 

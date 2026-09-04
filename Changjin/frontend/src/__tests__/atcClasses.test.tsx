@@ -109,7 +109,10 @@ describe('finding a class from a name', () => {
     meta: {
       source: 'WHO ATC via RxNorm/RxClass', generated: '2026-09-02',
       relation: 'Shared WHO ATC level-4 chemical subgroup. This is a classification, not an FDA equivalence finding.',
-      coverage: { classes: 1, named: 1, with_prices: 1 },
+      cost_basis: 'acquisition_cost',
+      coverage: {
+        classes: 1, named: 1, with_prices: 1, with_acquisition_cost: 1,
+      },
     },
     groups: [{ c: 'C10AA', n: 'HMG CoA reductase inhibitors', np: 1,
                mem: [{ i: 'ATORVASTATIN CALCIUM', lo: 0.037, hi: 19.11, u: 'EA', n: 2 }] }],
@@ -151,8 +154,11 @@ describe('reaching a class from what the page actually holds', () => {
      for every brand-name search — caught only by loading the deployed page and
      seeing the panel missing for LIPITOR. */
   const data = {
-    meta: { source: 's', generated: '2026-09-02', relation: 'r',
-            coverage: { classes: 1, named: 1, withPrices: 1 } },
+    meta: {
+      source: 's', generated: '2026-09-02', relation: 'r',
+      costBasis: 'acquisition_cost',
+      coverage: { classes: 1, named: 1, withPrices: 1, withAcquisitionCost: 1 },
+    },
     classes: [statins],
     nameIndex: { 'ATORVASTATIN CALCIUM': [0], 'ROSUVASTATIN CALCIUM': [0] },
   };

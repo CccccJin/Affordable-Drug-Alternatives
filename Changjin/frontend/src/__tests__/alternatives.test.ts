@@ -142,4 +142,48 @@ describe('switchPair', () => {
     const data = await loadSubstitutability();
     expect(switchPair(data.groups[2])).toBeNull();
   });
+
+  /**
+   * The export computes a saving inside one pricing unit and names it in
+   * `savingPricingUnit`. A pair drawn from any other unit would put a $/ML
+   * figure and a $/EA figure beside a percentage derived from neither.
+   */
+  it('still pairs a single-unit group from a payload with no saving unit', () => {
+    // Every priced member shares EA, so there is nothing to disambiguate.
+    const m = (t: string, isBrand: boolean, p: number) => ({
+      applicationNumber: 'X', tradeName: t, applicant: 'M', teCode: 'AB',
+      isBrand, pricePerUnit: p, acquisitionCost: p, pricingUnit: 'EA',
+    });
+    const group = {
+      ingredient: 'OLD', dosageForm: 'TABLET', route: 'ORAL', strength: '1MG',
+      memberCount: 2, savingPercent: 50, savingPricingUnit: null,
+      members: [m('GEN', false, 1), m('BRAND', true, 2)],
+    };
+    expect(switchPair(group)!.brand.tradeName).toBe('BRAND');
+  });
+
+  it('draws both ends of the pair from the unit the saving was computed in', () => {
+    const member = (
+      tradeName: string, isBrand: boolean, price: number, unit: string,
+    ) => ({
+      applicationNumber: 'X', tradeName, applicant: 'M', teCode: 'AB',
+      isBrand, pricePerUnit: price, acquisitionCost: price, pricingUnit: unit,
+    });
+    const group = {
+      ingredient: 'SOMEDRUG', dosageForm: 'SOLUTION', route: 'ORAL',
+      strength: '50MG/ML', memberCount: 3, savingPercent: 50, savingPricingUnit: 'EA',
+      // Sorted ascending by price, as the export emits them. The dearest
+      // brand overall sits in ML, so an unfiltered "last brand" picks it.
+      members: [
+        member('GENERIC-EA', false, 1.0, 'EA'),
+        member('BRAND-EA', true, 2.0, 'EA'),
+        member('BRAND-ML', true, 9.0, 'ML'),
+      ],
+    };
+
+    const pair = switchPair(group)!;
+    expect(pair.brand.pricingUnit).toBe('EA');
+    expect(pair.generic.pricingUnit).toBe('EA');
+    expect(pair.brand.tradeName).toBe('BRAND-EA');
+  });
 });

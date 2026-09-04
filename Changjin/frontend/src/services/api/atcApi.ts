@@ -23,7 +23,11 @@ interface WireGroup { c: string; n: string; np: number; mem: WireMember[] }
 interface WirePayload {
   meta: {
     source: string; generated: string; relation: string;
-    coverage: { classes: number; named: number; with_prices: number };
+    cost_basis: string;
+    coverage: {
+      classes: number; named: number;
+      with_prices: number; with_acquisition_cost: number;
+    };
   };
   groups: WireGroup[];
   name_index: Record<string, number[]>;
@@ -64,10 +68,12 @@ export const loadAtcClasses = async (): Promise<AtcData> => {
         source: wire.meta.source,
         generated: wire.meta.generated,
         relation: wire.meta.relation,
+        costBasis: wire.meta.cost_basis,
         coverage: {
           classes: wire.meta.coverage.classes,
           named: wire.meta.coverage.named,
           withPrices: wire.meta.coverage.with_prices,
+          withAcquisitionCost: wire.meta.coverage.with_acquisition_cost,
         },
       },
       classes: wire.groups.map(expandGroup),
