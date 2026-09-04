@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+from string import Formatter
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
@@ -56,12 +57,133 @@ TE_B_MEANING = {
     "B*": "under FDA review for a potential bioequivalence problem",
 }
 
-_GRADE_ACTION = {
-    "A": "Pharmacist may substitute directly (subject to state substitution law).",
-    "B": "Not automatically substitutable; prescriber authorisation required.",
-    "C": "Therapeutically related only; requires a prescribing decision.",
-    "D": "No substitutability relationship established.",
+@dataclass(frozen=True)
+class Rule:
+    """One entry of the :data:`RULE_CATALOGUE`.
+
+    ``label`` is a format template: the four rules whose wording cites a code or
+    an identifier carry a placeholder the adjudicator fills in. ``meaning`` is
+    the static explanation a human-facing legend renders, and is the only field
+    written for the reader rather than for the verdict.
+    """
+
+    rule_id: str
+    grade: str
+    label: str
+    action: str
+    meaning: str
+
+    @property
+    def placeholders(self) -> frozenset:
+        """Field names this rule's label template requires.
+
+        Raises ``ValueError`` on a malformed template, which is why
+        :func:`_catalogue` touches it: a stray brace or a renamed field then
+        fails at import rather than at the first adjudication that hits it.
+        """
+        return frozenset(f for _, f, _, _ in Formatter().parse(self.label) if f)
+
+
+def _catalogue(*rules: Rule) -> dict:
+    by_id = {r.rule_id: r for r in rules}
+    if len(by_id) != len(rules):
+        raise ValueError("duplicate rule id in the catalogue")
+    for rule in rules:
+        rule.placeholders          # rejects a malformed label at import time
+    return by_id
+
+
+_ACTION = {
+    "A": 'Pharmacist may substitute directly (subject to state substitution law).',
+    "B": 'Not automatically substitutable; prescriber authorisation required.',
+    "C": 'Therapeutically related only; requires a prescribing decision.',
+    "D": 'No substitutability relationship established.',
 }
+
+#: Every rule the adjudicator may emit, and the single authority for what each
+#: one means. The grade letter groups rules into action classes; it is *not* the
+#: unit of adjudication, and nothing may look up an action by letter alone --
+#: `C1` (a salt of one substance) and `C2` (a different substance in the same
+#: class) share a letter and ask the reader to do different things.
+#:
+#: This enumeration is closed. Adding a rule is a deliberate contract change,
+#: and `tests/test_substitutability.py` pins the id set so it cannot happen by
+#: accident. Both producers of a grade -- `judge()` and `biologic_relationship`
+#: -- read the letter from here.
+#:
+#: `meaning` has no consumer yet: it is written for the human-facing legend the
+#: export payload will carry, and nothing renders it as of this commit.
+RULE_CATALOGUE = _catalogue(
+    Rule("A0", "A", "identical RxNorm concept", _ACTION["A"],
+         "The same RxNorm concept on both sides."),
+    Rule("A1", "A",
+         "Orange Book therapeutic equivalence {codes} on the same "
+         "reference-listed drug", _ACTION["A"],
+         "FDA rates both products therapeutically equivalent to one reference-"
+         "listed drug."),
+    Rule("A2", "A",
+         "Orange Book therapeutic equivalence {codes} (non-AB equivalence "
+         "class)", _ACTION["A"],
+         "FDA equivalence under a code other than AB, applying to a specific "
+         "formulation class."),
+    Rule("A3", "A",
+         "Purple Book 351(k) INTERCHANGEABLE biologic and its reference "
+         "product", _ACTION["A"],
+         "FDA has designated the follow-on biologic interchangeable with its "
+         "reference product."),
+    Rule("B1", "B", "Orange Book non-equivalence rating {codes}", _ACTION["B"],
+         "FDA has rated the pair, and the rating says they are not "
+         "therapeutically equivalent."),
+    Rule("B2", "B",
+         "same ingredient and dosage form, but at least one product carries "
+         "no TE rating", _ACTION["B"],
+         "No FDA equivalence finding exists for one side of the pair."),
+    Rule("B3", "B",
+         "same ingredient and dosage form, but different TE subgroups "
+         "(different reference-listed drugs)", _ACTION["B"],
+         "Both products are rated, but against different reference-listed "
+         "drugs, so the ratings do not link them to each other."),
+    Rule("B4", "B",
+         "Purple Book 351(k) BIOSIMILAR (not interchangeable) and its "
+         "reference product", _ACTION["B"],
+         "A biosimilar that FDA has not designated interchangeable."),
+    Rule("B5", "B",
+         "two 351(k) follow-on biologics of the same reference product",
+         _ACTION["B"],
+         "Each follow-on is rated against the reference product and against "
+         "nothing else, so two follow-ons are not interchangeable with one "
+         "another however interchangeable each is with the reference."),
+    Rule("B6", "B",
+         "same biologic proper name under separate BLAs, no 351(k) link",
+         _ACTION["B"],
+         "Distinct originator licences of one proper name, with no follow-on "
+         "relationship between them."),
+    Rule("B7", "B",
+         "same active ingredient and ATC substance, but no Orange Book "
+         "equivalence rating links these products", _ACTION["B"],
+         "The same substance on both sides, but no FDA equivalence finding "
+         "was reached; they may differ in dosage form, strength or route."),
+    Rule("C1", "C",
+         "same WHO ATC level-5 substance class, different active ingredient "
+         "(typically a salt, ester or isomer variant)", _ACTION["C"],
+         "One substance in two forms. Salt and ester forms differ in "
+         "bioavailability, so a prescriber must confirm the dose conversion."),
+    Rule("C2", "C",
+         "same WHO ATC level-4 chemical subgroup, different substance",
+         _ACTION["C"],
+         "A different drug of the same chemical subgroup. This is a "
+         "therapeutic-interchange decision, not a substitution."),
+    Rule("D0", "D", "RXCUI {rxcui} not found in RxNorm", _ACTION["D"],
+         "The identifier did not resolve, so the pair could not be "
+         "adjudicated."),
+    Rule("D1", "D", "no equivalence or therapeutic-class relationship found",
+         _ACTION["D"],
+         "Different ingredients and unrelated ATC classes."),
+    Rule("D2", "D", "one product is a licensed biologic, the other is not",
+         _ACTION["D"],
+         "Biologics and small-molecule drugs have no common equivalence "
+         "pathway, so no FDA determination is possible."),
+)
 
 _UNIT_TO_MG = {"MG": 1.0, "G": 1000.0, "GM": 1000.0, "MCG": 0.001, "UG": 0.001, "NG": 1e-6}
 _STRENGTH_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(MG|MCG|UG|NG|GM|G|%|UNIT|UNITS|IU|MEQ|ML)\b")
@@ -243,6 +365,11 @@ class Side:
 
 
 
+def _rel(rule_id: str) -> tuple[str, str]:
+    """(grade, rule_id), with the grade read from the catalogue, never restated."""
+    return (RULE_CATALOGUE[rule_id].grade, rule_id)
+
+
 #: Grade and rule for a pair of Purple Book rows, or None when unrelated.
 #:
 #: Pure: it reads only the two rows. Both the pairwise adjudicator and the bulk
@@ -261,15 +388,15 @@ def biologic_relationship(ra, rb) -> tuple[str, str] | None:
     for sub, ref in ((ra, rb), (rb, ra)):
         if sub["ref_proper_name_key"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
             if sub["is_interchangeable"]:
-                return ("A", "A3")
+                return _rel("A3")
             if sub["is_biosimilar"]:
-                return ("B", "B4")
+                return _rel("B4")
 
     if ra["ref_proper_name_key"] and ra["ref_proper_name_key"] == rb["ref_proper_name_key"]:
-        return ("B", "B5")
+        return _rel("B5")
 
     if ra["proper_name_key"] and ra["proper_name_key"] == rb["proper_name_key"]:
-        return ("B", "B6")
+        return _rel("B6")
 
     return None
 
@@ -407,15 +534,30 @@ class Adjudicator:
 
         ingredient_level = [s.rxcui for s in (a, b) if s.is_ingredient_level]
 
-        def verdict(grade, rule, label, extra=(), caveats=(), confidence="high", details=None):
+        def verdict(rule, extra=(), caveats=(), confidence="high", details=None,
+                    fmt=None):
+            """Build a verdict from a rule id.
+
+            Grade, wording and action all come from :data:`RULE_CATALOGUE`, so
+            a caller names the rule and nothing else. ``fmt`` fills the
+            placeholder of the four rules whose wording cites a code or an
+            identifier.
+            """
+            entry = RULE_CATALOGUE[rule]
+            supplied = set(fmt or {})
+            if supplied != entry.placeholders:
+                raise KeyError(
+                    f"rule {rule} label needs {sorted(entry.placeholders)}, "
+                    f"got {sorted(supplied)}")
             caveats = list(caveats)
-            if ingredient_level and grade in ("A", "B"):
+            if ingredient_level and entry.grade in ("A", "B"):
                 caveats.append(
                     f"RXCUI {', '.join(ingredient_level)} is ingredient-level, so this "
                     "verdict is not specific to a strength or dosage form; re-run with "
                     "SCD/SBD concepts before acting on it.")
             return Verdict(
-                grade=grade, rule_id=rule, label=label, action=_GRADE_ACTION[grade],
+                grade=entry.grade, rule_id=entry.rule_id,
+                label=entry.label.format(**(fmt or {})), action=entry.action,
                 confidence=confidence, rxcui_a=a.rxcui, rxcui_b=b.rxcui,
                 name_a=a.concept.name, name_b=b.concept.name,
                 evidence=ev + list(extra), caveats=caveats,
@@ -423,7 +565,7 @@ class Adjudicator:
 
         for side in (a, b):
             if not side.concept.found:
-                return verdict("D", "D0", f"RXCUI {side.rxcui} not found in RxNorm",
+                return verdict("D0", fmt={"rxcui": side.rxcui},
                                caveats=[f"{side.rxcui} did not resolve; cannot adjudicate."],
                                confidence="high")
 
@@ -436,7 +578,7 @@ class Adjudicator:
                          "form of this substance, not one dispensable product"))
 
         if a.rxcui == b.rxcui:
-            return verdict("A", "A0", "identical RxNorm concept",
+            return verdict("A0",
                            caveats=["Same RXCUI on both sides -- trivially substitutable."])
 
         # Biologics are governed by the Purple Book, not the Orange Book.
@@ -456,7 +598,7 @@ class Adjudicator:
         if not (a.ob_rows and b.ob_rows):
             return None
 
-        best = None            # (rank, grade, rule, label, evidence, caveats, confidence)
+        best = None            # (rank, rule, fmt, evidence, caveats, confidence, details)
         for ra in a.ob_rows:
             for rb in b.ob_rows:
                 if ra["appl_no"] == rb["appl_no"] and ra["product_no"] == rb["product_no"]:
@@ -506,9 +648,7 @@ class Adjudicator:
                 shared_other = {c for c in shared if _is_equivalent_code(c) and c not in shared_ab}
 
                 if shared_ab:
-                    cand = (0, "A", "A1",
-                            f"Orange Book therapeutic equivalence {sorted(shared_ab)} "
-                            f"on the same reference-listed drug",
+                    cand = (0, "A1", {"codes": sorted(shared_ab)},
                             base_ev + [Evidence(
                                 "FDA Orange Book", "products.txt",
                                 f"{ra['appl_no']}/{ra['product_no']} vs {rb['appl_no']}/{rb['product_no']}",
@@ -517,9 +657,7 @@ class Adjudicator:
                                 "FDA-rated therapeutically equivalent")],
                             caveats, confidence, details)
                 elif shared_other:
-                    cand = (1, "A", "A2",
-                            f"Orange Book therapeutic equivalence {sorted(shared_other)} "
-                            "(non-AB equivalence class)",
+                    cand = (1, "A2", {"codes": sorted(shared_other)},
                             base_ev + [Evidence(
                                 "FDA Orange Book", "products.txt",
                                 f"{ra['appl_no']}/{ra['product_no']} vs {rb['appl_no']}/{rb['product_no']}",
@@ -529,9 +667,7 @@ class Adjudicator:
                             caveats, confidence, details)
                 elif (ta and tb and all(_is_equivalent_code(c) for c in ta | tb)):
                     codes = f"{sorted(ta)} vs {sorted(tb)}"
-                    cand = (2, "B", "B3",
-                            "same ingredient and dosage form, but different TE subgroups "
-                            "(different reference-listed drugs)",
+                    cand = (2, "B3", None,
                             base_ev + [Evidence(
                                 "FDA Orange Book", "products.txt",
                                 f"{ra['appl_no']}/{ra['product_no']} vs {rb['appl_no']}/{rb['product_no']}",
@@ -545,17 +681,14 @@ class Adjudicator:
                         why = "; ".join(
                             f"{c}: {TE_B_MEANING.get(c, 'not therapeutically equivalent')}"
                             for c in sorted(bcodes))
-                        cand = (3, "B", "B1",
-                                f"Orange Book non-equivalence rating {sorted(bcodes)}",
+                        cand = (3, "B1", {"codes": sorted(bcodes)},
                                 base_ev + [Evidence(
                                     "FDA Orange Book", "products.txt",
                                     f"{ra['appl_no']}/{ra['product_no']} vs {rb['appl_no']}/{rb['product_no']}",
                                     "TE_Code", ", ".join(sorted(bcodes)), why)],
                                 caveats, confidence, details)
                     else:
-                        cand = (4, "B", "B2",
-                                "same ingredient and dosage form, but at least one product "
-                                "carries no TE rating",
+                        cand = (4, "B2", None,
                                 base_ev + [Evidence(
                                     "FDA Orange Book", "products.txt",
                                     f"{ra['appl_no']}/{ra['product_no']} vs {rb['appl_no']}/{rb['product_no']}",
@@ -569,11 +702,11 @@ class Adjudicator:
 
         if best is None:
             return None
-        _, grade, rule, label, evidence, caveats, confidence, details = best
+        _, rule, fmt, evidence, caveats, confidence, details = best
         extra = list(evidence)
-        if grade == "B":
+        if RULE_CATALOGUE[rule].grade == "B":
             extra += self._blocking_context(a, b)
-        return verdict(grade, rule, label, extra=extra, caveats=caveats,
+        return verdict(rule, extra=extra, caveats=caveats, fmt=fmt,
                        confidence=confidence, details=details)
 
     @staticmethod
@@ -675,8 +808,7 @@ class Adjudicator:
             other = b if a.is_biologic else a
             bio = a if a.is_biologic else b
             return verdict(
-                "D", "D2",
-                "one product is a licensed biologic, the other is not",
+                "D2",
                 extra=[Evidence(
                     "FDA Purple Book", "purplebook.csv",
                     bio.pb_rows[0]["bla_no"], "License Type",
@@ -696,8 +828,8 @@ class Adjudicator:
                     best = cand
         if best is None:
             return None
-        _, grade, rule, label, evidence, caveats, confidence, details = best
-        return verdict(grade, rule, label, extra=evidence, caveats=caveats,
+        _, rule, fmt, evidence, caveats, confidence, details = best
+        return verdict(rule, extra=evidence, caveats=caveats, fmt=fmt,
                        confidence=confidence, details=details)
 
     # ------------------------------------------------------------------
@@ -738,9 +870,7 @@ class Adjudicator:
         # Is one the 351(k) follow-on of the other?
         for sub, ref, tag in ((ra, rb, "a"), (rb, ra, "b")):
             if rule_id == "A3" and sub["is_interchangeable"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
-                    return (0, "A", "A3",
-                            "Purple Book 351(k) INTERCHANGEABLE biologic and its "
-                            "reference product",
+                    return (0, "A3", None,
                             base + [ev(sub, "Ref. Product Proper Name", sub["ref_proper_name"]),
                                     ev(sub, "Inter. Approval Date",
                                        sub["inter_approval_date"] or "(not stated)",
@@ -749,9 +879,7 @@ class Adjudicator:
                              "but state biologic substitution statutes still govern."],
                             "high", details)
             if rule_id == "B4" and sub["is_biosimilar"] and sub["ref_proper_name_key"] == ref["proper_name_key"]:
-                    return (1, "B", "B4",
-                            "Purple Book 351(k) BIOSIMILAR (not interchangeable) and its "
-                            "reference product",
+                    return (1, "B4", None,
                             base + [ev(sub, "Ref. Product Proper Name", sub["ref_proper_name"]),
                                     ev(sub, "License Type", sub["license_type"],
                                        "biosimilar without an interchangeability "
@@ -760,8 +888,7 @@ class Adjudicator:
 
         # Two 351(k) products sharing one reference product.
         if rule_id == "B5":
-            return (2, "B", "B5",
-                    "two 351(k) follow-on biologics of the same reference product",
+            return (2, "B5", None,
                     base + [Evidence(
                         "FDA Purple Book", "purplebook.csv",
                         f"BLA{ra['bla_no']} vs BLA{rb['bla_no']}",
@@ -773,8 +900,7 @@ class Adjudicator:
                     "high", details)
 
         if rule_id == "B6":
-            return (3, "B", "B6",
-                    "same biologic proper name under separate BLAs, no 351(k) link",
+            return (3, "B6", None,
                     base, ["Distinct originator licences of the same proper name are not "
                            "automatically substitutable."], "medium", details)
         return None
@@ -806,9 +932,7 @@ class Adjudicator:
         if shared5:
             if same_ingredient:
                 return verdict(
-                    "B", "B7",
-                    "same active ingredient and ATC substance, but no Orange Book "
-                    "equivalence rating links these products",
+                    "B7",
                     extra=[atc_ev(a, shared5, 5), atc_ev(b, shared5, 5)],
                     caveats=["No therapeutic-equivalence rating was found for this pair; "
                              "they may differ in dosage form, strength or route."],
@@ -821,9 +945,7 @@ class Adjudicator:
                     value=f"{sorted(pin_a)} vs {sorted(pin_b)}",
                     note="same base ingredient (IN) but a different salt/ester form")]
             return verdict(
-                "C", "C1",
-                "same WHO ATC level-5 substance class, different active ingredient "
-                "(typically a salt, ester or isomer variant)",
+                "C1",
                 extra=[atc_ev(a, shared5, 5), atc_ev(b, shared5, 5),
                        Evidence("WHO ATC", "ATC index", ", ".join(sorted(shared5)),
                                 "level-5 code", ", ".join(sorted(shared5)),
@@ -836,8 +958,7 @@ class Adjudicator:
         shared4 = set(a.concept.atc4()) & set(b.concept.atc4())
         if shared4:
             return verdict(
-                "C", "C2",
-                "same WHO ATC level-4 chemical subgroup, different substance",
+                "C2",
                 extra=[atc_ev(a, {c for c in atc_a}, "4 (from 5)"),
                        atc_ev(b, {c for c in atc_b}, "4 (from 5)"),
                        Evidence("WHO ATC", "ATC index", ", ".join(sorted(shared4)),
@@ -857,7 +978,7 @@ class Adjudicator:
         if not b.ob_rows and not b.pb_rows:
             why.append(f"RXCUI {b.rxcui} maps to no Orange/Purple Book product")
         return verdict(
-            "D", "D1", "no equivalence or therapeutic-class relationship found",
+            "D1",
             caveats=why or ["Different ingredients and unrelated ATC classes."],
             confidence="high" if (atc_a and atc_b) else "low")
 

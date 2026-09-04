@@ -191,3 +191,78 @@ def test_unknown_rxcui_is_grade_d_not_an_exception(adj):
 def test_biologic_vs_small_molecule_is_not_substitutable(adj):
     v = adj.judge("1657864", "617311")      # Rituxan vs atorvastatin
     assert v.grade == "D"
+
+
+# --------------------------------------------------------------------------
+# Rule Catalogue
+#
+# The rule id -- not the grade letter -- is this project's first-class unit
+# (`CONTEXT.md`). These pin the catalogue as its single authority: a closed
+# enumeration that every verdict derives its grade and action from, so the two
+# cannot drift apart and a rule cannot be added by accident.
+# --------------------------------------------------------------------------
+
+#: Every rule the adjudicator may emit, and the grade it belongs to. Pinned
+#: here rather than read back from the catalogue: a test that derives its
+#: expectation from the thing under test cannot fail. Adding a rule, or moving
+#: one between grades, is a deliberate contract change and must be made here too.
+EXPECTED_RULES = {
+    "A0": "A", "A1": "A", "A2": "A", "A3": "A",
+    "B1": "B", "B2": "B", "B3": "B", "B4": "B",
+    "B5": "B", "B6": "B", "B7": "B",
+    "C1": "C", "C2": "C",
+    "D0": "D", "D1": "D", "D2": "D",
+}
+
+
+def test_rule_catalogue_is_a_closed_enumeration():
+    from subst_data.grade import RULE_CATALOGUE
+    assert set(RULE_CATALOGUE) == set(EXPECTED_RULES)
+
+
+def test_every_rule_carries_the_grade_it_is_pinned_to():
+    from subst_data.grade import RULE_CATALOGUE
+    assert {r: e.grade for r, e in RULE_CATALOGUE.items()} == EXPECTED_RULES
+
+
+def test_every_rule_declares_a_label_action_and_meaning():
+    from subst_data.grade import RULE_CATALOGUE
+    for rule_id, rule in RULE_CATALOGUE.items():
+        assert rule.rule_id == rule_id
+        assert rule.label, rule_id
+        assert rule.action, rule_id
+        assert rule.meaning, rule_id
+
+
+def test_every_label_template_renders_with_its_own_placeholders():
+    """A malformed or renamed placeholder must not wait for a live adjudication.
+
+    Only four rules carry a placeholder, and the pairs that reach them need the
+    database. Without this the first sign of a broken template would be a
+    KeyError in production on every AB-rated pair.
+    """
+    from subst_data.grade import RULE_CATALOGUE
+    for rule_id, rule in RULE_CATALOGUE.items():
+        rendered = rule.label.format(**{p: "X" for p in rule.placeholders})
+        assert rendered and "{" not in rendered, rule_id
+
+
+def test_biologic_relationship_reads_its_grade_from_the_catalogue():
+    """The bulk biologics export ships this letter straight to the frontend.
+
+    It used to restate the grade rather than read it, which is a second source
+    of truth for the one thing the catalogue exists to own.
+    """
+    from subst_data.grade import RULE_CATALOGUE, _rel
+    for rule_id in ("A3", "B4", "B5", "B6"):
+        assert _rel(rule_id) == (RULE_CATALOGUE[rule_id].grade, rule_id)
+        assert _rel(rule_id)[0] == EXPECTED_RULES[rule_id]
+
+
+@needs_db
+@pytest.mark.parametrize("a,b,grade,rule,desc", CASES, ids=[c[4][:40] for c in CASES])
+def test_a_verdict_carries_the_action_its_rule_declares(adj, a, b, grade, rule, desc):
+    from subst_data.grade import RULE_CATALOGUE
+    v = adj.judge(a, b)
+    assert v.action == RULE_CATALOGUE[v.rule_id].action, desc
+    assert v.label and "{" not in v.label, desc
