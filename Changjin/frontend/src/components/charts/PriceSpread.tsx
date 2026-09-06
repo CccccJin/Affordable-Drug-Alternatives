@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, alpha, useTheme } from '@mui/material';
 import type { SpreadRow } from './spreadData';
-import { SPARSE_BELOW, formatUnitPrice, stackOffsets } from './spreadData';
+import { SPARSE_BELOW, formatUnitAmount, stackOffsets } from './spreadData';
 
 /**
  * Every surveyed price in an FDA equivalence group, on one shared log axis.
@@ -81,7 +81,7 @@ const Plot: React.FC<{ row: SpreadRow; width: number; height: number; r: number 
   const theme = useTheme();
   const y = height / 2;
   const s = r + 2.2;
-  const bx = row.brandPrice == null ? null : at(row.brandPrice, width);
+  const bx = row.brandAcquisitionCost == null ? null : at(row.brandAcquisitionCost, width);
   // Products at the same surveyed price stack instead of hiding one another.
   const xs = row.prices.map(p => at(p, width));
   const dy = stackOffsets(xs, r * 2 + 1, height / 2 - r - 1);
@@ -94,7 +94,7 @@ const Plot: React.FC<{ row: SpreadRow; width: number; height: number; r: number 
       role="img"
       aria-label={
         `${row.ingredient}, ${row.strength}: ${row.n} surveyed products from ` +
-        `${formatUnitPrice(row.lowest)} to ${formatUnitPrice(row.highest)} per ${row.unit}` +
+        `${formatUnitAmount(row.lowest)} to ${formatUnitAmount(row.highest)} per ${row.unit}` +
         (row.sparse ? `, a small sample` : '')
       }
       style={{ display: 'block' }}
@@ -153,13 +153,14 @@ export const PriceSpread: React.FC<{ rows: SpreadRow[]; nadacWeek: string }> = (
   return (
     <Box sx={{ mt: 4 }}>
       <Typography variant="h6" component="h3" gutterBottom>
-        Price spread inside each equivalence group
+        NADAC cost spread inside each equivalence group
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, maxWidth: '68ch' }}>
-        Every dot is one product CMS surveyed. Every row is a set of products FDA
+        Every dot is one product CMS surveyed, at what a pharmacy pays to acquire
+        it — not a copay and not a cash price. Every row is a set of products FDA
         rates therapeutically equivalent, so a pharmacist may swap between them.
         The axis is logarithmic and shared across rows, and each row uses a single
-        pricing unit because a price per tablet and a price per millilitre are not
+        pricing unit because a cost per tablet and a cost per millilitre are not
         comparable quantities.
       </Typography>
 
@@ -194,14 +195,14 @@ export const PriceSpread: React.FC<{ rows: SpreadRow[]; nadacWeek: string }> = (
 
         <Typography variant="body2" sx={{ mt: 1.5, maxWidth: '62ch' }}>
           The cheapest equivalent costs{' '}
-          <Box component="strong">{formatUnitPrice(specimen.lowest)}</Box> per {specimen.unit}.
+          <Box component="strong">{formatUnitAmount(specimen.lowest)}</Box> per {specimen.unit}.
           {specimen.brandName
             ? <> {specimen.brandName} costs{' '}
                 <Box component="strong" sx={{ color: BRAND_MARK }}>
-                  {formatUnitPrice(specimen.brandPrice as number)}
+                  {formatUnitAmount(specimen.brandAcquisitionCost as number)}
                 </Box>.</>
             : <> The dearest is{' '}
-                <Box component="strong">{formatUnitPrice(specimen.highest)}</Box>; no product
+                <Box component="strong">{formatUnitAmount(specimen.highest)}</Box>; no product
                 in this group is classified as a brand in the NADAC extract.</>}
           {specimen.sparse
             ? ` Only ${specimen.n} products carry a surveyed price, so read this as an indication rather than a rate.`

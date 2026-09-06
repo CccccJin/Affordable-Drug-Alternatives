@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { BiologicFamily, BiologicMember } from '../../types/api';
-import { formatPrice, monoCell, numberCell } from './format';
+import { formatAmount, monoCell, numberCell } from './format';
 
 /**
  * One Purple Book family: a reference biologic and everything licensed against
@@ -93,8 +93,8 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
 
     {family.savings.map(saving => (
       <Typography key={saving.pricingUnit} variant="body2" sx={{ mb: 1 }}>
-        <strong>{saving.fromName}</strong> ${formatPrice(saving.fromPrice)} →{' '}
-        <strong>{saving.toName}</strong> ${formatPrice(saving.toPrice)} per{' '}
+        <strong>{saving.fromName}</strong> ${formatAmount(saving.fromPrice)} →{' '}
+        <strong>{saving.toName}</strong> ${formatAmount(saving.toPrice)} per{' '}
         {saving.pricingUnit} — <strong>{saving.savingPercent.toFixed(1)}%</strong>{' '}
         lower published acquisition cost.{' '}
         {saving.grade === 'A'
@@ -114,7 +114,7 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
                 ? `Relationship to ${family.referenceProduct}`
                 : 'Relationship to the reference'}
             </TableCell>
-            <TableCell sx={numberCell}>$ / unit</TableCell>
+            <TableCell sx={numberCell}>NADAC $ / unit</TableCell>
             <TableCell>Unit</TableCell>
           </TableRow>
         </TableHead>
@@ -127,7 +127,7 @@ export const BiologicFamilyCard: React.FC<{ family: BiologicFamily }> = ({ famil
               <TableCell>{member.tradeName}</TableCell>
               <TableCell>{member.applicant}</TableCell>
               <TableCell>{relationshipChip(member, family.referenceProduct)}</TableCell>
-              <TableCell sx={numberCell}>{formatPrice(member.pricePerUnit)}</TableCell>
+              <TableCell sx={numberCell}>{formatAmount(member.acquisitionCost)}</TableCell>
               <TableCell>{member.pricingUnit ?? '—'}</TableCell>
             </TableRow>
           ))}

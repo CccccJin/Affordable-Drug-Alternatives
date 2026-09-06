@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import type { EquivalenceGroup } from '../../types/api';
 import { EvidenceList } from './EvidenceList';
-import { formatPrice, monoCell, numberCell } from './format';
+import { formatAmount, monoCell, numberCell } from './format';
 import { switchPair } from './groups';
 
 export const EquivalenceGroupCard: React.FC<{ group: EquivalenceGroup }> = ({ group }) => {
@@ -46,7 +46,7 @@ export const EquivalenceGroupCard: React.FC<{ group: EquivalenceGroup }> = ({ gr
               <TableCell>Product</TableCell>
               <TableCell>Applicant</TableCell>
               <TableCell>TE</TableCell>
-              <TableCell sx={numberCell}>$ / unit</TableCell>
+              <TableCell sx={numberCell}>NADAC $ / unit</TableCell>
               <TableCell>Unit</TableCell>
             </TableRow>
           </TableHead>
@@ -65,7 +65,7 @@ export const EquivalenceGroupCard: React.FC<{ group: EquivalenceGroup }> = ({ gr
                 </TableCell>
                 <TableCell>{member.applicant}</TableCell>
                 <TableCell sx={monoCell}>{member.teCode}</TableCell>
-                <TableCell sx={numberCell}>{formatPrice(member.pricePerUnit)}</TableCell>
+                <TableCell sx={numberCell}>{formatAmount(member.acquisitionCost)}</TableCell>
                 <TableCell>{member.pricingUnit ?? '—'}</TableCell>
               </TableRow>
             ))}
@@ -76,11 +76,11 @@ export const EquivalenceGroupCard: React.FC<{ group: EquivalenceGroup }> = ({ gr
       {pair && (
         <Typography variant="body2" sx={{ mt: 1.5 }}>
           Switching from <strong>{pair.brand.tradeName}</strong> (
-          {formatPrice(pair.brand.pricePerUnit)}) to{' '}
+          {formatAmount(pair.brand.acquisitionCost)}) to{' '}
           <strong>{pair.generic.tradeName}</strong> (
-          {formatPrice(pair.generic.pricePerUnit)}) saves{' '}
+          {formatAmount(pair.generic.acquisitionCost)}) saves{' '}
           <strong>
-            {(pair.brand.pricePerUnit! - pair.generic.pricePerUnit!).toFixed(5)}
+            {(pair.brand.acquisitionCost! - pair.generic.acquisitionCost!).toFixed(5)}
           </strong>{' '}
           per {pair.brand.pricingUnit} — <strong>{group.savingPercent!.toFixed(1)}%</strong> of
           acquisition cost.

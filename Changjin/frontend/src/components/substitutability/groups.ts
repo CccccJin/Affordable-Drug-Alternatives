@@ -19,7 +19,7 @@ import type { EquivalenceGroup } from '../../types/api';
  * caller renders their difference beside a percentage derived from neither.
  */
 export const switchPair = (group: EquivalenceGroup) => {
-  const allPriced = group.members.filter(m => m.pricePerUnit !== null);
+  const allPriced = group.members.filter(m => m.acquisitionCost !== null);
   const units = new Set(allPriced.map(m => m.pricingUnit));
   // A payload predating `savingPricingUnit` -- a cached one, during the
   // rollout -- cannot say which unit answered. Where every priced member

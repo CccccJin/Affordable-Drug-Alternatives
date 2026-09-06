@@ -3,7 +3,7 @@ import { Box, Chip, Paper, Typography, alpha, useTheme } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import type { EquivalenceGroup } from '../../types/api';
 import { switchPair } from '../substitutability/groups';
-import { formatPrice } from '../substitutability/format';
+import { formatAmount } from '../substitutability/format';
 
 /**
  * The answer, stated before the evidence for it.
@@ -36,7 +36,7 @@ export const SwitchSummary: React.FC<{ group: EquivalenceGroup }> = ({ group }) 
           color: 'text.secondary',
         }}
       >
-        ${formatPrice(price)} / {unit}
+        NADAC ${formatAmount(price)} / {unit}
       </Typography>
     </Box>
   );
@@ -59,14 +59,14 @@ export const SwitchSummary: React.FC<{ group: EquivalenceGroup }> = ({ group }) 
           flexWrap: 'wrap',
         }}
       >
-        {side('Brand', pair.brand.tradeName, pair.brand.pricePerUnit, pair.brand.pricingUnit)}
+        {side('Brand', pair.brand.tradeName, pair.brand.acquisitionCost, pair.brand.pricingUnit)}
 
         <ArrowForwardIcon sx={{ color: 'success.main', flexShrink: 0 }} />
 
         {side(
           'Lowest-cost rated equivalent',
           pair.generic.tradeName,
-          pair.generic.pricePerUnit,
+          pair.generic.acquisitionCost,
           pair.generic.pricingUnit
         )}
 

@@ -36,8 +36,8 @@ interface WirePayload {
 
 const expandMember = (m: WireMember): AtcMember => ({
   ingredient: m.i,
-  priceLow: m.lo ?? null,
-  priceHigh: m.hi ?? null,
+  acquisitionCostLow: m.lo ?? null,
+  acquisitionCostHigh: m.hi ?? null,
   pricingUnit: m.u ?? null,
   surveyedProducts: m.n ?? 0,
 });

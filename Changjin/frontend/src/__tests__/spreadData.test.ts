@@ -9,7 +9,7 @@
 import {
   toSpreadRow,
   spreadRowsFor,
-  formatUnitPrice,
+  formatUnitAmount,
   stackOffsets,
   SPARSE_BELOW,
 } from '../components/charts/spreadData';
@@ -89,7 +89,7 @@ describe('choosing what to plot', () => {
 
   it('reports no brand when none of the priced products is one', () => {
     const row = toSpreadRow(group([member(0.037), member(1.10)]));
-    expect(row!.brandPrice).toBeNull();
+    expect(row!.brandAcquisitionCost).toBeNull();
     expect(row!.brandName).toBeNull();
   });
 
@@ -166,15 +166,15 @@ describe('price text', () => {
   it('keeps five decimals on a generic unit price', () => {
     // $0.04 next to a brand at $19.11 would hide most of the 516x ratio the
     // row exists to show.
-    expect(formatUnitPrice(0.03704)).toBe('$0.03704');
+    expect(formatUnitAmount(0.03704)).toBe('$0.03704');
   });
 
   it('uses two decimals once a price is above a dollar', () => {
-    expect(formatUnitPrice(19.11383)).toBe('$19.11');
+    expect(formatUnitAmount(19.11383)).toBe('$19.11');
   });
 
   it('groups thousands', () => {
-    expect(formatUnitPrice(3914.22)).toBe('$3,914.22');
+    expect(formatUnitAmount(3914.22)).toBe('$3,914.22');
   });
 });
 

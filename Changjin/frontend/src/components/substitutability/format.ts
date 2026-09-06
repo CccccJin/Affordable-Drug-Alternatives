@@ -1,7 +1,10 @@
-/** Shared presentation rules for priced equivalence data. */
+/** Shared presentation rules for equivalence data carrying an amount. */
 
 /**
- * Price precision tracks magnitude.
+ * Precision tracks magnitude.
+ *
+ * Basis-agnostic on purpose: this decides how many digits a figure needs,
+ * not what the figure is. Whichever money it is, its label says so.
  *
  * NADAC publishes five decimals, and generics routinely cost fractions of a
  * cent per unit — rounding those to two would print "0.00" for most of the
@@ -10,7 +13,7 @@
  * separators go in above 1,000, where the difference between $2,855 and
  * $29,792 is the whole point.
  */
-export const formatPrice = (value: number | null): string => {
+export const formatAmount = (value: number | null): string => {
   if (value === null) return '—';
   if (value >= 1000) return value.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
   if (value >= 100) return value.toFixed(2);
@@ -18,7 +21,7 @@ export const formatPrice = (value: number | null): string => {
   return value.toFixed(5);
 };
 
-/** Right-aligned, tabular figures, so columns of prices compare by eye. */
+/** Right-aligned, tabular figures, so a column of amounts compares by eye. */
 export const numberCell = {
   textAlign: 'right' as const,
   fontFamily: 'ui-monospace, Menlo, monospace',

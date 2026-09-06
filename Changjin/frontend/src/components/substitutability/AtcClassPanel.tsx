@@ -44,10 +44,10 @@ const money = (v: number): string =>
   : `$${v.toFixed(5)}`;
 
 const priceCell = (m: AtcClass['members'][number]): string => {
-  if (m.priceLow == null || m.priceHigh == null) return '—';
-  return m.priceLow === m.priceHigh
-    ? money(m.priceLow)
-    : `${money(m.priceLow)} – ${money(m.priceHigh)}`;
+  if (m.acquisitionCostLow == null || m.acquisitionCostHigh == null) return '—';
+  return m.acquisitionCostLow === m.acquisitionCostHigh
+    ? money(m.acquisitionCostLow)
+    : `${money(m.acquisitionCostLow)} – ${money(m.acquisitionCostHigh)}`;
 };
 
 export const AtcClassPanel: React.FC<{
@@ -64,7 +64,14 @@ export const AtcClassPanel: React.FC<{
   // Reading through it unguarded threw during render and took the whole
   // results view with it; falling back keeps the disclaimer independent of
   // what a cache happens to hold.
-  const entry = rules?.[rule] ?? C2_FALLBACK;
+  //
+  // The fallback is C2's text, so it may only stand in for C2, and only when
+  // the payload's own entry is unusable. Substituting it for some other rule
+  // would print that rule's id beside this rule's words -- a mislabel on the
+  // one component whose whole job is the prohibition.
+  const supplied = rules?.[rule];
+  const usable = supplied?.meaning && supplied?.action ? supplied : undefined;
+  const entry = usable ?? (rule === 'C2' || !rule ? C2_FALLBACK : undefined);
 
   return (
     <Box sx={{ mt: 5 }}>
@@ -84,23 +91,26 @@ export const AtcClassPanel: React.FC<{
         </Typography>
         <Typography variant="body2">
           The products below share a WHO chemical subgroup with {queryName}.
-          {` ${entry.meaning}`} Nothing here says any of them would work for a
-          particular person, or that a cheaper one is a reasonable choice.
+          {entry ? ` ${entry.meaning}` : ''} Nothing here says any of them would
+          work for a particular person, or that a cheaper one is a reasonable
+          choice.
         </Typography>
 
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', mt: 1 }}
-        >
-          <Box
-            component="span"
-            sx={{ fontFamily: 'monospace', fontWeight: 700, mr: 0.75 }}
+        {entry && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 1 }}
           >
-            {rule || 'C2'}
-          </Box>
-          {entry.action}
-        </Typography>
+            <Box
+              component="span"
+              sx={{ fontFamily: 'monospace', fontWeight: 700, mr: 0.75 }}
+            >
+              {rule || 'C2'}
+            </Box>
+            {entry.action}
+          </Typography>
+        )}
       </Alert>
 
       {classes.map(atc => (
@@ -139,7 +149,7 @@ export const AtcClassPanel: React.FC<{
                 <TableHead>
                   <TableRow>
                     <TableCell>Substance</TableCell>
-                    <TableCell align="right">$ / unit, published range</TableCell>
+                    <TableCell align="right">NADAC $ / unit, surveyed range</TableCell>
                     <TableCell>Unit</TableCell>
                     <TableCell align="right">Products surveyed</TableCell>
                   </TableRow>

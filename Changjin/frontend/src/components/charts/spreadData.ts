@@ -42,7 +42,7 @@ export interface SpreadRow {
   /** Every surveyed price in the chosen unit, ascending. */
   prices: number[];
   /** The dearest brand-classified product, or null if none is surveyed. */
-  brandPrice: number | null;
+  brandAcquisitionCost: number | null;
   brandName: string | null;
   lowest: number;
   highest: number;
@@ -57,7 +57,7 @@ export interface SpreadRow {
 const dominantUnit = (group: EquivalenceGroup): string | null => {
   const counts = new Map<string, number>();
   for (const member of group.members) {
-    if (member.pricePerUnit == null || !member.pricingUnit) continue;
+    if (member.acquisitionCost == null || !member.pricingUnit) continue;
     counts.set(member.pricingUnit, (counts.get(member.pricingUnit) ?? 0) + 1);
   }
   let best: string | null = null;
@@ -77,12 +77,12 @@ export const toSpreadRow = (group: EquivalenceGroup): SpreadRow | null => {
   if (!unit) return null;
 
   const priced = group.members.filter(
-    m => m.pricePerUnit != null && m.pricingUnit === unit
+    m => m.acquisitionCost != null && m.pricingUnit === unit
   );
   if (priced.length < 2) return null;
 
   const prices = priced
-    .map(m => m.pricePerUnit as number)
+    .map(m => m.acquisitionCost as number)
     .sort((a, b) => a - b);
   const lowest = prices[0];
   const highest = prices[prices.length - 1];
@@ -91,7 +91,7 @@ export const toSpreadRow = (group: EquivalenceGroup): SpreadRow | null => {
   const brands = priced.filter(m => m.isBrand);
   const dearestBrand = brands.length
     ? brands.reduce((a, b) =>
-        (b.pricePerUnit as number) > (a.pricePerUnit as number) ? b : a)
+        (b.acquisitionCost as number) > (a.acquisitionCost as number) ? b : a)
     : null;
 
   return {
@@ -100,7 +100,7 @@ export const toSpreadRow = (group: EquivalenceGroup): SpreadRow | null => {
     strength: group.strength,
     dosageForm: group.dosageForm,
     prices,
-    brandPrice: dearestBrand ? (dearestBrand.pricePerUnit as number) : null,
+    brandAcquisitionCost: dearestBrand ? (dearestBrand.acquisitionCost as number) : null,
     brandName: dearestBrand ? dearestBrand.tradeName : null,
     lowest,
     highest,
@@ -141,7 +141,7 @@ export const spreadRowsFor = (
  * those to two would print $0.04 beside a brand at $19.11, hiding most of the
  * ratio the row exists to show.
  */
-export const formatUnitPrice = (v: number): string =>
+export const formatUnitAmount = (v: number): string =>
   v >= 100
     ? `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : v >= 1

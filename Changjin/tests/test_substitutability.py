@@ -451,7 +451,12 @@ def test_no_report_table_heads_an_amount_column_as_a_bare_price():
     offences = []
     for path in sorted((root / "subst_data").glob("*.py")):
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if not line.lstrip().startswith(('"| ', "'| ")):
+            # Any string literal holding a column separator, not just one that
+            # opens a row: a header long enough to wrap is split across two
+            # implicit-concatenation lines, and matching only the first would
+            # leave every continuation unguarded -- which is what happened when
+            # these very headers were wrapped.
+            if "|" not in line or '"' not in line:
                 continue
             for cell in line.split("|"):
                 cell = cell.strip().strip('",\' ')

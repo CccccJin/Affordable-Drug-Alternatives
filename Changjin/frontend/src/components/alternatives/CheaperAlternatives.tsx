@@ -24,7 +24,7 @@ import { EquivalenceGroupCard } from '../substitutability/EquivalenceGroupCard';
 import { groupKey, switchPair } from '../substitutability/groups';
 import { ClinicalDisclaimer } from '../substitutability/ClinicalDisclaimer';
 import { NadacDisclaimer } from '../substitutability/NadacDisclaimer';
-import { formatPrice, numberCell } from '../substitutability/format';
+import { formatAmount, numberCell } from '../substitutability/format';
 import { BiologicFamilyCard } from '../substitutability/BiologicFamilyCard';
 import { AtcClassPanel } from '../substitutability/AtcClassPanel';
 import { useAtcClasses } from '../../hooks/useAtcClasses';
@@ -44,8 +44,8 @@ const HighlightTable: React.FC<{ groups: EquivalenceGroup[]; onPick: (name: stri
         <TableRow>
           <TableCell>Brand</TableCell>
           <TableCell>Lowest-cost rated equivalent</TableCell>
-          <TableCell sx={numberCell}>Brand $/unit</TableCell>
-          <TableCell sx={numberCell}>Generic $/unit</TableCell>
+          <TableCell sx={numberCell}>Brand NADAC $/unit</TableCell>
+          <TableCell sx={numberCell}>Generic NADAC $/unit</TableCell>
           <TableCell sx={numberCell}>Saving</TableCell>
         </TableRow>
       </TableHead>
@@ -62,8 +62,8 @@ const HighlightTable: React.FC<{ groups: EquivalenceGroup[]; onPick: (name: stri
             >
               <TableCell sx={{ fontWeight: 600 }}>{pair.brand.tradeName}</TableCell>
               <TableCell>{pair.generic.tradeName}</TableCell>
-              <TableCell sx={numberCell}>{formatPrice(pair.brand.pricePerUnit)}</TableCell>
-              <TableCell sx={numberCell}>{formatPrice(pair.generic.pricePerUnit)}</TableCell>
+              <TableCell sx={numberCell}>{formatAmount(pair.brand.acquisitionCost)}</TableCell>
+              <TableCell sx={numberCell}>{formatAmount(pair.generic.acquisitionCost)}</TableCell>
               <TableCell sx={{ ...numberCell, fontWeight: 700, color: 'success.dark' }}>
                 {group.savingPercent!.toFixed(1)}%
               </TableCell>
@@ -85,8 +85,8 @@ const BiologicHighlightTable: React.FC<{
         <TableRow>
           <TableCell>Reference biologic</TableCell>
           <TableCell>Cheapest follow-on</TableCell>
-          <TableCell sx={numberCell}>Reference $/unit</TableCell>
-          <TableCell sx={numberCell}>Follow-on $/unit</TableCell>
+          <TableCell sx={numberCell}>Reference NADAC $/unit</TableCell>
+          <TableCell sx={numberCell}>Follow-on NADAC $/unit</TableCell>
           <TableCell sx={numberCell}>Saving</TableCell>
         </TableRow>
       </TableHead>
@@ -111,8 +111,8 @@ const BiologicHighlightTable: React.FC<{
                   sx={{ ml: 0.5 }}
                 />
               </TableCell>
-              <TableCell sx={numberCell}>{formatPrice(saving.fromPrice)}</TableCell>
-              <TableCell sx={numberCell}>{formatPrice(saving.toPrice)}</TableCell>
+              <TableCell sx={numberCell}>{formatAmount(saving.fromPrice)}</TableCell>
+              <TableCell sx={numberCell}>{formatAmount(saving.toPrice)}</TableCell>
               <TableCell sx={{ ...numberCell, fontWeight: 700, color: 'success.dark' }}>
                 {saving.savingPercent.toFixed(1)}%
               </TableCell>

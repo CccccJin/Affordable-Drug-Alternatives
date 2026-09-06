@@ -23,9 +23,9 @@ const statins: AtcClass = {
   className: 'HMG CoA reductase inhibitors',
   pricedMembers: 2,
   members: [
-    { ingredient: 'ATORVASTATIN CALCIUM', priceLow: 0.02325, priceHigh: 19.11428, pricingUnit: 'EA', surveyedProducts: 984 },
-    { ingredient: 'ROSUVASTATIN CALCIUM', priceLow: 0.0921, priceHigh: 10.4405, pricingUnit: 'EA', surveyedProducts: 78 },
-    { ingredient: 'SIMVASTATIN', priceLow: null, priceHigh: null, pricingUnit: null, surveyedProducts: 0 },
+    { ingredient: 'ATORVASTATIN CALCIUM', acquisitionCostLow: 0.02325, acquisitionCostHigh: 19.11428, pricingUnit: 'EA', surveyedProducts: 984 },
+    { ingredient: 'ROSUVASTATIN CALCIUM', acquisitionCostLow: 0.0921, acquisitionCostHigh: 10.4405, pricingUnit: 'EA', surveyedProducts: 78 },
+    { ingredient: 'SIMVASTATIN', acquisitionCostLow: null, acquisitionCostHigh: null, pricingUnit: null, surveyedProducts: 0 },
   ],
 };
 
@@ -123,6 +123,34 @@ describe('it names the rule it is showing', () => {
       ),
     );
     expect(C2_FALLBACK).toEqual(payload.meta.rules[payload.meta.rule]);
+  });
+
+  /**
+   * The fallback is C2's own words, so it may only ever stand in for C2.
+   * Lending them to another rule would print that rule's id beside this
+   * rule's sentences on the one panel whose job is the prohibition.
+   */
+  it('does not lend C2 wording to a rule the payload failed to explain', () => {
+    const { container } = render(
+      <AtcClassPanel classes={[statins]} queryName="LIPITOR" rule="C9" rules={{}} />,
+    );
+    expect(container.textContent).toMatch(/may not substitute/i);
+    expect(container.textContent).not.toMatch(/therapeutic interchange/i);
+    expect(container.textContent).not.toMatch(/\bC9\b/);
+  });
+
+  it('rejects a half-written entry rather than rendering a blank claim', () => {
+    const { container } = render(
+      <AtcClassPanel
+        classes={[statins]}
+        queryName="LIPITOR"
+        rule="C2"
+        rules={{ C2: { grade: 'C' } as never }}
+      />,
+    );
+    expect(container.textContent).toMatch(/not an FDA equivalence finding/);
+    expect(container.textContent).toMatch(/only a prescriber can make/);
+    expect(container.textContent).not.toMatch(/undefined/);
   });
 
   /**

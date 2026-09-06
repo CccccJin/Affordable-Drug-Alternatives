@@ -282,8 +282,8 @@ export interface BiologicsData {
 
 export interface AtcMember {
   ingredient: string;
-  priceLow: number | null;      // null when CMS surveys no product
-  priceHigh: number | null;
+  acquisitionCostLow: number | null;      // null when CMS surveys no product
+  acquisitionCostHigh: number | null;
   pricingUnit: string | null;
   surveyedProducts: number;
 }

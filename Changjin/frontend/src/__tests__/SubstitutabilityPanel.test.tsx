@@ -107,23 +107,23 @@ describe('SubstitutabilityPanel', () => {
   });
 });
 
-describe('formatPrice', () => {
+describe('formatAmount', () => {
   it('keeps sub-cent precision where generics live', async () => {
-    const { formatPrice } = await import('../components/substitutability/format');
-    expect(formatPrice(0.03704)).toBe('0.03704');
-    expect(formatPrice(0.00001)).toBe('0.00001');
+    const { formatAmount } = await import('../components/substitutability/format');
+    expect(formatAmount(0.03704)).toBe('0.03704');
+    expect(formatAmount(0.00001)).toBe('0.00001');
   });
 
   it('drops noise digits on a biologic and separates thousands', async () => {
-    const { formatPrice } = await import('../components/substitutability/format');
+    const { formatAmount } = await import('../components/substitutability/format');
     // "$3366.12300" is five digits of noise after the only two that matter.
-    expect(formatPrice(3366.123)).toBe('3,366.12');
-    expect(formatPrice(29792.78571)).toBe('29,792.79');
+    expect(formatAmount(3366.123)).toBe('3,366.12');
+    expect(formatAmount(29792.78571)).toBe('29,792.79');
   });
 
   it('renders an absent price as a dash, not a zero', async () => {
-    const { formatPrice } = await import('../components/substitutability/format');
-    expect(formatPrice(null)).toBe('—');
+    const { formatAmount } = await import('../components/substitutability/format');
+    expect(formatAmount(null)).toBe('—');
   });
 });
 
