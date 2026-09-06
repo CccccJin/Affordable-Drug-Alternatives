@@ -35,7 +35,7 @@ interface WirePayload {
     cost_basis: string;
     coverage: {
       families: number; members: number;
-      with_savings: number; with_acquisition_cost_saving: number;
+      with_acquisition_cost_saving: number;
     };
   };
   groups: WireGroup[];
@@ -53,7 +53,6 @@ const expandMember = (m: WireMember): BiologicMember => ({
   route: m.r,
   dosageForm: m.df,
   strength: m.s,
-  pricePerUnit: m.p,
   acquisitionCost: m.p,
   pricingUnit: m.u,
   referenceProduct: m.ref,
@@ -85,7 +84,6 @@ const expandMeta = (m: WirePayload['meta']): BiologicsMeta => ({
   coverage: {
     families: m.coverage.families,
     members: m.coverage.members,
-    withSavings: m.coverage.with_savings,
     withAcquisitionCostSaving: m.coverage.with_acquisition_cost_saving,
   },
 });

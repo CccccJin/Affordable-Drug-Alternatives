@@ -18,7 +18,7 @@ const wire = {
   meta: {
     purple_book: 'purplebook.csv',
     generated: '2026-08-31',
-    coverage: { families: 2, members: 5, with_savings: 1 },
+    coverage: { families: 2, members: 5, with_acquisition_cost_saving: 1 },
   },
   groups: [
     {
@@ -59,7 +59,7 @@ describe('loadBiologics', () => {
     expect(simlandi.tradeName).toBe('Simlandi');
     expect(simlandi.licenseType).toBe('351(k) Interchangeable');
     expect(simlandi.referenceProduct).toBe('Humira');
-    expect(data.meta.coverage.withSavings).toBe(1);
+    expect(data.meta.coverage.withAcquisitionCostSaving).toBe(1);
   });
 
   it('downloads once however many callers ask', async () => {

@@ -73,8 +73,8 @@ const substitutabilityWire = {
   meta: {
     orange_book: 'products.txt', nadac_week: '2026-08-26',
     openfda_ndc: '2026-08-28', generated: '2026-08-29',
-    price_basis: 'NADAC is what pharmacies pay to acquire a drug.',
-    coverage: { groups: 1, with_savings: 1, members: 2 },
+    cost_disclaimer: 'NADAC is what pharmacies pay to acquire a drug.',
+    coverage: { groups: 1, members: 2 },
   },
   groups: [{
     i: 'ATORVASTATIN CALCIUM', df: 'TABLET', r: 'ORAL', s: 'EQ 40MG BASE',
@@ -90,7 +90,7 @@ const substitutabilityWire = {
 const biologicsWire = {
   meta: {
     purple_book: 'purplebook.csv', generated: '2026-08-29',
-    coverage: { families: 0, members: 0, with_savings: 0 },
+    coverage: { families: 0, members: 0, with_acquisition_cost_saving: 0 },
   },
   groups: [],
   name_index: {},

@@ -151,11 +151,11 @@ def test_name_index_reaches_a_group_by_ingredient_and_by_moiety(conn):
     assert "ATORVASTATIN" in index, "salt-stripped moiety is not indexed"
 
 
-def test_meta_carries_the_price_basis_disclaimer(conn):
+def test_meta_carries_the_cost_disclaimer(conn):
     """NADAC is an acquisition cost; the payload must say so, not the UI alone."""
     meta = build_payload(conn)["meta"]
 
-    assert "not a copay" in meta["price_basis"]
+    assert "not a copay" in meta["cost_disclaimer"]
     assert meta["coverage"]["groups"] == len(build_payload(conn)["groups"])
 
 
@@ -222,11 +222,16 @@ def test_a_saving_names_the_pricing_unit_it_was_computed_in(conn):
 def test_meta_declares_the_cost_basis_in_a_machine_readable_field(conn):
     meta = build_payload(conn)["meta"]
     assert meta["cost_basis"] == "acquisition_cost"
-    # The human-readable disclaimer stays: it is what a reader sees.
-    assert "NADAC" in meta["price_basis"]
+    # The sentence a reader sees stays beside the enum a caller reads.
+    assert "NADAC" in meta["cost_disclaimer"]
 
 
-def test_coverage_carries_both_the_old_and_the_basis_qualified_count(conn):
-    """Expand step: the old key stays until every caller has moved."""
+def test_coverage_counts_savings_under_one_name_only(conn):
+    """Contract step: every caller has moved, so the old spelling goes.
+
+    Two names for one count is a standing invitation to read the wrong one,
+    and the one that survives is the one that says which money it counted.
+    """
     cov = build_payload(conn)["meta"]["coverage"]
-    assert cov["with_savings"] == cov["with_acquisition_cost_saving"]
+    assert cov["with_acquisition_cost_saving"] == 1
+    assert "with_savings" not in cov

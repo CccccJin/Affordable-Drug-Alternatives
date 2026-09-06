@@ -11,7 +11,7 @@ Three Python layers already exist and are working:
 
 | Layer | Entry point | What it produces |
 |---|---|---|
-| Substitutability | `Changjin/substitutability.py` | grade A/B/C/D + evidence chain for an RXCUI pair |
+| Substitutability | `Changjin/substitutability.py` | grade A/B/C/D, or U when the pair cannot be adjudicated, + evidence chain for an RXCUI pair |
 | Price | `Changjin/price_compare.py` | grade-A alternatives sorted by NADAC unit price |
 | Evaluation | `Changjin/evaluate.py` | stratified metrics, `EVALUATION_REPORT.md` |
 
@@ -42,8 +42,9 @@ Read from `subst_data/cache/substitutability.sqlite`. Emit:
     "orange_book": "EOBZIP 2026-07",
     "nadac_week": "2026-08-26",
     "generated": "2026-08-29",
-    "price_basis": "NADAC is a pharmacy ACQUISITION cost, not a patient price",
-    "coverage": { "groups": 2381, "with_savings": 419, "members": 16080 }
+    "cost_disclaimer": "NADAC is a pharmacy ACQUISITION cost, not a patient price",
+    "cost_basis": "acquisition_cost",
+    "coverage": { "groups": 2381, "with_acquisition_cost_saving": 419, "members": 16080 }
   },
   "groups": [
     {

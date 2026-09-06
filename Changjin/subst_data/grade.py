@@ -66,9 +66,10 @@ class Rule:
     """One entry of the :data:`RULE_CATALOGUE`.
 
     ``label`` is a format template: the four rules whose wording cites a code or
-    an identifier carry a placeholder the adjudicator fills in. ``meaning`` is
-    the static explanation a human-facing legend renders, and is the only field
-    written for the reader rather than for the verdict.
+    an identifier carry a placeholder the adjudicator fills in. ``meaning`` and
+    ``action`` are the halves written for a reader -- what the relationship is,
+    and what may be done about it -- and both are shipped by
+    :func:`catalogue_payload` for a surface to render rather than restate.
     """
 
     rule_id: str
@@ -840,6 +841,15 @@ class Adjudicator:
             # One side is a biologic, the other is not: no equivalence pathway.
             other = b if a.is_biologic else a
             bio = a if a.is_biologic else b
+            # `D2` asserts what the other side *is* -- a small molecule, which
+            # no pathway connects to a biologic. That rests on some source
+            # describing it. Where none does, the pair is a gap like any other,
+            # and answering `D2` would be the conflation `U*` exists to end.
+            if not other.concept.atc and not other.ob_rows and not other.pb_rows:
+                return verdict("U2", fmt={"rxcui": other.rxcui},
+                               caveats=[f"RXCUI {other.rxcui} is described by none "
+                                        "of these sources, so what it is cannot be "
+                                        "established."])
             return verdict(
                 "D2",
                 extra=[Evidence(

@@ -249,9 +249,18 @@ export const CheaperAlternatives: React.FC = () => {
             Largest published price differences
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {result.meta.coverage.groups.toLocaleString()} equivalence groups,{' '}
-            {result.meta.coverage.withSavings.toLocaleString()} of which have both a priced
-            brand and a priced generic. Select a row to open it.
+            {result.meta.coverage.groups.toLocaleString()} equivalence groups
+            {/* A payload predating the contract step does not carry this
+                count. Printing 0 would be a figure the data never gave;
+                dropping the clause says less and nothing false. */}
+            {result.meta.coverage.withAcquisitionCostSaving !== undefined && (
+              <>
+                ,{' '}
+                {result.meta.coverage.withAcquisitionCostSaving.toLocaleString()} of
+                which have both a priced brand and a priced generic
+              </>
+            )}
+            . Select a row to open it.
           </Typography>
           <HighlightTable groups={result.highlights} onPick={submit} />
 

@@ -10,10 +10,10 @@ const wire = {
   meta: {
     orange_book: 'products.txt', nadac_week: '2026-08-26',
     openfda_ndc: '2026-08-28', generated: '2026-08-29',
-    price_basis: 'NADAC is what pharmacies pay to acquire a drug.',
+    cost_disclaimer: 'NADAC is what pharmacies pay to acquire a drug.',
     cost_basis: 'acquisition_cost',
     coverage: {
-      groups: 2, with_savings: 1, with_acquisition_cost_saving: 1, members: 3,
+      groups: 2, with_acquisition_cost_saving: 1, members: 3,
     },
   },
   groups: [
@@ -52,13 +52,13 @@ describe('substitutabilityApi', () => {
     expect(member.tradeName).toBe('LIPITOR');
     expect(member.applicationNumber).toBe('NDA020702');
     expect(member.isBrand).toBe(true);
-    expect(member.pricePerUnit).toBe(19.11383);
+    expect(member.acquisitionCost).toBe(19.11383);
     expect(data.groups[0].savingPercent).toBe(99.8);
   });
 
   it('carries the acquisition-cost disclaimer through to the parsed meta', async () => {
     const data = await loadSubstitutability();
-    expect(data.meta.priceBasis).toMatch(/acquire/i);
+    expect(data.meta.costDisclaimer).toMatch(/acquire/i);
   });
 
   /**
@@ -69,7 +69,7 @@ describe('substitutabilityApi', () => {
   it('exposes the acquisition cost under a name that says which money it is', async () => {
     const data = await loadSubstitutability();
     const member = data.groups[0].members[1];
-    expect(member.acquisitionCost).toBe(member.pricePerUnit);
+    expect(member.acquisitionCost).toBe(member.acquisitionCost);
     expect(member.acquisitionCost).toBe(19.11383);
     expect(member.pricingUnit).toBe('EA');
   });
@@ -84,7 +84,7 @@ describe('substitutabilityApi', () => {
     const data = await loadSubstitutability();
     expect(data.meta.costBasis).toBe('acquisition_cost');
     expect(data.meta.coverage.withAcquisitionCostSaving).toBe(
-      data.meta.coverage.withSavings,
+      data.meta.coverage.withAcquisitionCostSaving,
     );
   });
 

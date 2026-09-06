@@ -116,12 +116,10 @@ export interface PricedMember {
   applicant: string;
   teCode: string;              // Orange Book therapeutic-equivalence code
   isBrand: boolean;            // from NADAC's own classification, not appl_type
-  pricePerUnit: number | null; // null when CMS does not survey this product
   /**
-   * The same figure as `pricePerUnit`, under a name that says which money it
-   * is: what a pharmacy pays to acquire the drug, not a copay, a cash price or
-   * a reimbursement rate (`CONTEXT.md`). `pricePerUnit` is withdrawn once every
-   * caller has moved.
+   * What a pharmacy pays a wholesaler to acquire the drug -- not a copay, a
+   * cash price or a reimbursement rate (`CONTEXT.md`). Null when CMS surveys
+   * no product.
    */
   acquisitionCost: number | null;
   pricingUnit: string | null;  // "EA" | "ML" | "GM"
@@ -147,14 +145,17 @@ export interface SubstitutabilityMeta {
   nadacWeek: string;
   openFdaNdc: string;
   generated: string;
-  priceBasis: string;          // the acquisition-cost disclaimer, for a reader
+  costDisclaimer?: string;     // the sentence a reader sees
   costBasis: string;           // which money this payload holds, for a caller
   coverage: {
     // An Equivalence Group is not a Biologic Family or an ATC Class; these
     // counts describe different memberships and may not be added together.
     groups: number;
-    withSavings: number;
-    withAcquisitionCostSaving: number;
+    // Optional because a payload predating the contract step counted this
+    // under `with_savings` and carries neither name after parsing. The static
+    // assets are unhashed, so that payload can arrive beside this code; the
+    // type says so, and the compiler makes every reader handle it.
+    withAcquisitionCostSaving?: number;
     members: number;
   };
 }
@@ -222,8 +223,7 @@ export interface BiologicMember {
   route: string;
   dosageForm: string;
   strength: string;
-  pricePerUnit: number | null;
-  /** Same figure, named for which money it is. See `PricedMember`. */
+  /** See `PricedMember.acquisitionCost`. */
   acquisitionCost: number | null;
   pricingUnit: string | null;
   referenceProduct: string | null;
@@ -265,8 +265,7 @@ export interface BiologicsMeta {
     // counts may not be added together.
     families: number;
     members: number;
-    withSavings: number;
-    withAcquisitionCostSaving: number;
+    withAcquisitionCostSaving?: number;
   };
 }
 
@@ -324,8 +323,7 @@ export interface AtcData {
       // saving, so it counts classes holding a cost at all.
       classes: number;
       named: number;
-      withPrices: number;
-      withAcquisitionCost: number;
+      withAcquisitionCost?: number;
     };
   };
   classes: AtcClass[];

@@ -9,6 +9,7 @@ have been built; they skip cleanly when it has not.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -395,6 +396,27 @@ def test_a_gap_on_one_side_does_not_hide_a_finding_on_the_other(adj, monkeypatch
     assert v.grade == "A" and v.rule_id == "A1", v.explain()
 
 
+@needs_db
+def test_a_biologic_against_a_concept_no_source_describes_is_a_gap(adj, monkeypatch):
+    """`D2` asserts the other side is a small molecule. Sometimes we cannot say.
+
+    The rule means "these two have no common equivalence pathway", which rests
+    on knowing what the other side is. Where no source describes it, that is
+    not known, and the biologic branch was the one place still answering with a
+    finding regardless.
+    """
+    _blanked(adj, monkeypatch, "617311", atc=(), fda=False)
+    v = adj.judge("1657864", "617311")      # Rituxan vs a concept nothing describes
+    assert v.grade == "U" and v.rule_id == "U2", v.explain()
+
+
+@needs_db
+def test_a_biologic_against_a_known_small_molecule_is_still_a_finding(adj):
+    """Both sides described: no equivalence pathway exists, and that is D2."""
+    v = adj.judge("1657864", "617311")      # Rituxan vs atorvastatin
+    assert v.grade == "D" and v.rule_id == "D2"
+
+
 def test_unknown_is_not_a_position_on_the_ordered_axis():
     from subst_data.grade import RULE_CATALOGUE
     ordered = {r.grade for r in RULE_CATALOGUE.values()} - {"U"}
@@ -464,3 +486,46 @@ def test_no_report_table_heads_an_amount_column_as_a_bare_price():
                         w in cell for w in ("NADAC", "Acquisition", "Part D")):
                     offences.append(f"{path.name}:{lineno} {cell!r}")
     assert not offences, "amount columns with no basis:\n" + "\n".join(offences)
+
+
+# --------------------------------------------------------------------------
+# Contract step
+#
+# `with_savings` and `with_prices` were kept beside their basis-qualified
+# replacements so no caller had to move in the same commit. Both migrations
+# have landed, so the transitional names go: two spellings of one count is a
+# standing invitation to read the wrong one.
+# --------------------------------------------------------------------------
+
+#: Payload keys withdrawn now that every caller reads the qualified name.
+WITHDRAWN_PAYLOAD_KEYS = ("with_savings", "with_prices", "price_basis")
+
+
+def test_no_export_still_emits_a_withdrawn_key():
+    root = Path(__file__).resolve().parent.parent
+    offences = []
+    for name in ("substitutability", "biologics", "atc_classes"):
+        path = root / "frontend" / "public" / "data" / f"{name}.json"
+        if not path.exists():
+            continue
+        meta = json.loads(path.read_text(encoding="utf-8"))["meta"]
+        keys = set(meta) | set(meta.get("coverage", {}))
+        for key in WITHDRAWN_PAYLOAD_KEYS:
+            if key in keys:
+                offences.append(f"{name}.json: {key}")
+    assert not offences, "withdrawn keys still shipped: " + ", ".join(offences)
+
+
+def test_the_disclaimer_is_named_for_what_it_holds():
+    """A sentence for a reader, beside an enum for a caller.
+
+    It was `price_basis`, which named neither: the basis is the enum next to
+    it, and the word this project bans is the one it led with.
+    """
+    root = Path(__file__).resolve().parent.parent
+    path = root / "frontend" / "public" / "data" / "substitutability.json"
+    if not path.exists():
+        pytest.skip("run `python price_compare.py export`")
+    meta = json.loads(path.read_text(encoding="utf-8"))["meta"]
+    assert "NADAC" in meta["cost_disclaimer"]
+    assert meta["cost_basis"] == "acquisition_cost"

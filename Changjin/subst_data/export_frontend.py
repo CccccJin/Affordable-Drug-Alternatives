@@ -26,8 +26,8 @@ DB_PATH = CACHE / "substitutability.sqlite"
 OUT_PATH = (Path(__file__).resolve().parents[1]
             / "frontend" / "public" / "data" / "substitutability.json")
 
-DISCLAIMER = ("NADAC is what pharmacies pay to acquire a drug. It is not a "
-              "copay, not a cash price, and not a reimbursement rate.")
+COST_DISCLAIMER = ("NADAC is what pharmacies pay to acquire a drug. It is not "
+                   "a copay, not a cash price, and not a reimbursement rate.")
 
 
 def _acquisition_costs(conn) -> dict[str, list[tuple]]:
@@ -169,7 +169,9 @@ def build_payload(conn) -> dict:
             "nadac_week": note("nadac", "price_as_of"),
             "openfda_ndc": note("openfda_ndc", "export_date"),
             "generated": date.today().isoformat(),
-            "price_basis": DISCLAIMER,
+            # A sentence for a reader; `cost_basis` below is the enum for a
+            # caller. Neither stands in for the other.
+            "cost_disclaimer": COST_DISCLAIMER,
             # What kind of money this payload holds, for a caller rather than a
             # reader. Every figure here is NADAC, so it is one value today; it
             # is stated anyway, because a number whose basis is implied is how
@@ -177,9 +179,6 @@ def build_payload(conn) -> dict:
             "cost_basis": "acquisition_cost",
             "coverage": {
                 "groups": len(groups),
-                "with_savings": sum(1 for g in groups if g["sv"] is not None),
-                # Expand step: the basis-qualified name beside the old one, so
-                # callers can move over before the old key is withdrawn.
                 "with_acquisition_cost_saving":
                     sum(1 for g in groups if g["sv"] is not None),
                 "members": sum(g["n"] for g in groups),
@@ -213,7 +212,7 @@ def main() -> Path:
     cov = payload["meta"]["coverage"]
     print(f"Wrote {out}")
     print(f"  groups {cov['groups']:,} · members {cov['members']:,} · "
-          f"with a saving {cov['with_savings']:,}")
+          f"with a saving {cov['with_acquisition_cost_saving']:,}")
     print(f"  {raw / 1024 / 1024:.2f} MB raw, {gz / 1024:.0f} KB gzipped")
     return out
 

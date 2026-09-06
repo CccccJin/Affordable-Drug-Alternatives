@@ -214,7 +214,7 @@ def test_meta_declares_the_cost_basis_and_the_qualified_coverage_name(
     meta = build(atc_pkl, priced_db)["meta"]
     assert meta["cost_basis"] == "acquisition_cost"
     cov = meta["coverage"]
-    assert cov["with_prices"] == cov["with_acquisition_cost"]
+    assert "with_prices" not in cov, "the transitional name is withdrawn"
     assert "with_acquisition_cost_saving" not in cov
 
 

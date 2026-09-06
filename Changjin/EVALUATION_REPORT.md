@@ -1,6 +1,6 @@
 # Stratified Evaluation — Substitutability Pipeline
 
-Generated 2026-09-01 by `python evaluate.py run`. Reported on the **TEST** split.
+Generated 2026-09-06 by `python evaluate.py run`. Reported on the **TEST** split.
 
 ## How to read these numbers
 
@@ -59,9 +59,9 @@ Precision is computed against **one stratum at a time**, holding the same positi
 | **Medium** | Morgan/Tanimoto >= 0.70, not therapeutically equivalent | 36 | 0 | 100.0% | 1.000 | 1.000 | 1.000 |
 | **Easy** | random pairing | 223 | 0 | 100.0% | 1.000 | 1.000 | 1.000 |
 
-- **Hard** grade distribution: `B` 8, `C` 219, `D` 3
-- **Medium** grade distribution: `B` 8, `C` 18, `D` 10
-- **Easy** grade distribution: `D` 223
+- **Hard** grade distribution: `B` 8, `C` 219, `U` 3
+- **Medium** grade distribution: `B` 8, `C` 18, `D` 7, `U` 3
+- **Easy** grade distribution: `D` 199, `U` 24
 
 ### What the medium tier actually contains
 

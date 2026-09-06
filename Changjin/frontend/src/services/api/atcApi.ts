@@ -27,7 +27,7 @@ interface WirePayload {
     cost_basis: string;
     coverage: {
       classes: number; named: number;
-      with_prices: number; with_acquisition_cost: number;
+      with_acquisition_cost: number;
     };
   };
   groups: WireGroup[];
@@ -74,7 +74,6 @@ export const loadAtcClasses = async (): Promise<AtcData> => {
         coverage: {
           classes: wire.meta.coverage.classes,
           named: wire.meta.coverage.named,
-          withPrices: wire.meta.coverage.with_prices,
           withAcquisitionCost: wire.meta.coverage.with_acquisition_cost,
         },
       },

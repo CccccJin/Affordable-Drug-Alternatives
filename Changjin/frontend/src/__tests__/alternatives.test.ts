@@ -16,8 +16,8 @@ const wire = {
   meta: {
     orange_book: 'products.txt', nadac_week: '2026-08-26',
     openfda_ndc: '2026-08-28', generated: '2026-08-29',
-    price_basis: 'NADAC is what pharmacies pay to acquire a drug.',
-    coverage: { groups: 3, with_savings: 2, members: 7 },
+    cost_disclaimer: 'NADAC is what pharmacies pay to acquire a drug.',
+    coverage: { groups: 3, members: 7 },
   },
   groups: [
     {
@@ -124,18 +124,50 @@ describe('topSavings', () => {
   });
 });
 
+/**
+ * `data/substitutability.json` is an unhashed static asset, so a browser or a
+ * CDN can serve the previous deploy's copy alongside this deploy's JS. The
+ * contract step withdrew `with_savings`, and no deploy has ever carried both
+ * spellings, so that copy has neither -- and a count read straight off it is
+ * `undefined`. Calling `.toLocaleString()` on that throws during render and
+ * takes the whole results view down, where the old payload used to cost
+ * nothing at all.
+ */
+describe('a payload predating the contract step', () => {
+  const legacyWire = {
+    meta: {
+      orange_book: 'products.txt', nadac_week: '2026-08-26',
+      openfda_ndc: '2026-08-28', generated: '2026-08-29',
+      price_basis: 'NADAC is what pharmacies pay to acquire a drug.',
+      coverage: { groups: 2, with_savings: 1, members: 3 },
+    },
+    groups: [],
+    name_index: {},
+  };
+
+  it('parses without inventing a count it was not given', async () => {
+    __resetSubstitutabilityCache();
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve(legacyWire) }),
+    ) as unknown as typeof fetch;
+
+    const data = await loadSubstitutability();
+    expect(data.meta.coverage.withAcquisitionCostSaving).toBeUndefined();
+  });
+});
+
 describe('switchPair', () => {
   it('takes the dearest brand as the baseline, not the cheapest', async () => {
     const data = await loadSubstitutability();
     const pair = switchPair(data.groups[0])!;
 
     expect(pair.brand.tradeName).toBe('LIPITOR');
-    expect(pair.brand.pricePerUnit).toBe(19.11383);
+    expect(pair.brand.acquisitionCost).toBe(19.11383);
   });
 
   it('takes the cheapest generic', async () => {
     const data = await loadSubstitutability();
-    expect(switchPair(data.groups[0])!.generic.pricePerUnit).toBe(0.03704);
+    expect(switchPair(data.groups[0])!.generic.acquisitionCost).toBe(0.03704);
   });
 
   it('returns null when the export computed no saving', async () => {
@@ -152,7 +184,7 @@ describe('switchPair', () => {
     // Every priced member shares EA, so there is nothing to disambiguate.
     const m = (t: string, isBrand: boolean, p: number) => ({
       applicationNumber: 'X', tradeName: t, applicant: 'M', teCode: 'AB',
-      isBrand, pricePerUnit: p, acquisitionCost: p, pricingUnit: 'EA',
+      isBrand, acquisitionCost: p, pricingUnit: 'EA',
     });
     const group = {
       ingredient: 'OLD', dosageForm: 'TABLET', route: 'ORAL', strength: '1MG',
@@ -167,7 +199,7 @@ describe('switchPair', () => {
       tradeName: string, isBrand: boolean, price: number, unit: string,
     ) => ({
       applicationNumber: 'X', tradeName, applicant: 'M', teCode: 'AB',
-      isBrand, pricePerUnit: price, acquisitionCost: price, pricingUnit: unit,
+      isBrand, acquisitionCost: price, pricingUnit: unit,
     });
     const group = {
       ingredient: 'SOMEDRUG', dosageForm: 'SOLUTION', route: 'ORAL',

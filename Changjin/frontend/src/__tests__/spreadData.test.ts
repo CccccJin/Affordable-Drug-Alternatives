@@ -31,7 +31,7 @@ const member = (
   applicant: 'ACME',
   teCode: 'AB',
   isBrand,
-  pricePerUnit: price, acquisitionCost: price,
+  acquisitionCost: price,
   pricingUnit: unit,
 });
 
@@ -122,10 +122,10 @@ describe('collecting rows for the compounds on screen', () => {
   const data = (): SubstitutabilityData => ({
     meta: {
       orangeBook: 'products.txt', nadacWeek: '2026-08-26', openFdaNdc: '2026-08-28',
-      generated: '2026-08-31', priceBasis: 'acquisition cost',
+      generated: '2026-08-31', costDisclaimer: 'acquisition cost',
       costBasis: 'acquisition_cost',
       coverage: {
-        groups: 1, withSavings: 1, withAcquisitionCostSaving: 1, members: 2,
+        groups: 1, withAcquisitionCostSaving: 1, members: 2,
       },
     },
     groups: [group([member(0.037), member(19.11, 'EA', true, 'LIPITOR')])],

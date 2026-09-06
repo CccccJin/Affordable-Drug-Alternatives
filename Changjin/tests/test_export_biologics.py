@@ -157,8 +157,9 @@ def test_members_are_ordered_reference_first_then_cheapest(conn):
 
 
 def test_meta_declares_the_cost_basis_and_the_qualified_coverage_name(conn):
-    """Expand step: the old key stays until every caller has moved."""
+    """Contract step: one name for the count, and it says which money."""
     meta = build_payload(conn)["meta"]
     assert meta["cost_basis"] == "acquisition_cost"
     cov = meta["coverage"]
-    assert cov["with_savings"] == cov["with_acquisition_cost_saving"]
+    assert "with_acquisition_cost_saving" in cov
+    assert "with_savings" not in cov

@@ -202,8 +202,6 @@ def build_payload(conn) -> dict:
                 # may not be added together (`CONTEXT.md`).
                 "families": len(groups),
                 "members": sum(g["n"] for g in groups),
-                "with_savings": sum(1 for g in groups if g["sav"]),
-                # Expand step: the basis-qualified name beside the old one.
                 "with_acquisition_cost_saving":
                     sum(1 for g in groups if g["sav"]),
             },
@@ -233,7 +231,7 @@ def main() -> Path:
     gz = len(gzip.compress(out.read_bytes(), 6))
     print(f"Wrote {out}")
     print(f"  families {cov['families']} · members {cov['members']} · "
-          f"with a saving {cov['with_savings']}")
+          f"with a saving {cov['with_acquisition_cost_saving']}")
     print(f"  {out.stat().st_size / 1024:.0f} KB raw, {gz / 1024:.0f} KB gzipped")
     for group in payload["groups"]:
         for saving in group["sav"]:

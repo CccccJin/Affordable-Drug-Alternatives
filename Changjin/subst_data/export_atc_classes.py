@@ -189,8 +189,6 @@ def build(atc_path: Path | None = None, db_path: Path | None = None,
                 # (`CONTEXT.md`).
                 "classes": len(groups),
                 "named": sum(1 for g in groups if g["n"] != g["c"]),
-                "with_prices": sum(1 for g in groups if g["np"] > 0),
-                # Expand step: the basis-qualified name beside the old one.
                 "with_acquisition_cost":
                     sum(1 for g in groups if g["np"] > 0),
             },
@@ -207,7 +205,7 @@ def main(output: Path | None = None) -> Path:
     cov = payload["meta"]["coverage"]
     print(f"Wrote {out}")
     print(f"  {cov['classes']} ATC level-4 classes, {cov['named']} named, "
-          f"{cov['with_prices']} with at least one surveyed price")
+          f"{cov['with_acquisition_cost']} with at least one surveyed price")
     return out
 
 

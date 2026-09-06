@@ -116,7 +116,7 @@ class PriceComparison:
     n_priced: int = 0
     originator_basis: str | None = None
     notes: list[str] = field(default_factory=list)
-    price_basis: str = "CMS NADAC (pharmacy acquisition cost)"
+    cost_basis: str = "CMS NADAC (pharmacy acquisition cost)"
     disclaimer: str = NADAC_DISCLAIMER
 
     def to_dict(self) -> dict:
@@ -128,14 +128,14 @@ class PriceComparison:
         w = 78
         out = [
             "=" * w,
-            f"Price comparison — grade A equivalents of RXCUI {self.rxcui}",
+            f"Acquisition cost — grade A equivalents of RXCUI {self.rxcui}",
             f"  {self.name or '?'}",
         ]
         if self.ingredient:
             out.append(f"  {self.ingredient} · {self.dosage_form};{self.route} · {self.strength}")
         out += [
             "-" * w,
-            f"  price basis : {self.price_basis}",
+            f"  cost basis  : {self.cost_basis}",
             f"  group       : {self.group_size} grade-A products, {self.n_priced} with a price",
             "-" * w,
         ]

@@ -135,7 +135,7 @@ def main(output: Path | None = None) -> Path:
         "",
         f"- families exported: **{coverage['families']}**",
         f"- products: **{coverage['members']}**",
-        f"- families with a computable switch: **{coverage['with_savings']}**",
+        f"- families with a computable switch: **{coverage['with_acquisition_cost_saving']}**",
         f"- disagreements with `grade.py`: **{len(findings)}**",
         "",
     ]

@@ -230,7 +230,7 @@ describe('finding a class from a name', () => {
       rules: { C2: { grade: 'C', action: 'a', meaning: 'm' } },
       cost_basis: 'acquisition_cost',
       coverage: {
-        classes: 1, named: 1, with_prices: 1, with_acquisition_cost: 1,
+        classes: 1, named: 1, with_acquisition_cost: 1,
       },
     },
     groups: [{ c: 'C10AA', n: 'HMG CoA reductase inhibitors', np: 1,
@@ -277,7 +277,7 @@ describe('reaching a class from what the page actually holds', () => {
       source: 's', generated: '2026-09-02',
       rule: 'C2', rules: { C2: { grade: 'C', action: 'a', meaning: 'm' } },
       costBasis: 'acquisition_cost',
-      coverage: { classes: 1, named: 1, withPrices: 1, withAcquisitionCost: 1 },
+      coverage: { classes: 1, named: 1, withAcquisitionCost: 1 },
     },
     classes: [statins],
     nameIndex: { 'ATORVASTATIN CALCIUM': [0], 'ROSUVASTATIN CALCIUM': [0] },
