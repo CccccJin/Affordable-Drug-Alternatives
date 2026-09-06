@@ -28,8 +28,8 @@ CREATE TABLE pb_product (
     ref_proper_name TEXT, ref_proper_name_key TEXT, ref_proprietary_name TEXT
 );
 CREATE TABLE ndc_product (ndc9 TEXT, appl_no TEXT, active_ingredients TEXT);
-CREATE TABLE nadac_price (
-    ndc9 TEXT, price_per_unit REAL, pricing_unit TEXT, classification TEXT
+CREATE TABLE nadac_acquisition_cost (
+    ndc9 TEXT, acquisition_cost REAL, pricing_unit TEXT, classification TEXT
 );
 """
 
@@ -75,7 +75,7 @@ def conn():
          ("000050001", "BLA103000", "[]")],
     )
     connection.executemany(
-        "INSERT INTO nadac_price VALUES (?,?,?,?)",
+        "INSERT INTO nadac_acquisition_cost VALUES (?,?,?,?)",
         [("000010001", 3366.12, "EA", "B-BIO"),
          ("000020001", 478.65, "EA", "B-BIO"),
          ("000030001", 872.80, "EA", "B-BIO"),

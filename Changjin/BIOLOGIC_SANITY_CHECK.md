@@ -1,6 +1,6 @@
 # Biologic Sanity Check — Purple Book
 
-Generated 2026-09-01 by `python price_compare.py biologic-sanity`.
+Generated 2026-09-06 by `python price_compare.py biologic-sanity`.
 
 > **This is not the stratified evaluation the Orange Book path has, and does not stand in for one.** Interchangeability is not a hidden concept to predict: FDA states it in the Purple Book and this module reads it, so there is no held-out label to score against. What is checked here is the plumbing — that every exported grade matches `grade.py`, that rule B5 is flagged wherever it applies, and that no saving compares prices across pricing units.
 
@@ -19,7 +19,7 @@ Every exported grade agrees with `grade.py`, every B5 family is flagged, and eve
 
 Each row is the dearest reference product against the cheapest follow-on in the same pricing unit. `Grade` is the *cheapest follow-on's* relationship to the reference — never to the other follow-ons.
 
-| Molecule | Reference | $/unit | Cheapest follow-on | $/unit | Unit | Saving | Grade | B5 applies |
+| Molecule | Reference | NADAC $/unit | Cheapest follow-on | NADAC $/unit | Unit | Saving | Grade | B5 applies |
 |---|---|---:|---|---:|---|---:|:-:|:-:|
 | USTEKINUMAB | Stelara | 29,792.79 | Yesintek | 2,855.57 | ML | 90.4% | A | yes |
 | INSULIN GLARGINE | Toujeo | 27.01 | Semglee | 2.90 | ML | 89.3% | A | yes |

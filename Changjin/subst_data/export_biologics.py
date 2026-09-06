@@ -42,12 +42,12 @@ OUT_PATH = (Path(__file__).resolve().parents[1]
             / "frontend" / "public" / "data" / "biologics.json")
 
 
-def _prices(conn) -> dict[str, list[tuple[float, str]]]:
+def _acquisition_costs(conn) -> dict[str, list[tuple[float, str]]]:
     """Cheapest NADAC price per application, per pricing unit."""
     out: dict[str, list[tuple[float, str]]] = defaultdict(list)
     rows = conn.execute(
-        "SELECT np.appl_no, MIN(n.price_per_unit) p, n.pricing_unit u "
-        "FROM ndc_product np JOIN nadac_price n ON n.ndc9 = np.ndc9 "
+        "SELECT np.appl_no, MIN(n.acquisition_cost) p, n.pricing_unit u "
+        "FROM ndc_product np JOIN nadac_acquisition_cost n ON n.ndc9 = np.ndc9 "
         "WHERE np.appl_no IS NOT NULL "
         "GROUP BY np.appl_no, n.pricing_unit"
     )
@@ -77,7 +77,7 @@ def _grade_against_reference(row, reference) -> tuple[str, str]:
 
 
 def build_payload(conn) -> dict:
-    prices = _prices(conn)
+    prices = _acquisition_costs(conn)
 
     # A family is a reference product plus everything licensed against it.
     # Keyed on the reference proper name, which is what a 351(k) filing names.

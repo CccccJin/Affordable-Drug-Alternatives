@@ -28,7 +28,8 @@ def _has_prices() -> bool:
     conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
     try:
         return bool(conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='nadac_price'"
+            "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='nadac_acquisition_cost'"
         ).fetchone())
     finally:
         conn.close()
@@ -82,7 +83,7 @@ def pc():
 @needs_prices
 def test_products_sorted_cheapest_first(pc):
     c = pc.compare("617320")                       # Lipitor 40 MG
-    priced = [p.price_per_unit for p in c.products if p.priced]
+    priced = [p.acquisition_cost for p in c.products if p.priced]
     assert priced == sorted(priced)
     # Unpriced members are retained at the end, never silently dropped.
     assert len(c.products) == c.group_size
@@ -93,26 +94,26 @@ def test_products_sorted_cheapest_first(pc):
 def test_brand_costs_more_than_its_own_generic(pc):
     c = pc.compare("617320")
     assert c.originator and c.cheapest_generic
-    assert c.originator.price_per_unit > c.cheapest_generic.price_per_unit
+    assert c.originator.acquisition_cost > c.cheapest_generic.acquisition_cost
     assert c.savings_pct > 90
 
 
 @needs_prices
 def test_savings_arithmetic_is_consistent(pc):
     c = pc.compare("617320")
-    expected = c.originator.price_per_unit - c.cheapest_generic.price_per_unit
+    expected = c.originator.acquisition_cost - c.cheapest_generic.acquisition_cost
     assert c.savings_per_unit == pytest.approx(expected)
     assert c.savings_pct == pytest.approx(
-        expected / c.originator.price_per_unit * 100)
+        expected / c.originator.acquisition_cost * 100)
 
 
 @needs_prices
 def test_per_mg_matches_per_unit_divided_by_strength(pc):
     c = pc.compare("617320")
     for p in c.products:
-        if p.price_per_mg is not None:
+        if p.acquisition_cost_per_mg is not None:
             assert p.mg_per_unit
-            assert p.price_per_mg == pytest.approx(p.price_per_unit / p.mg_per_unit)
+            assert p.acquisition_cost_per_mg == pytest.approx(p.acquisition_cost / p.mg_per_unit)
 
 
 @needs_prices
@@ -126,7 +127,7 @@ def test_originator_is_not_an_nda_approved_generic(pc):
     assert c.originator is not None
     assert "SYNTHROID" in c.originator.trade_name.upper()
     assert c.originator.nadac_classification in BRAND_CLASSES
-    assert c.cheapest_generic.price_per_unit < c.originator.price_per_unit
+    assert c.cheapest_generic.acquisition_cost < c.originator.acquisition_cost
     assert c.savings_pct > 50
 
 
@@ -168,3 +169,40 @@ def test_nadac_join_hit_rate_is_reported(pc):
     matched = rows[("nadac_join", "matched_openfda_ndc")]
     assert total > 0
     assert matched / total > 0.80, "NDC join hit rate regressed below 80%"
+
+
+def test_the_schema_upgrades_a_database_built_before_the_rename(tmp_path):
+    """`nadac_price` was renamed; its indexes outlived it.
+
+    SQLite index names are database-global, so a database built before the
+    rename still carries `nadac_ndc9` hanging off the old table, and creating
+    it again aborts the build. Deleting the database is a workaround, not the
+    upgrade path -- `price_compare.py build` writes into whatever
+    `substitutability.sqlite` is already there.
+    """
+    import sqlite3
+    from subst_data import nadac
+
+    db = tmp_path / "legacy.sqlite"
+    conn = sqlite3.connect(db)
+    conn.executescript("""
+        CREATE TABLE nadac_price (
+            ndc11 TEXT PRIMARY KEY, ndc9 TEXT, description TEXT,
+            price_per_unit REAL, pricing_unit TEXT, effective_date TEXT,
+            classification TEXT, is_otc TEXT, explanation_code TEXT,
+            corresponding_generic_price REAL
+        );
+        CREATE INDEX nadac_ndc9 ON nadac_price(ndc9);
+        CREATE INDEX nadac_class ON nadac_price(classification);
+        INSERT INTO nadac_price (ndc11, ndc9, price_per_unit)
+        VALUES ('00002322730', '000023227', 1.23);
+    """)
+    conn.commit()
+
+    conn.executescript(nadac.SCHEMA)
+
+    names = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type IN ('table','index')")}
+    assert "nadac_acquisition_cost" in names
+    assert "nadac_price" not in names, "stale table keeps serving its old prices"
+    conn.close()

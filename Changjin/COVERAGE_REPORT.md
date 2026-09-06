@@ -1,6 +1,6 @@
 # Drug Substitutability — Data Coverage Report
 
-Generated 2026-09-04 by `python substitutability.py coverage`.
+Generated 2026-09-06 by `python substitutability.py coverage`.
 
 This report states what the substitutability module can and cannot adjudicate, and why. Percentages that look alarming in isolation are decomposed against the denominator that actually matters.
 
@@ -53,7 +53,7 @@ Those failures are not random — they are product classes that have no FDA appl
 | UNAPPROVED MEDICAL GAS | 16 |
 | EMERGENCY USE AUTHORIZATION | 5 |
 
-OTC monograph drugs, homeopathic and unapproved listings and bulk ingredients are outside the Orange Book by design. A substitutability verdict is not meaningful for them, and the module returns a grade **U** rule naming the source that does not describe them, rather than a **D** that would read as a finding about the pair.
+OTC monograph drugs, homeopathic and unapproved listings and bulk ingredients are outside the Orange Book by design, so no therapeutic-equivalence verdict is available for them. What the module answers instead depends on the other source: where WHO has classified the substance it still compares by class, returning **C** when the classes relate and **D** when they do not; where WHO has not, the pair is not adjudicated at all and the verdict is a grade **U** rule naming the missing source.
 
 ### 2.2 Where NDC records lose the join
 

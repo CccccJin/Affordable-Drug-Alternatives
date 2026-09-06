@@ -1,6 +1,6 @@
 # Price Sanity Check — originator vs AB-rated generic
 
-Generated 2026-08-29 by `python price_compare.py sanity`.
+Generated 2026-09-06 by `python price_compare.py sanity`.
 
 > **NADAC is a pharmacy ACQUISITION cost, not a patient price.**
 > NADAC is the average price pharmacies PAY to acquire a drug (a CMS survey of invoice costs). It is NOT the patient's out-of-pocket cost, NOT an insurance copay, and NOT a reimbursement rate. Actual patient cost depends on insurance design, deductibles, rebates and dispensing fees, none of which appear in this data.
@@ -13,19 +13,19 @@ Twenty-plus well-known brands are priced against the cheapest generic FDA has ra
 
 ## Results
 
-| Verdict | Brand | Generic molecule | Brand $/unit | Generic $/unit | Saving | Group | Priced |
+| Verdict | Brand | Generic molecule | Brand NADAC $/unit | Generic NADAC $/unit | Saving | Group | Priced |
 |---|---|---|---:|---:|---:|---:|---:|
 | PASS | Viagra 50 MG | sildenafil | 84.5695 | 0.1058 | 99.9% | 17 | 12 |
 | PASS | Ambien 5 MG | zolpidem | 20.6203 | 0.0343 | 99.8% | 6 | 6 |
 | PASS | Lipitor 40 MG | atorvastatin | 19.1138 | 0.0370 | 99.8% | 25 | 18 |
-| PASS | Lamictal 25 MG | lamotrigine | 12.8173 | 0.0271 | 99.8% | 29 | 22 |
 | PASS | Zoloft 50 MG | sertraline | 14.9220 | 0.0345 | 99.8% | 13 | 8 |
+| PASS | Lamictal 25 MG | lamotrigine | 11.1816 | 0.0271 | 99.8% | 20 | 14 |
 | PASS | Lexapro 5 MG | escitalopram | 14.7432 | 0.0419 | 99.7% | 14 | 9 |
 | PASS | Crestor 5 MG | rosuvastatin | 8.8113 | 0.0333 | 99.6% | 20 | 14 |
 | PASS | Lyrica 25 MG | pregabalin | 9.6834 | 0.0406 | 99.6% | 22 | 14 |
 | PASS | Singulair 10 MG | montelukast | 9.2124 | 0.0415 | 99.5% | 17 | 9 |
 | PASS | Neurontin 600 MG | gabapentin | 14.0840 | 0.0638 | 99.5% | 14 | 12 |
-| PASS | Zyprexa 5 MG | olanzapine | 16.6230 | 0.0867 | 99.5% | 27 | 14 |
+| PASS | Zyprexa 5 MG | olanzapine | 16.6230 | 0.0867 | 99.5% | 13 | 7 |
 | PASS | Abilify 5 MG | aripiprazole | 18.7122 | 0.1041 | 99.4% | 15 | 12 |
 | PASS | Plavix 75 MG | clopidogrel | 8.2243 | 0.0470 | 99.4% | 17 | 11 |
 | PASS | Imitrex 100 MG | sumatriptan | 72.4045 | 0.4309 | 99.4% | 9 | 5 |
@@ -60,7 +60,7 @@ NADAC (what pharmacies pay) and Part D (what Medicare and its beneficiaries spen
 | Viagra 50 MG (brand) | 84.5695 | 82.0953 | 0.97× |
 | Zoloft 50 MG (brand) | 14.9220 | 13.8124 | 0.93× |
 | Ambien 5 MG (brand) | 20.6203 | 20.6822 | 1.00× |
-| Lamictal 25 MG (brand) | 12.8173 | 11.4257 | 0.89× |
+| Lamictal 25 MG (brand) | 11.1816 | 11.4257 | 1.02× |
 | Lexapro 5 MG (brand) | 14.7432 | 14.0436 | 0.95× |
 | Crestor 5 MG (brand) | 8.8113 | 8.7928 | 1.00× |
 | Zyprexa 5 MG (brand) | 16.6230 | 29.0272 | 1.75× |

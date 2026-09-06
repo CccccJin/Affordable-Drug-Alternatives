@@ -35,21 +35,28 @@ NADAC_DISCLAIMER = (
 )
 
 SCHEMA = """
+-- The table was once `nadac_price`. Index names are database-global in
+-- SQLite, so its indexes outlive a rename and collide with the ones below;
+-- dropping the table takes them with it. Deleting the database is not the
+-- upgrade path -- `price_compare.py build` writes into whichever
+-- `substitutability.sqlite` is already on disk -- and a table left behind
+-- would go on serving its old prices under its old column name.
 DROP TABLE IF EXISTS nadac_price;
-CREATE TABLE nadac_price (
+DROP TABLE IF EXISTS nadac_acquisition_cost;
+CREATE TABLE nadac_acquisition_cost (
     ndc11 TEXT PRIMARY KEY,
     ndc9 TEXT,
     description TEXT,
-    price_per_unit REAL,
+    acquisition_cost REAL,
     pricing_unit TEXT,
     effective_date TEXT,
     classification TEXT,
     is_otc INTEGER,
     explanation_code TEXT,
-    corresponding_generic_price REAL
+    corresponding_generic_acquisition_cost REAL
 );
-CREATE INDEX nadac_ndc9 ON nadac_price(ndc9);
-CREATE INDEX nadac_class ON nadac_price(classification);
+CREATE INDEX nadac_ndc9 ON nadac_acquisition_cost(ndc9);
+CREATE INDEX nadac_class ON nadac_acquisition_cost(classification);
 """
 
 #: NADAC's brand/generic flag. B = brand, G = generic, B-ANDA = brand marketed
@@ -172,7 +179,7 @@ def mg_per_pricing_unit(strength: str | None, pricing_unit: str) -> float | None
 
 
 def load(conn: sqlite3.Connection, path: Path | None = None) -> list[tuple]:
-    """Load the newest price per NDC into ``nadac_price``; return build stats."""
+    """Load each NDC's newest acquisition cost; return build stats."""
     from .ndcutil import normalize_ndc9
 
     path = path or (NADAC_DIR / "nadac_current.csv")
@@ -211,7 +218,7 @@ def load(conn: sqlite3.Connection, path: Path | None = None) -> list[tuple]:
             )
 
     conn.executemany(
-        "INSERT OR REPLACE INTO nadac_price VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "INSERT OR REPLACE INTO nadac_acquisition_cost VALUES (?,?,?,?,?,?,?,?,?,?)",
         [v[1:] for v in latest.values()])
 
     dates = [v[0] for v in latest.values()]
@@ -226,7 +233,7 @@ def load(conn: sqlite3.Connection, path: Path | None = None) -> list[tuple]:
     ]
     for cls, label in (("G", "generic"), ("B", "brand"),
                        ("B-ANDA", "brand under ANDA"), ("B-BIO", "biologic")):
-        n = conn.execute("SELECT COUNT(*) FROM nadac_price WHERE classification = ?",
+        n = conn.execute("SELECT COUNT(*) FROM nadac_acquisition_cost WHERE classification = ?",
                          (cls,)).fetchone()[0]
         stats.append(("nadac", f"class_{cls}", float(n), float(len(latest)), label))
     return stats
@@ -235,16 +242,16 @@ def load(conn: sqlite3.Connection, path: Path | None = None) -> list[tuple]:
 def join_stats(conn: sqlite3.Connection) -> list[tuple]:
     """Measure how much of NADAC the layer-2 NDC mapping actually reaches."""
     out = []
-    total = conn.execute("SELECT COUNT(DISTINCT ndc9) FROM nadac_price").fetchone()[0]
+    total = conn.execute("SELECT COUNT(DISTINCT ndc9) FROM nadac_acquisition_cost").fetchone()[0]
 
     matched = conn.execute(
-        "SELECT COUNT(DISTINCT n.ndc9) FROM nadac_price n "
+        "SELECT COUNT(DISTINCT n.ndc9) FROM nadac_acquisition_cost n "
         "JOIN ndc_product p ON p.ndc9 = n.ndc9").fetchone()[0]
     with_rx = conn.execute(
-        "SELECT COUNT(DISTINCT n.ndc9) FROM nadac_price n "
+        "SELECT COUNT(DISTINCT n.ndc9) FROM nadac_acquisition_cost n "
         "JOIN ndc_rxcui r ON r.ndc9 = n.ndc9").fetchone()[0]
     with_ob = conn.execute(
-        "SELECT COUNT(DISTINCT n.ndc9) FROM nadac_price n "
+        "SELECT COUNT(DISTINCT n.ndc9) FROM nadac_acquisition_cost n "
         "JOIN map_rxcui_appl m ON m.ndc9 = n.ndc9 AND m.in_orange_book = 1").fetchone()[0]
 
     out += [
@@ -265,7 +272,7 @@ def join_stats(conn: sqlite3.Connection) -> list[tuple]:
     ).fetchone()[0]
     rx_priced = conn.execute(
         "SELECT COUNT(DISTINCT m.rxcui) FROM map_rxcui_appl m "
-        "JOIN nadac_price n ON n.ndc9 = m.ndc9 WHERE m.in_orange_book = 1").fetchone()[0]
+        "JOIN nadac_acquisition_cost n ON n.ndc9 = m.ndc9 WHERE m.in_orange_book = 1").fetchone()[0]
     out += [
         ("nadac_join", "orange_book_rxcui_total", float(rx_total), None, ""),
         ("nadac_join", "orange_book_rxcui_with_price", float(rx_priced), float(rx_total),

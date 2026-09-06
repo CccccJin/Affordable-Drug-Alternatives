@@ -399,3 +399,63 @@ def test_unknown_is_not_a_position_on_the_ordered_axis():
     from subst_data.grade import RULE_CATALOGUE
     ordered = {r.grade for r in RULE_CATALOGUE.values()} - {"U"}
     assert ordered == {"A", "B", "C", "D"}
+
+
+# --------------------------------------------------------------------------
+# Cost vocabulary
+#
+# `CONTEXT.md` bans "Price" for an amount: a NADAC acquisition cost, a Medicare
+# reimbursement rate and a patient's copay differ by an order of magnitude and
+# the word distinguishes none of them. The ban covers identifiers a developer
+# reads, not the compressed wire keys, which mean nothing without their schema.
+#
+# Names for a date, a unit, a count, or whether an amount exists at all are not
+# amounts and stay as they are: `pricing_unit`, `price_as_of`, `n_priced`.
+# --------------------------------------------------------------------------
+
+#: Substrings that name or carry an amount without saying which money it is.
+UNQUALIFIED_AMOUNT_NAMES = (
+    "price_per_unit",
+    "nadac_price",
+    "_price_for",
+    "_prices(",
+    "price_per_mg",
+)
+
+
+def test_no_amount_on_the_export_path_is_named_only_price():
+    root = Path(__file__).resolve().parent.parent
+    sources = sorted((root / "subst_data").glob("*.py")) + [root / "price_compare.py"]
+    offences = []
+    for path in sources:
+        text = path.read_text(encoding="utf-8")
+        for lineno, line in enumerate(text.splitlines(), 1):
+            # Dropping the pre-rename table has to name it, and a comment
+            # explaining the rename has to be able to say what it renamed.
+            if line.lstrip().startswith(("DROP ", "--", "#")):
+                continue
+            for name in UNQUALIFIED_AMOUNT_NAMES:
+                if name in line:
+                    offences.append(f"{path.name}:{lineno} {name}")
+    assert not offences, "unqualified amount names:\n" + "\n".join(offences[:20])
+
+
+def test_no_report_table_heads_an_amount_column_as_a_bare_price():
+    """A table gets screenshotted; the disclaimer above it does not travel.
+
+    Every column of money in a generated report has to say which money it is
+    in the header itself, because that is the last place a reader still sees
+    it. `$/unit` says only that the figure is per unit.
+    """
+    root = Path(__file__).resolve().parent.parent
+    offences = []
+    for path in sorted((root / "subst_data").glob("*.py")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if not line.lstrip().startswith(('"| ', "'| ")):
+                continue
+            for cell in line.split("|"):
+                cell = cell.strip().strip('",\' ')
+                if "$/" in cell and not any(
+                        w in cell for w in ("NADAC", "Acquisition", "Part D")):
+                    offences.append(f"{path.name}:{lineno} {cell!r}")
+    assert not offences, "amount columns with no basis:\n" + "\n".join(offences)

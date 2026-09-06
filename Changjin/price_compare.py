@@ -23,10 +23,10 @@ NADAC prices a *unit*, and the unit differs by product (``EA`` a tablet, ``ML``
 a millilitre, ``GM`` a gram), so raw prices are not comparable across pack sizes
 or formulations. Two normalised figures are produced:
 
-``price_per_unit``
+``acquisition_cost``
     Cost per tablet / mL / gram. Directly comparable **within** a grade-A group,
     because group membership already fixes strength and dosage form.
-``price_per_mg``
+``acquisition_cost_per_mg``
     Cost per mg of active ingredient. Needed to compare **across** strengths.
     ``None`` where the strength cannot be expressed in the priced unit (a patch
     dosed "4.6 mg/24h" has no mg-per-gram meaning) -- never guessed.
@@ -75,11 +75,11 @@ class PricedProduct:
     strength: str
     is_originator: bool
     is_rld: bool
-    price_per_unit: float | None = None
+    acquisition_cost: float | None = None
     price_min: float | None = None
     price_max: float | None = None
     pricing_unit: str | None = None
-    price_per_mg: float | None = None
+    acquisition_cost_per_mg: float | None = None
     mg_per_unit: float | None = None
     nadac_classification: str | None = None
     effective_date: str | None = None
@@ -90,7 +90,7 @@ class PricedProduct:
 
     @property
     def priced(self) -> bool:
-        return self.price_per_unit is not None
+        return self.acquisition_cost is not None
 
     @property
     def label(self) -> str:
@@ -145,10 +145,11 @@ class PriceComparison:
             out.append(f"  {'#':<3}{'$/unit':>10} {'unit':<5}{'$/mg':>11}  {'cls':<6}{'product'}")
             for i, p in enumerate(self.products, 1):
                 if p.priced:
-                    per_mg = f"{p.price_per_mg:.5f}" if p.price_per_mg is not None else "n/a"
+                    per_mg = ("n/a" if p.acquisition_cost_per_mg is None
+                              else f"{p.acquisition_cost_per_mg:.5f}")
                     flag = " *stale" if p.is_stale else ""
                     tag = "ORIG" if p.is_originator else p.nadac_classification or ""
-                    out.append(f"  {i:<3}{p.price_per_unit:>10.5f} {p.pricing_unit or '':<5}"
+                    out.append(f"  {i:<3}{p.acquisition_cost:>10.5f} {p.pricing_unit or '':<5}"
                                f"{per_mg:>11}  {tag:<6}{p.label[:34]}{flag}")
                 else:
                     out.append(f"  {i:<3}{'—':>10} {'':<5}{'—':>11}  {'':<6}"
@@ -156,9 +157,9 @@ class PriceComparison:
         if self.originator and self.cheapest_generic and self.savings_pct is not None:
             out += [
                 "-" * w,
-                f"  originator      : {self.originator.price_per_unit:.5f} "
+                f"  originator      : {self.originator.acquisition_cost:.5f} "
                 f"per {self.originator.pricing_unit}  — {self.originator.label[:40]}",
-                f"  cheapest generic: {self.cheapest_generic.price_per_unit:.5f} "
+                f"  cheapest generic: {self.cheapest_generic.acquisition_cost:.5f} "
                 f"per {self.cheapest_generic.pricing_unit}  — {self.cheapest_generic.label[:40]}",
                 f"  saving          : {self.savings_per_unit:.5f} per unit "
                 f"({self.savings_pct:.1f}%)",
@@ -177,10 +178,12 @@ class PriceComparator:
         self.adj = adjudicator or Adjudicator(offline=offline)
         self.conn = self.adj.conn
         if not self.conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='nadac_price'"
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='nadac_acquisition_cost'"
         ).fetchone():
             raise RuntimeError(
-                "nadac_price table missing — run `python price_compare.py build` first")
+                "nadac_acquisition_cost table missing — "
+                "run `python price_compare.py build` first")
 
     def compare(self, rxcui: str) -> PriceComparison:
         side, members = self.adj.a_grade_group(rxcui)
@@ -206,8 +209,8 @@ class PriceComparator:
         result.n_priced = sum(1 for p in priced if p.priced)
 
         # Sort by unit price; unpriced products sink to the bottom.
-        priced.sort(key=lambda p: (p.price_per_unit is None,
-                                   p.price_per_unit if p.price_per_unit is not None else 0.0))
+        priced.sort(key=lambda p: (p.acquisition_cost is None,
+                                   p.acquisition_cost if p.acquisition_cost is not None else 0.0))
         result.products = priced
 
         originators = [p for p in priced if p.is_originator and p.priced]
@@ -215,7 +218,7 @@ class PriceComparator:
         if originators:
             # The reference-listed drug is the meaningful baseline. Taking the
             # cheapest brand instead would understate the switch saving.
-            originators.sort(key=lambda p: (not p.is_rld, -p.price_per_unit))
+            originators.sort(key=lambda p: (not p.is_rld, -p.acquisition_cost))
             result.originator = originators[0]
             result.originator_basis = (
                 "reference-listed drug (Orange Book RLD=Yes)" if result.originator.is_rld
@@ -231,15 +234,15 @@ class PriceComparator:
         o, g = result.originator, result.cheapest_generic
         if o and g:
             if o.pricing_unit == g.pricing_unit:
-                result.savings_per_unit = o.price_per_unit - g.price_per_unit
-                result.savings_pct = (result.savings_per_unit / o.price_per_unit * 100
-                                      if o.price_per_unit else None)
+                result.savings_per_unit = o.acquisition_cost - g.acquisition_cost
+                result.savings_pct = (result.savings_per_unit / o.acquisition_cost * 100
+                                      if o.acquisition_cost else None)
             else:
                 result.notes.append(
                     f"Originator priced per {o.pricing_unit} but generic per "
                     f"{g.pricing_unit}; per-unit saving not comparable.")
-            if o.price_per_mg and g.price_per_mg:
-                result.savings_per_mg = o.price_per_mg - g.price_per_mg
+            if o.acquisition_cost_per_mg and g.acquisition_cost_per_mg:
+                result.savings_per_mg = o.acquisition_cost_per_mg - g.acquisition_cost_per_mg
         elif not originators:
             result.notes.append(
                 "No priced originator (NDA) product in this group — the brand may be "
@@ -273,9 +276,9 @@ class PriceComparator:
 
         ob_strength = parse_strength(row["strength"])
         ndc_rows = self.conn.execute(
-            "SELECT p.ndc9, p.active_ingredients, p.dosage_form, n.price_per_unit, "
+            "SELECT p.ndc9, p.active_ingredients, p.dosage_form, n.acquisition_cost, "
             "       n.pricing_unit, n.effective_date, n.classification, n.description "
-            "FROM ndc_product p JOIN nadac_price n ON n.ndc9 = p.ndc9 "
+            "FROM ndc_product p JOIN nadac_acquisition_cost n ON n.ndc9 = p.ndc9 "
             "WHERE p.appl_no = ?", (row["appl_no"],)).fetchall()
 
         if not ndc_rows:
@@ -296,8 +299,8 @@ class PriceComparator:
             out.unpriced_reason = "NADAC prices exist for this application but not this strength"
             return out
 
-        prices = [r["price_per_unit"] for r, _ in matching]
-        out.price_per_unit = statistics.median(prices)
+        prices = [r["acquisition_cost"] for r, _ in matching]
+        out.acquisition_cost = statistics.median(prices)
         out.price_min, out.price_max = min(prices), max(prices)
         out.n_ndcs_priced = len(matching)
         out.ndc_examples = [r["ndc9"] for r, _ in matching[:3]]
@@ -329,7 +332,7 @@ class PriceComparator:
                 total_mg += mg
             if ok and total_mg > 0:
                 out.mg_per_unit = total_mg
-                out.price_per_mg = out.price_per_unit / total_mg
+                out.acquisition_cost_per_mg = out.acquisition_cost / total_mg
                 break
         return out
 
@@ -397,8 +400,8 @@ def _cmd_demo(args):
     print("-" * 88)
     for rxcui, desc in DEMO_CASES:
         c = pc.compare(rxcui)
-        b = f"{c.originator.price_per_unit:,.4f}" if c.originator else "—"
-        g = f"{c.cheapest_generic.price_per_unit:,.4f}" if c.cheapest_generic else "—"
+        b = f"{c.originator.acquisition_cost:,.4f}" if c.originator else "—"
+        g = f"{c.cheapest_generic.acquisition_cost:,.4f}" if c.cheapest_generic else "—"
         s = f"{c.savings_pct:.1f}%" if c.savings_pct is not None else "n/a"
         print(f"{rxcui:<10}{b:>10}{g:>11}{s:>9}  {desc}")
     print("-" * 88)

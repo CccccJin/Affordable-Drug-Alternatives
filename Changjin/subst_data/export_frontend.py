@@ -30,7 +30,7 @@ DISCLAIMER = ("NADAC is what pharmacies pay to acquire a drug. It is not a "
               "copay, not a cash price, and not a reimbursement rate.")
 
 
-def _prices(conn) -> dict[str, list[tuple]]:
+def _acquisition_costs(conn) -> dict[str, list[tuple]]:
     """NADAC prices per application, each tagged with the strength it belongs to.
 
     Application number alone is not enough to price a product. An NDA covers
@@ -44,9 +44,9 @@ def _prices(conn) -> dict[str, list[tuple]]:
 
     out: dict[str, list[tuple]] = {}
     for r in conn.execute(
-        "SELECT np.appl_no, np.active_ingredients, n.price_per_unit AS p, "
+        "SELECT np.appl_no, np.active_ingredients, n.acquisition_cost AS p, "
         "       n.pricing_unit AS u, n.classification AS cls "
-        "FROM ndc_product np JOIN nadac_price n ON n.ndc9 = np.ndc9 "
+        "FROM ndc_product np JOIN nadac_acquisition_cost n ON n.ndc9 = np.ndc9 "
         "WHERE np.appl_no IS NOT NULL"
     ):
         ingredients = json.loads(r["active_ingredients"] or "[]")
@@ -58,7 +58,7 @@ def _prices(conn) -> dict[str, list[tuple]]:
     return out
 
 
-def _price_for(entries, want) -> tuple | None:
+def _acquisition_cost_for(entries, want) -> tuple | None:
     """Cheapest price among a product's NDCs that match the group's strength."""
     if not entries:
         return None
@@ -72,7 +72,7 @@ def _price_for(entries, want) -> tuple | None:
 def build_payload(conn) -> dict:
     from .grade import parse_strength
 
-    prices = _prices(conn)
+    prices = _acquisition_costs(conn)
     stats = {(r["section"], r["metric"]): r for r in conn.execute("SELECT * FROM build_stat")}
 
     def note(section, metric):
@@ -96,7 +96,7 @@ def build_payload(conn) -> dict:
         want = parse_strength(g["strength_key"])
         members = []
         for r in rows:
-            priced = _price_for(prices.get(r["appl_no"]), want)
+            priced = _acquisition_cost_for(prices.get(r["appl_no"]), want)
             members.append({
                 "a": r["appl_no"], "t": r["trade_name"], "m": r["applicant"],
                 "te": r["te_code"],

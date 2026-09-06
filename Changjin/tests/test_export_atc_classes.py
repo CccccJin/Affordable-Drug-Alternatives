@@ -61,7 +61,7 @@ def priced_db(tmp_path):
     conn.executescript(
         "CREATE TABLE ob_product (appl_no TEXT, ingredient TEXT);"
         "CREATE TABLE ndc_product (ndc9 TEXT, appl_no TEXT);"
-        "CREATE TABLE nadac_price (ndc9 TEXT, price_per_unit REAL, pricing_unit TEXT);"
+        "CREATE TABLE nadac_acquisition_cost (ndc9 TEXT, acquisition_cost REAL, pricing_unit TEXT);"
     )
     rows = [
         ("ANDA1", "ATORVASTATIN CALCIUM", "N1", 0.03704, "EA"),
@@ -73,7 +73,7 @@ def priced_db(tmp_path):
     for appl, ing, ndc, price, unit in rows:
         conn.execute("INSERT INTO ob_product VALUES (?,?)", (appl, ing))
         conn.execute("INSERT INTO ndc_product VALUES (?,?)", (ndc, appl))
-        conn.execute("INSERT INTO nadac_price VALUES (?,?,?)", (ndc, price, unit))
+        conn.execute("INSERT INTO nadac_acquisition_cost VALUES (?,?,?)", (ndc, price, unit))
     conn.commit()
     conn.close()
     return path

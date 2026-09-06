@@ -338,8 +338,8 @@ class Evaluator:
             return float("inf")
         try:
             r = pc.conn.execute(
-                "SELECT MIN(n.price_per_unit) p FROM ndc_product np "
-                "JOIN nadac_price n ON n.ndc9 = np.ndc9 WHERE np.appl_no = ?",
+                "SELECT MIN(n.acquisition_cost) p FROM ndc_product np "
+                "JOIN nadac_acquisition_cost n ON n.ndc9 = np.ndc9 WHERE np.appl_no = ?",
                 (row["appl_no"],)).fetchone()
             return r["p"] if r and r["p"] is not None else float("inf")
         except Exception:

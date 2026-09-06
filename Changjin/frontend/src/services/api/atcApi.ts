@@ -23,7 +23,7 @@ interface WireGroup { c: string; n: string; np: number; mem: WireMember[] }
 interface WirePayload {
   meta: {
     source: string; generated: string;
-    rule: string; rules: Record<string, RuleEntry>;
+    rule?: string; rules?: Record<string, RuleEntry>;
     cost_basis: string;
     coverage: {
       classes: number; named: number;

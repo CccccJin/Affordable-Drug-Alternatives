@@ -152,7 +152,8 @@ def main(output: Path | None = None) -> Path:
         "in the same pricing unit. `Grade` is the *cheapest follow-on's* "
         "relationship to the reference — never to the other follow-ons.",
         "",
-        "| Molecule | Reference | $/unit | Cheapest follow-on | $/unit | Unit | Saving | Grade | B5 applies |",
+        "| Molecule | Reference | NADAC $/unit | Cheapest follow-on | "
+        "NADAC $/unit | Unit | Saving | Grade | B5 applies |",
         "|---|---|---:|---|---:|---|---:|:-:|:-:|",
     ]
     for molecule, saving, b5 in switches:

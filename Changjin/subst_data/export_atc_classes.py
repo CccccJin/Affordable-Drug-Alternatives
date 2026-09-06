@@ -85,7 +85,7 @@ def class_names(codes, backend=None) -> dict[str, str]:
     return names
 
 
-def ingredient_prices(conn) -> dict[str, dict]:
+def ingredient_acquisition_costs(conn) -> dict[str, dict]:
     """Surveyed price range per Orange Book ingredient, in one pricing unit.
 
     Same rule the spread plot uses: a price per tablet and a price per
@@ -97,12 +97,12 @@ def ingredient_prices(conn) -> dict[str, dict]:
     # cannot disagree: an Orange Book application reaches its surveyed price
     # through the NDC directory.
     for row in conn.execute(
-        "SELECT ob.ingredient AS ingredient, n.price_per_unit AS p, "
+        "SELECT ob.ingredient AS ingredient, n.acquisition_cost AS p, "
         "       n.pricing_unit AS u "
         "FROM ob_product ob "
         "JOIN ndc_product np ON np.appl_no = ob.appl_no "
-        "JOIN nadac_price n ON n.ndc9 = np.ndc9 "
-        "WHERE n.price_per_unit IS NOT NULL AND n.pricing_unit IS NOT NULL"
+        "JOIN nadac_acquisition_cost n ON n.ndc9 = np.ndc9 "
+        "WHERE n.acquisition_cost IS NOT NULL AND n.pricing_unit IS NOT NULL"
     ):
         by_unit[row["ingredient"]][row["u"]].append(row["p"])
 
@@ -141,7 +141,7 @@ def build(atc_path: Path | None = None, db_path: Path | None = None,
         conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
         try:
-            prices = ingredient_prices(conn)
+            prices = ingredient_acquisition_costs(conn)
         finally:
             conn.close()
 

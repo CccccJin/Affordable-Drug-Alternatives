@@ -312,8 +312,11 @@ export interface AtcData {
   meta: {
     source: string;
     generated: string;
-    rule: string;               // the rule this whole panel reports: C2
-    rules: Record<string, RuleEntry>;
+    // Optional because a cached payload predates them. The types say so, so
+    // the compiler makes the next consumer handle their absence rather than
+    // throwing during render on the stale copy `ruleFallback.ts` exists for.
+    rule?: string;              // the rule this whole panel reports: C2
+    rules?: Record<string, RuleEntry>;
     costBasis: string;
     coverage: {
       // An ATC Class is not an Equivalence Group or a Biologic Family;

@@ -27,8 +27,8 @@ CREATE TABLE ob_product (
     mkt_type TEXT
 );
 CREATE TABLE ndc_product (ndc9 TEXT, appl_no TEXT, active_ingredients TEXT);
-CREATE TABLE nadac_price (
-    ndc9 TEXT, price_per_unit REAL, pricing_unit TEXT, classification TEXT
+CREATE TABLE nadac_acquisition_cost (
+    ndc9 TEXT, acquisition_cost REAL, pricing_unit TEXT, classification TEXT
 );
 CREATE TABLE build_stat (section TEXT, metric TEXT, note TEXT);
 """
@@ -74,7 +74,7 @@ def conn():
         ],
     )
     connection.executemany(
-        "INSERT INTO nadac_price VALUES (?,?,?,?)",
+        "INSERT INTO nadac_acquisition_cost VALUES (?,?,?,?)",
         [
             ("000010001", 20.00, "EA", "B"),
             ("000010002", 1.00, "EA", "B"),  # the 10 mg trap
@@ -192,7 +192,7 @@ def mixed_unit_conn():
         [("000030001", "NDA030001", ing), ("000030002", "ANDA030002", ing)],
     )
     connection.executemany(
-        "INSERT INTO nadac_price VALUES (?,?,?,?)",
+        "INSERT INTO nadac_acquisition_cost VALUES (?,?,?,?)",
         [("000030001", 90.00, "ML", "B"),
          ("000030002", 3.00, "EA", "G")],
     )

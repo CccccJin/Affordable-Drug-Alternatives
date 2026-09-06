@@ -79,7 +79,7 @@ class Row:
             return "NO DATA"
         if self.comparison.savings_pct is None:
             return "REVIEW"
-        if self.orig.price_per_unit < self.gen.price_per_unit:
+        if self.orig.acquisition_cost < self.gen.acquisition_cost:
             return "FLAG"                      # brand cheaper than its generic
         return "PASS"
 
@@ -121,12 +121,12 @@ def macro_section(rows: list[Row]) -> list[str]:
         "|---|---:|---:|---:|",
     ]
     for r in brands:
-        ratio = r.partd_brand / r.orig.price_per_unit
-        out.append(f"| {r.brand} (brand) | {r.orig.price_per_unit:,.4f} | "
+        ratio = r.partd_brand / r.orig.acquisition_cost
+        out.append(f"| {r.brand} (brand) | {r.orig.acquisition_cost:,.4f} | "
                    f"{r.partd_brand:,.4f} | {ratio:.2f}× |")
     for r in generics[:8]:
-        ratio = r.partd_generic / r.gen.price_per_unit
-        out.append(f"| {r.molecule} (generic) | {r.gen.price_per_unit:,.4f} | "
+        ratio = r.partd_generic / r.gen.acquisition_cost
+        out.append(f"| {r.molecule} (generic) | {r.gen.acquisition_cost:,.4f} | "
                    f"{r.partd_generic:,.4f} | {ratio:.2f}× |")
     out.append("")
 
@@ -134,8 +134,8 @@ def macro_section(rows: list[Row]) -> list[str]:
         vals = sorted(vals)
         return vals[len(vals) // 2] if vals else None
 
-    br = median([r.partd_brand / r.orig.price_per_unit for r in brands])
-    gr = median([r.partd_generic / r.gen.price_per_unit for r in generics])
+    br = median([r.partd_brand / r.orig.acquisition_cost for r in brands])
+    gr = median([r.partd_generic / r.gen.acquisition_cost for r in generics])
     if br:
         out.append(f"**Brands: median Part D ÷ NADAC = {br:.2f}×.** Two independent "
                    "federal sources landing this close is the strongest available "
@@ -182,14 +182,15 @@ def render(rows: list[Row]) -> str:
         "",
         "## Results",
         "",
-        "| Verdict | Brand | Generic molecule | Brand $/unit | Generic $/unit | Saving | Group | Priced |",
+        "| Verdict | Brand | Generic molecule | Brand NADAC $/unit | "
+        "Generic NADAC $/unit | Saving | Group | Priced |",
         "|---|---|---|---:|---:|---:|---:|---:|",
     ]
     for r in sorted(rows, key=lambda r: (r.verdict != "FLAG", r.verdict != "PASS",
                                          -(r.comparison.savings_pct or -1))):
         if r.orig and r.gen:
-            b = f"{r.orig.price_per_unit:,.4f}"
-            g = f"{r.gen.price_per_unit:,.4f}"
+            b = f"{r.orig.acquisition_cost:,.4f}"
+            g = f"{r.gen.acquisition_cost:,.4f}"
             s = (f"{r.comparison.savings_pct:.1f}%"
                  if r.comparison.savings_pct is not None else "n/a")
         else:
@@ -285,7 +286,7 @@ def main(output: str | Path | None = None) -> Path:
     print("-" * (9 + width + 2 + 32))
     for r in rows:
         if r.orig and r.gen:
-            b, g = f"{r.orig.price_per_unit:,.4f}", f"{r.gen.price_per_unit:,.4f}"
+            b, g = f"{r.orig.acquisition_cost:,.4f}", f"{r.gen.acquisition_cost:,.4f}"
             s = f"{r.comparison.savings_pct:.1f}%" if r.comparison.savings_pct is not None else "n/a"
         else:
             b = g = s = "—"

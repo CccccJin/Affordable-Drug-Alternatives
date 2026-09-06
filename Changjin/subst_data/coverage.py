@@ -135,10 +135,13 @@ class Report:
                 self.w(f"| {r['marketing_category'] or '(none)'} | {r['n']:,} |")
             self.w()
             self.w("OTC monograph drugs, homeopathic and unapproved listings and bulk "
-                   "ingredients are outside the Orange Book by design. A substitutability "
-                   "verdict is not meaningful for them, and the module returns a grade "
-                   "**U** rule naming the source that does not describe them, rather "
-                   "than a **D** that would read as a finding about the pair.")
+                   "ingredients are outside the Orange Book by design, so no "
+                   "therapeutic-equivalence verdict is available for them. What the "
+                   "module answers instead depends on the other source: where WHO has "
+                   "classified the substance it still compares by class, returning "
+                   "**C** when the classes relate and **D** when they do not; where "
+                   "WHO has not, the pair is not adjudicated at all and the verdict "
+                   "is a grade **U** rule naming the missing source.")
             self.w()
 
         self.w("### 2.2 Where NDC records lose the join")
@@ -370,7 +373,8 @@ class Report:
 
     def nadac(self):
         if not self.conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='nadac_price'"
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='nadac_acquisition_cost'"
         ).fetchone():
             return
         self.w("## 6. Price data coverage (CMS NADAC)")
@@ -435,7 +439,7 @@ class Report:
             SELECT o.route,
                    COUNT(DISTINCT CASE WHEN o.appl_no IN (
                        SELECT m.appl_no FROM map_rxcui_appl m
-                       JOIN nadac_price n ON n.ndc9 = m.ndc9)
+                       JOIN nadac_acquisition_cost n ON n.ndc9 = m.ndc9)
                      THEN o.appl_no || '/' || o.product_no END) AS priced,
                    COUNT(DISTINCT o.appl_no || '/' || o.product_no) AS total
             FROM ob_product o WHERE o.mkt_type = 'RX'
@@ -460,7 +464,7 @@ class Report:
                "are not comparable across pack sizes or formulations:")
         self.w()
         rows = self.conn.execute(
-            "SELECT pricing_unit, COUNT(*) n FROM nadac_price GROUP BY pricing_unit "
+            "SELECT pricing_unit, COUNT(*) n FROM nadac_acquisition_cost GROUP BY pricing_unit "
             "ORDER BY n DESC").fetchall()
         self.w("| Pricing unit | NDCs | Meaning |")
         self.w("|---|---:|---|")
@@ -481,7 +485,8 @@ class Report:
 
     def limitations(self):
         n = 7 if self.conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='nadac_price'"
+            "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='nadac_acquisition_cost'"
         ).fetchone() else 6
         self.w(f"## {n}. Known limitations")
         self.w()
