@@ -19,13 +19,14 @@ import {
   Explore,
   Search,
   Speed,
+  ArrowDownward,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { WhenVisible } from '../common/WhenVisible';
 import { StaticSearchApi, loadDescriptors, withLoadedDescriptors } from '../../services/api/staticSearchApi';
 import type { Compound } from '../../types/api';
-import { monoStack } from '../../styles/theme';
+import { brand, monoStack } from '../../styles/theme';
 
 interface ScrollNarrativeProps {
   onEnterWorkspace: () => void;
@@ -37,8 +38,80 @@ interface DemoCandidate extends Compound {
 
 const DRILL_NAME = 'Aspirin';
 const DRILL_SMILES = 'CC(=O)OC1=CC=CC=C1C(=O)O';
-
 const SECTION_COUNT = 5;
+
+function Capsule3D() {
+  return (
+    <Box
+      aria-label="Rotating 3D capsule"
+      role="img"
+      sx={{
+        display: 'grid',
+        placeItems: 'center',
+        minHeight: { xs: 260, md: 360 },
+        perspective: '1100px',
+        overflow: 'hidden',
+        borderRadius: 4,
+        background:
+          'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95), rgba(225,239,237,0.66) 38%, rgba(210,225,224,0.18) 72%, transparent 74%)',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          width: '42%',
+          height: 24,
+          borderRadius: '50%',
+          background: 'rgba(34, 71, 73, 0.16)',
+          filter: 'blur(14px)',
+          transform: 'translateY(112px)',
+        },
+        '@keyframes capsuleRoll': {
+          from: { transform: 'rotateX(16deg) rotateY(-28deg) rotateZ(-10deg)' },
+          to: { transform: 'rotateX(16deg) rotateY(332deg) rotateZ(-10deg)' },
+        },
+      }}
+    >
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: { xs: 190, md: 250 },
+          height: { xs: 86, md: 112 },
+          transformStyle: 'preserve-3d',
+          animation: 'capsuleRoll 1ms linear both',
+          animationTimeline: 'view(block 12% 88%)',
+          willChange: 'transform',
+          '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none',
+            transform: 'rotateX(16deg) rotateY(-22deg) rotateZ(-10deg)',
+          },
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '999px 0 0 999px',
+            background: 'linear-gradient(145deg, #f7fbfa 0%, #d9ebe8 48%, #86aaa7 100%)',
+            boxShadow: 'inset 12px 10px 18px rgba(255,255,255,0.82), inset -12px -8px 18px rgba(45,90,91,0.22)',
+            transform: 'translateZ(18px)',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            left: '50%',
+            borderRadius: '0 999px 999px 0',
+            background: 'linear-gradient(145deg, #78aaa8 0%, #3d7779 55%, #205457 100%)',
+            boxShadow: 'inset 12px 8px 16px rgba(255,255,255,0.28), inset -14px -10px 20px rgba(11,40,44,0.34)',
+            transform: 'translateZ(18px)',
+          }}
+        />
+        <Box sx={{ position: 'absolute', inset: '49% 0 auto', height: 2, background: 'rgba(25, 66, 68, 0.3)', transform: 'translateZ(20px)' }} />
+      </Box>
+    </Box>
+  );
+}
 
 const formatPercent = (value: number) => `${Math.round((Math.max(0, Math.min(1, value))) * 1000) / 10}%`;
 
@@ -55,25 +128,33 @@ const withQueryParam = (query: string, type: 'name' | 'smiles' = 'name') => {
   return `/results?${next.toString()}`;
 };
 
-const SceneShell: React.FC<{
+interface SceneShellProps {
   index: number;
   title: string;
   subtitle: string;
+  badge: string;
   accent: string;
+  progress: number;
   children: React.ReactNode;
   onEnterWorkspace: () => void;
   showSkip: boolean;
-}> = ({
+}
+
+const SceneShell: React.FC<SceneShellProps> = ({
   index,
   title,
   subtitle,
+  badge,
   accent,
+  progress,
   children,
   onEnterWorkspace,
   showSkip,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const clamped = Math.max(0, Math.min(1, progress));
+  const isReduced = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   return (
     <Box
@@ -81,24 +162,23 @@ const SceneShell: React.FC<{
       sx={{
         position: 'relative',
         minHeight: '100dvh',
-        py: { xs: 4, md: 6 },
+        py: { xs: 4, md: 7 },
         display: 'flex',
         alignItems: 'center',
+        overflow: 'hidden',
         width: '100vw',
         left: '50%',
         right: '50%',
         ml: 'calc(50% - 50vw)',
         mr: 'calc(50% - 50vw)',
         px: { xs: 2.5, sm: 4, lg: 6 },
-        overflow: 'hidden',
-        borderTop: index > 0 ? `1px solid ${alpha(theme.palette.divider, 0.5)}` : undefined,
-        background: `linear-gradient(180deg, ${alpha(
-          accent,
-          0.09,
-        )} 0%, ${alpha(theme.palette.background.default, 1)} 24%, ${alpha(
-          theme.palette.background.paper,
-          0.9,
-        )} 100%)`,
+        borderTop: index > 0 ? `1px solid ${alpha(theme.palette.divider, 0.55)}` : undefined,
+        background:
+          isReduced
+            ? theme.palette.background.default
+            : `radial-gradient(circle at 15% 12%, ${alpha(accent, 0.14)} 0%, transparent 38%),
+             radial-gradient(circle at 85% 85%, ${alpha('#2F8F9E', 0.09)} 0%, transparent 42%),
+             ${theme.palette.background.default}`,
       }}
     >
       {showSkip && (
@@ -123,38 +203,77 @@ const SceneShell: React.FC<{
       <Box
         sx={{
           width: '100%',
-          maxWidth: isMobile ? '100%' : 1120,
+          maxWidth: isMobile ? '100%' : 1160,
           mx: 'auto',
           position: 'relative',
           zIndex: 2,
+          opacity: isReduced ? 1 : 0.4 + clamped * 0.6,
+          transform: isReduced ? 'none' : `translateY(${(1 - clamped) * 22}px)`,
+          transition: 'opacity 260ms ease, transform 260ms ease',
         }}
       >
-        <Stack spacing={2.5}>
+        <Stack spacing={1.8} sx={{ maxWidth: 980 }}>
           <Chip
-            label={`Stage ${index + 1} / ${SECTION_COUNT}`}
+            label={`Scene ${index + 1} · ${badge}`}
             size="small"
             sx={{
               width: 'fit-content',
               fontFamily: monoStack,
-              backgroundColor: alpha(accent, 0.1),
+              backgroundColor: alpha(accent, 0.11),
               color: 'text.primary',
-              border: `1px solid ${alpha(accent, 0.22)}`,
+              border: `1px solid ${alpha(accent, 0.25)}`,
+              fontSize: { xs: '0.7rem', sm: '0.74rem' },
             }}
           />
-          <Typography variant="overline" color="text.secondary">
-            The research workspace is real-time and auditable.
-          </Typography>
-          <Typography variant="h2" component="h2" sx={{ maxWidth: 900 }}>
+          <Typography variant="h2" component="h2" sx={{ maxWidth: 980 }}>
             {title}
           </Typography>
-          <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: 880 }}>
+          <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: 920 }}>
             {subtitle}
           </Typography>
-          {children}
         </Stack>
+
+        <Box
+          sx={{
+            mt: { xs: 3, md: 4 },
+            position: 'relative',
+            borderRadius: 4,
+            backgroundColor: alpha(theme.palette.background.paper, isReduced ? 0.95 : 0.86),
+            border: `1px solid ${alpha(theme.palette.divider, 0.72)}`,
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 24px 80px rgba(18, 28, 34, 0.08)',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 0,
+              pointerEvents: 'none',
+              background:
+                isReduced
+                  ? 'none'
+                  : `linear-gradient(120deg, ${alpha(accent, 0.12)} 0%, ${alpha(accent, 0) } 44%, ${alpha('#2F8F9E', 0.08)} 100%)`,
+              opacity: 0.55,
+            }}
+          />
+          <Box sx={{ position: 'relative', zIndex: 1, p: { xs: 2.2, sm: 3.2, md: 3.8 } }}>{children}</Box>
+        </Box>
       </Box>
     </Box>
   );
+};
+
+const sceneRail: React.CSSProperties = {
+  position: 'fixed',
+  top: '50%',
+  right: 22,
+  transform: 'translateY(-50%)',
+  zIndex: 30,
+  display: 'grid',
+  gap: 8,
 };
 
 export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
@@ -163,48 +282,87 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
   const [activeScene, setActiveScene] = useState(0);
+  const [sceneRatios, setSceneRatios] = useState<number[]>(new Array(SECTION_COUNT).fill(0));
   const [demoRows, setDemoRows] = useState<DemoCandidate[]>([]);
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState<string | null>(null);
+
   const sectionsRef = useRef<Array<HTMLElement | null>>([]);
 
-  const sectionCount = useMemo(() => demoRows.slice(0, 6).length, [demoRows]);
+  const queryTarget = useMemo(
+    () => ({
+      id: 'Q',
+      pref_name: DRILL_NAME,
+      smiles: DRILL_SMILES,
+      chembl_id: 'DRILL_QUERY',
+      similarity: 1,
+    }),
+    [],
+  );
+
+  const networkRows = useMemo(
+    () => demoRows.slice(0, 7),
+    [demoRows],
+  );
+
+  const compareRows = useMemo(
+    () => demoRows.filter(row => row.chembl_id !== queryTarget.chembl_id).slice(0, 5),
+    [demoRows, queryTarget.chembl_id],
+  );
 
   useEffect(() => {
+    const thresholds = Array.from({ length: isReducedMotion ? 2 : 20 }, (_, i) =>
+      isReducedMotion ? i / 1 : i / 19,
+    );
     const observer = new IntersectionObserver(
       entries => {
-        const hits = entries
-          .filter(entry => entry.isIntersecting)
-          .map(entry => Number((entry.target as HTMLElement).dataset.scene));
-        if (!hits.length) {
-          return;
-        }
+        setSceneRatios(previous => {
+          const next = [...previous];
 
-        const latest = Math.min(
-          SECTION_COUNT - 1,
-          Math.max(...hits.filter(n => !Number.isNaN(n) && Number.isFinite(n))),
-        );
-        setActiveScene(latest);
+          entries.forEach(entry => {
+            const scene = Number((entry.target as HTMLElement).dataset.scene);
+            if (Number.isNaN(scene) || scene < 0 || scene >= SECTION_COUNT) {
+              return;
+            }
 
-        if (latest >= 1 && !demoLoading && demoRows.length === 0 && !demoError) {
-          setDemoLoading(true);
-        }
+            next[scene] = entry.isIntersecting ? entry.intersectionRatio : 0;
+          });
+
+          const visible = next
+            .map((ratio, idx) => ({ ratio, idx }))
+            .filter(({ ratio }) => ratio > 0)
+            .sort((a, b) => b.ratio - a.ratio);
+
+          if (visible.length) {
+            setActiveScene(visible[0].idx);
+          }
+
+          return next;
+        });
       },
       {
-        threshold: isReducedMotion ? 0.05 : 0.35,
-        rootMargin: isMobile ? '0px 0px -20% 0px' : '0px 0px -32% 0px',
+        threshold: thresholds,
+        rootMargin: isReducedMotion ? '0px 0px -10% 0px' : '0px 0px -38% 0px',
       },
     );
 
-    sectionsRef.current.forEach((section) => {
+    sectionsRef.current.forEach(section => {
       if (section) {
         observer.observe(section);
       }
     });
 
     return () => observer.disconnect();
-  }, [demoLoading, demoRows.length, demoError, isMobile, isReducedMotion]);
+  }, [isReducedMotion]);
+
+  useEffect(() => {
+    const sceneForData = sceneRatios.findIndex(ratio => ratio > 0);
+    if (sceneForData >= 2 && !demoLoading && demoRows.length === 0 && !demoError) {
+      setDemoLoading(true);
+    }
+  }, [demoError, demoLoading, demoRows.length, sceneRatios]);
 
   useEffect(() => {
     if (!demoLoading) {
@@ -216,8 +374,11 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
     const load = async () => {
       try {
         await loadDescriptors();
-        const query = await StaticSearchApi.resolveName({ name: DRILL_NAME })
-          .catch(() => ({ smiles: DRILL_SMILES, chembl_id: 'CHEMBL25', name: DRILL_NAME }));
+        const query = await StaticSearchApi.resolveName({ name: DRILL_NAME }).catch(() => ({
+          smiles: DRILL_SMILES,
+          chembl_id: 'CHEMBL25',
+          name: DRILL_NAME,
+        }));
 
         const response = await StaticSearchApi.search({
           smiles: query.smiles,
@@ -248,52 +409,49 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
     };
   }, [demoLoading]);
 
-  const queryTarget = useMemo(
-    () => ({
-      id: 'Q',
-      pref_name: DRILL_NAME,
-      smiles: DRILL_SMILES,
-      chembl_id: 'DRILL_QUERY',
-      similarity: 1,
-    }),
-    [],
-  );
+  const activeDescriptor = demoRows[0];
 
-  const compareRows = useMemo(
-    () => demoRows.filter(row => row.chembl_id !== queryTarget.chembl_id).slice(0, 4),
-    [demoRows, queryTarget.chembl_id],
-  );
-
-  const networkRows = useMemo(() => demoRows.slice(0, Math.min(6, Math.max(1, sectionCount))), [demoRows, sectionCount]);
+  const sectionStyle = {
+    minHeight: '100dvh',
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+  } as const;
 
   return (
     <Box sx={{ position: 'relative', mb: isMobile ? 0 : 2, pb: 2 }}>
       {!isReducedMotion && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: '50%',
-            right: isMobile ? 10 : 24,
-            transform: 'translateY(-50%)',
-            zIndex: 40,
-            display: 'grid',
-            gap: 0.75,
-          }}
-          aria-hidden
-        >
-          {Array.from({ length: SECTION_COUNT }).map((_, index) => (
-            <Box
-              key={index}
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: 999,
-                backgroundColor:
-                  activeScene >= index ? theme.palette.primary.main : alpha(theme.palette.text.disabled, 0.4),
-                transition: 'background-color 220ms ease',
-              }}
-            />
-          ))}
+        <Box sx={{ ...sceneRail }} aria-hidden>
+          {Array.from({ length: SECTION_COUNT }).map((_, index) => {
+            const progress = sceneRatios[index] || 0;
+            const active = activeScene >= index;
+            return (
+              <Box
+                key={index}
+                sx={{
+                  width: 8,
+                  height: active ? 38 : 14,
+                  borderRadius: 999,
+                  transition: 'all 220ms ease',
+                  background: active
+                    ? `linear-gradient(180deg, ${brand.indigo} 0%, ${brand.violet} 100%)`
+                    : alpha(theme.palette.text.disabled, 0.28),
+                  opacity: progress > 0 ? 1 : 0.45,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 999,
+                    opacity: progress,
+                    background: active ? alpha('#fff', 0.25) : 'transparent',
+                    boxShadow: active ? `0 0 0 1px ${alpha(brand.indigo, 0.35)}` : undefined,
+                  }}
+                />
+              </Box>
+            );
+          })}
         </Box>
       )}
 
@@ -302,78 +460,122 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
         ref={el => {
           sectionsRef.current[0] = el as HTMLElement | null;
         }}
+        sx={sectionStyle}
       >
         <SceneShell
           index={0}
-          title="Visualize one molecule before making any clinical inference."
-          subtitle="The first scene frames one query as structural representation only. It does not represent efficacy, clinical recommendation, or interchangeability."
-          accent="#4A8AA5"
+          title="A floating capsule starts the story"
+          subtitle="A realistic product micro-view leads the workflow, then the research layer opens."
+          badge="Visual probe"
+          accent="#5a98a9"
+          progress={sceneRatios[0]}
           onEnterWorkspace={onEnterWorkspace}
           showSkip
         >
-          <Stack spacing={2.5}>
-            <Stack
-              direction={isMobile ? 'column' : 'row'}
-              spacing={2}
-              alignItems={isMobile ? 'stretch' : 'center'}
-            >
+          <Grid container spacing={{ xs: 2, md: 3 }} alignItems="stretch">
+            <Grid size={{ xs: 12, md: 6 }}>
               <Paper
+                elevation={0}
                 sx={{
-                  p: 3,
+                  p: { xs: 1.8, md: 2.2 },
                   borderRadius: 3,
-                  background: alpha('#4A8AA5', 0.09),
-                  border: `1px solid ${alpha('#4A8AA5', 0.2)}`,
-                  flex: 1,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
+                  background: alpha('#ffffff', 0.66),
+                  minHeight: isMobile ? 240 : 340,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
                 }}
               >
-                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                  Search target
-                </Typography>
-                <Typography variant="h5" sx={{ fontFamily: monoStack, letterSpacing: '0.01em' }}>
-                  {DRILL_NAME}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Source: ChEMBL 35 static demo export · {DRILL_SMILES}
-                </Typography>
-              </Paper>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Entry cue
+                  </Typography>
+                  <Typography variant="h5" sx={{ mb: 0.8 }}>
+                    {DRILL_NAME}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This is a research surface, not clinical advice. Structural similarity is used for
+                    candidate recall.
+                  </Typography>
+                </Box>
 
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 2 }}>
+                  <Chip label="ChEMBL 35 source" size="small" />
+                  <Chip label="Morgan + Tanimoto" size="small" color="primary" variant="outlined" />
+                  <Chip
+                    label="No substitution implied"
+                    size="small"
+                    color="default"
+                    variant="outlined"
+                  />
+                </Stack>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Paper
+                elevation={0}
                 sx={{
-                  p: 0,
+                  minHeight: isMobile ? 230 : 340,
+                  p: isMobile ? 1.8 : 2.3,
                   borderRadius: 3,
-                  border: `1px solid ${theme.palette.divider}`,
-                  width: isMobile ? '100%' : 320,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
+                  background:
+                    'radial-gradient(circle at 28% 16%, rgba(47, 143, 158, 0.12), transparent 46%), radial-gradient(circle at 82% 76%, rgba(75, 149, 138, 0.1), transparent 48%)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                <WhenVisible minHeight={260} rootMargin="700px">
-                  <Box sx={{
-                    p: 2,
+                <Box
+                  sx={{
+                    width: isMobile ? 180 : 260,
+                    height: isMobile ? 150 : 220,
+                    borderRadius: 8,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                    background: alpha(theme.palette.background.paper, 0.72),
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    minHeight: 260,
-                  }}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        background:
-                          'radial-gradient(circle at 34% 24%, rgba(74, 138, 165, 0.12), transparent 46%), radial-gradient(circle at 72% 72%, rgba(70, 150, 130, 0.11), transparent 47%)',
-                      }}
-                    />
-                    <MoleculeViewer
+                    boxShadow: '0 10px 30px rgba(17, 24, 28, 0.14)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: -12,
+                      borderRadius: 999,
+                      filter: 'blur(26px)',
+                      background: 'radial-gradient(circle at 50% 42%, rgba(47,143,158,0.2), transparent 70%)',
+                    }}
+                  />
+                  <Box sx={{ transform: isReducedMotion ? 'none' : 'translateY(4px)' }}>
+              <Capsule3D />
+              <MoleculeViewer
                       smiles={DRILL_SMILES}
-                      width={isMobile ? 220 : 260}
-                      height={isMobile ? 160 : 180}
+                      width={isMobile ? 190 : 240}
+                      height={isMobile ? 120 : 170}
                       label={DRILL_NAME}
-                      className="scroll-structure"
                     />
                   </Box>
-                </WhenVisible>
+                </Box>
               </Paper>
-            </Stack>
+            </Grid>
+          </Grid>
+
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mt: 2.8, color: 'text.secondary' }}
+          >
+            <ArrowDownward sx={{ fontSize: 18 }} />
+            <Typography variant="caption">
+              Scroll to map molecular descriptors and move into candidate space.
+            </Typography>
           </Stack>
         </SceneShell>
       </Box>
@@ -383,45 +585,60 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
         ref={el => {
           sectionsRef.current[1] = el as HTMLElement | null;
         }}
+        sx={sectionStyle}
       >
         <SceneShell
           index={1}
-          title="From appearance to descriptors: what the pipeline computes."
-          subtitle="Morgan fingerprints and RDKit descriptors are computed from real project data. This is the first boundary of the system, not a final recommendation."
-          accent="#4C9784"
+          title="From appearance to molecular signature"
+          subtitle="The system converts structure into machine-readable descriptors: fingerprints, MW, logP, and atom-level features."
+          badge="Feature extraction"
+          accent="#3f8f89"
+          progress={sceneRatios[1]}
           onEnterWorkspace={onEnterWorkspace}
           showSkip
         >
-          <Grid container spacing={2}>
+          <Grid container spacing={2} alignItems="stretch">
             <Grid size={{ xs: 12, md: 6 }}>
               <Paper
-                sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}
+                elevation={0}
+                sx={{ p: 2.4, borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.75)}` }}
               >
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                  Structural signature
+                  Source query
                 </Typography>
-                <Typography variant="body1" gutterBottom>
-                  The scene map uses one real query and the ChEMBL 35 corpus rows that are also used by the live search page.
-                  Similarity is a candidate-generation signal only.
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  {DRILL_NAME}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Query string:
-                  <Box component="span" sx={{ fontFamily: monoStack, ml: 0.75 }}>
-                    {DRILL_NAME}
-                  </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  SMILES: <Box component="span" sx={{ fontFamily: monoStack }}>{DRILL_SMILES}</Box>
                 </Typography>
+
+                <Divider sx={{ borderColor: theme.palette.divider, mb: 2 }} />
+
+                <Stack spacing={1}>
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <Chip label="Tanimoto threshold set: 0.2" size="small" />
+                    <Chip label="Max neighborhood size: 10" size="small" />
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    These settings are defaults for this demonstration; workspace values are fully adjustable.
+                  </Typography>
+                </Stack>
               </Paper>
             </Grid>
+
             <Grid size={{ xs: 12, md: 6 }}>
               <Paper
-                sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}
+                elevation={0}
+                sx={{ p: 2.2, borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.75)}` }}
               >
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                  Discovery-stage summary
+                  Property snapshot from real payload
                 </Typography>
+
                 {demoLoading ? (
                   <Typography variant="body2" color="text.secondary">
-                    Loading real neighborhood candidates from the static corpus...
+                    Loading real neighborhood descriptors from the static corpus...
                   </Typography>
                 ) : demoError ? (
                   <Typography variant="body2" color="text.secondary">
@@ -429,18 +646,55 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                   </Typography>
                 ) : (
                   <Stack spacing={1}>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                      <Chip label={`Corpus size used: 84,818`} size="small" />
-                      <Chip
-                        label={`Neighbors loaded: ${demoRows.length}`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary">
-                      Top-scored neighbors shown are from live local scoring and are still structural candidates.
-                    </Typography>
+                    <Grid container spacing={1}>
+                      <Grid size={{ xs: 6 }}>
+                        <Paper
+                          elevation={0}
+                          sx={{ p: 1.5, borderRadius: 2, border: `1px solid ${alpha(theme.palette.divider, 0.7)}` }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Molecular weight
+                          </Typography>
+                          <Typography variant="subtitle2">{formatValue(activeDescriptor?.molecular_weight, 'g/mol')}</Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid size={{ xs: 6 }}>
+                        <Paper
+                          elevation={0}
+                          sx={{ p: 1.5, borderRadius: 2, border: `1px solid ${alpha(theme.palette.divider, 0.7)}` }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            logP
+                          </Typography>
+                          <Typography variant="subtitle2">{formatValue(activeDescriptor?.logp)}</Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid size={{ xs: 6 }}>
+                        <Paper
+                          elevation={0}
+                          sx={{ p: 1.5, borderRadius: 2, border: `1px solid ${alpha(theme.palette.divider, 0.7)}` }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            HBA / HBD
+                          </Typography>
+                          <Typography variant="subtitle2">
+                            {formatValue(activeDescriptor?.h_bond_acceptors, '')} /{' '}
+                            {formatValue(activeDescriptor?.h_bond_donors, '')}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid size={{ xs: 6 }}>
+                        <Paper
+                          elevation={0}
+                          sx={{ p: 1.5, borderRadius: 2, border: `1px solid ${alpha(theme.palette.divider, 0.7)}` }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Heavy atoms
+                          </Typography>
+                          <Typography variant="subtitle2">{formatValue(activeDescriptor?.heavy_atoms)}</Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
                   </Stack>
                 )}
               </Paper>
@@ -454,61 +708,64 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
         ref={el => {
           sectionsRef.current[2] = el as HTMLElement | null;
         }}
+        sx={sectionStyle}
       >
         <SceneShell
           index={2}
-          title="Expand to a candidate structure network."
-          subtitle="Each node below is a structurally related molecule. The edges are conceptual for exploration and represent score proximity, not clinical substitution."
-          accent="#5C8FA5"
+          title="A structured candidate network forms"
+          subtitle="Each node is a near neighbor from existing data. Edges indicate score proximity and are for exploration only."
+          badge="Similarity graph"
+          accent="#5ca08e"
+          progress={sceneRatios[2]}
           onEnterWorkspace={onEnterWorkspace}
           showSkip
         >
           <Paper
+            elevation={0}
             sx={{
               borderRadius: 3,
-              border: `1px solid ${theme.palette.divider}`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
               mt: 1,
-              minHeight: isMobile ? 260 : 360,
+              minHeight: isMobile ? 320 : 420,
               position: 'relative',
               overflow: 'hidden',
-              p: isMobile ? 2 : 3,
             }}
           >
-            <WhenVisible minHeight={280}>
+            <WhenVisible minHeight={300}>
               <Box
                 sx={{
                   position: 'relative',
-                  height: isMobile ? 260 : 360,
+                  height: isMobile ? 320 : 420,
                   width: '100%',
-                  borderRadius: 2,
-                  border: `1px dashed ${alpha(theme.palette.text.secondary, 0.25)}`,
-                  background: alpha(theme.palette.background.default, 0.6),
+                  px: { xs: 1.5, md: 2 },
+                  py: { xs: 1.5, md: 2 },
                 }}
               >
                 <svg
                   width="100%"
                   height="100%"
-                  viewBox="0 0 1000 420"
+                  viewBox="0 0 1000 460"
                   preserveAspectRatio="none"
                   aria-hidden
                   style={{ position: 'absolute', inset: 0 }}
                 >
                   {networkRows.map((candidate, index) => {
                     const angle = (Math.PI * 2 * index) / Math.max(networkRows.length, 1);
-                    const radiusX = isMobile ? 300 : 340;
-                    const radiusY = isMobile ? 95 : 130;
+                    const radiusX = isMobile ? 280 : 350;
+                    const radiusY = isMobile ? 120 : 160;
                     const x = 500 + Math.cos(angle) * radiusX;
-                    const y = 210 + Math.sin(angle) * radiusY;
+                    const y = 230 + Math.sin(angle) * radiusY;
                     return (
                       <line
                         key={`edge-${candidate.chembl_id}`}
                         x1="500"
-                        y1="210"
+                        y1="230"
                         x2={x.toFixed(2)}
                         y2={y.toFixed(2)}
                         stroke={theme.palette.text.secondary}
-                        strokeOpacity={0.28 + candidate.similarity * 0.45}
-                        strokeWidth={Math.max(1.5, Math.min(4, candidate.similarity * 6))}
+                        strokeOpacity={0.35 + candidate.similarity * 0.4}
+                        strokeWidth={Math.max(1.3, Math.min(3.8, candidate.similarity * 5.2))}
+                        strokeDasharray={isReducedMotion ? 'none' : '4 4'}
                       />
                     );
                   })}
@@ -517,16 +774,19 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                   sx={{
                     position: 'absolute',
                     left: '50%',
-                    top: isMobile ? 120 : 150,
+                    top: '50%',
                     transform: 'translate(-50%, -50%)',
                   }}
                 >
                   <Paper
+                    elevation={0}
                     sx={{
-                      px: 1.25,
+                      px: 1.4,
                       py: 0.6,
                       borderRadius: 999,
-                      background: alpha('#4A8AA5', 0.16),
+                      border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                      background: alpha('#fff', 0.9),
+                      backdropFilter: 'blur(8px)',
                     }}
                   >
                     <Typography variant="caption" sx={{ fontFamily: monoStack }}>
@@ -536,25 +796,26 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                 </Box>
                 {networkRows.map((candidate, index) => {
                   const angle = (Math.PI * 2 * index) / Math.max(networkRows.length, 1);
-                  const radiusX = isMobile ? 300 : 340;
-                  const radiusY = isMobile ? 95 : 130;
+                  const radiusX = isMobile ? 280 : 350;
+                  const radiusY = isMobile ? 120 : 160;
                   const left = 500 + Math.cos(angle) * radiusX;
-                  const top = 210 + Math.sin(angle) * radiusY;
+                  const top = 230 + Math.sin(angle) * radiusY;
 
                   return (
                     <Paper
                       key={candidate.chembl_id}
+                      elevation={0}
                       sx={{
                         position: 'absolute',
                         left: `${left / 10}%`,
-                        top: `${top / 4.2}%`,
+                        top: `${top / 4.6}%`,
                         transform: 'translate(-50%, -50%)',
                         px: 1,
                         py: 0.6,
                         borderRadius: 999,
-                        border: `1px solid ${alpha(theme.palette.divider, 0.65)}`,
-                        backgroundColor: 'rgba(255,255,255,0.78)',
-                        backdropFilter: 'blur(2px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
+                        background: alpha(theme.palette.background.paper, 0.78),
+                        backdropFilter: 'blur(4px)',
                       }}
                     >
                       <Typography
@@ -563,7 +824,7 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                         sx={{
                           fontFamily: monoStack,
                           display: 'block',
-                          maxWidth: isMobile ? 180 : 210,
+                          maxWidth: isMobile ? 165 : 205,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                         }}
@@ -576,6 +837,24 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                     </Paper>
                   );
                 })}
+
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Network is a retrieval map built from actual project similarity scoring.
+                  </Typography>
+                  <Chip label="Exploratory scaffold" size="small" />
+                </Box>
               </Box>
             </WhenVisible>
           </Paper>
@@ -587,32 +866,36 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
         ref={el => {
           sectionsRef.current[3] = el as HTMLElement | null;
         }}
+        sx={sectionStyle}
       >
         <SceneShell
           index={3}
-          title="Converge to a sortable comparison panel."
-          subtitle="After narrowing candidates, the workspace now supports sorting, filtering, and detailed comparison with the same live dataset and attributes. This is the boundary before therapeutic equivalence."
-          accent="#4F9A80"
+          title="The candidate map collapses into comparison controls"
+          subtitle="You can now sort, filter, and inspect property summaries before opening the dedicated result workspace."
+          badge="Candidate triage"
+          accent="#6a9e93"
+          progress={sceneRatios[3]}
           onEnterWorkspace={onEnterWorkspace}
           showSkip
         >
           <Paper
+            elevation={0}
             sx={{
-              mt: 1.5,
+              mt: 1,
               borderRadius: 3,
-              border: `1px solid ${theme.palette.divider}`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
+              overflow: 'hidden',
             }}
           >
-            <Box sx={{ p: 2.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                Comparison summary (live-like example)
+            <Box sx={{ p: { xs: 2.2, md: 2.8 }, borderBottom: `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="subtitle2" sx={{ mb: 0.3 }}>
+                Live-style comparison preview
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Uses the same similarity scoring and property fields shown in the result screen.
+                Data points are sourced from loaded candidates; this is a structural triage view, not a clinical conclusion.
               </Typography>
             </Box>
-
-            <Stack spacing={1} sx={{ p: 2 }}>
+            <Stack spacing={1} sx={{ p: { xs: 1.5, md: 2 } }}>
               {compareRows.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   {demoLoading
@@ -622,30 +905,38 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                       : 'No neighbors available for this quick preview.'}
                 </Typography>
               ) : (
-                compareRows.map(row => (
+                compareRows.map((row) => (
                   <Paper
                     key={row.chembl_id}
+                    elevation={0}
                     sx={{
-                      p: 1.5,
+                      p: 1.35,
                       borderRadius: 2,
-                      border: `1px solid ${theme.palette.divider}`,
+                      border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
                       display: 'grid',
-                      gridTemplateColumns: isMobile ? '1fr' : '1.8fr 1fr 1fr 1fr',
-                      gap: 1,
+                      gridTemplateColumns: isMobile ? '1fr' : '1.7fr 1fr 1fr 1fr',
+                      columnGap: 1,
+                      rowGap: 0.8,
                       alignItems: 'center',
                     }}
                   >
-                    <Box>
-                      <Typography variant="body2" sx={{ fontFamily: monoStack, mb: 0.3 }}>
-                        {row.pref_name || row.chembl_id}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.chembl_id}
-                      </Typography>
-                    </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: monoStack,
+                        pr: isMobile ? 0 : 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {row.pref_name || row.chembl_id}
+                    </Typography>
                     <Typography variant="body2">
                       <Box component="span" sx={{ color: 'text.secondary' }}>Similarity</Box>{' '}
-                      <Box component="span" sx={{ fontWeight: 600 }}>{formatPercent(row.similarity)}</Box>
+                      <Box component="span" sx={{ fontWeight: 600 }}>
+                        {formatPercent(row.similarity)}
+                      </Box>
                     </Typography>
                     <Typography variant="body2">
                       <Box component="span" sx={{ color: 'text.secondary' }}>MW</Box>{' '}
@@ -680,7 +971,7 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                 Open full result list
               </Button>
               <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 540 }}>
-                Comparison remains a research support layer, not a recommendation output.
+                In the workspace, this panel expands into full filtering, sorting, export, and traceability views.
               </Typography>
             </Stack>
           </Paper>
@@ -692,85 +983,106 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
         ref={el => {
           sectionsRef.current[4] = el as HTMLElement | null;
         }}
+        sx={sectionStyle}
       >
         <SceneShell
           index={4}
-          title="Move into the actual working workspace."
-          subtitle="Use the live tools to run your own query, set filters, inspect evidence, and then switch to FDA therapeutic equivalence for substitution assessment."
-          accent="#578F9B"
+          title="Enter the actual toolset"
+          subtitle="Use the live interface below for your own query, property filters, FDA equivalence checks, and data export."
+          badge="Research workspace"
+          accent="#568a95"
+          progress={sceneRatios[4]}
           onEnterWorkspace={onEnterWorkspace}
           showSkip={false}
         >
           <Paper
+            elevation={0}
             sx={{
               mt: 1,
-              p: 3,
               borderRadius: 3,
-              border: `1px solid ${theme.palette.divider}`,
-              background: alpha(theme.palette.background.paper, 0.9),
+              border: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
+              p: { xs: 2.2, md: 2.8 },
+              background: isReducedMotion
+                ? alpha(theme.palette.background.paper, 0.95)
+                : alpha(theme.palette.background.paper, 0.86),
             }}
           >
-            <Typography variant="subtitle1" gutterBottom>
-              Research has two workflows
+            <Typography variant="h6" gutterBottom>
+              Research workflow entry points
             </Typography>
+            <Grid container spacing={1.5}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Button
+                  size="large"
+                  fullWidth
+                  variant="contained"
+                  startIcon={<Search />}
+                  onClick={onEnterWorkspace}
+                  sx={{ borderRadius: 999 }}
+                >
+                  Explore Compounds
+                </Button>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Button
+                  component={RouterLink}
+                  to="/alternatives"
+                  fullWidth
+                  size="large"
+                  variant="outlined"
+                  startIcon={<BubbleChart />}
+                  sx={{ borderRadius: 999 }}
+                >
+                  Therapeutic equivalence lookup
+                </Button>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Button
+                  component={RouterLink}
+                  to="/results"
+                  fullWidth
+                  size="large"
+                  variant="outlined"
+                  startIcon={<Explore />}
+                  sx={{ borderRadius: 999 }}
+                >
+                  Browse all results
+                </Button>
+              </Grid>
+            </Grid>
+
             <Stack
               direction={isMobile ? 'column' : 'row'}
-              spacing={1.5}
-              sx={{ mb: 2 }}
+              spacing={1}
+              sx={{ mt: 2, flexWrap: 'wrap' }}
+              useFlexGap
             >
-              <Button
-                size="large"
-                variant="contained"
-                startIcon={<Search />}
-                onClick={onEnterWorkspace}
-                sx={{ borderRadius: 999 }}
-              >
-                Explore Compounds
-              </Button>
-              <Button
-                component={RouterLink}
-                to="/alternatives"
-                size="large"
-                variant="outlined"
-                startIcon={<BubbleChart />}
-                sx={{ borderRadius: 999 }}
-              >
-                Therapeutic equivalence lookup
-              </Button>
-              <Button
-                component={RouterLink}
-                to="/results"
-                size="large"
-                variant="outlined"
-                startIcon={<Explore />}
-                sx={{ borderRadius: 999 }}
-              >
-                Browse full result explorer
-              </Button>
-            </Stack>
-            <Stack direction={isMobile ? 'column' : 'row'} spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Chip label="Scene 2: Morgan/Tanimoto" size="small" />
-                <Link component={RouterLink} to="/alternatives" sx={{ fontSize: '0.88rem' }}>
-                  How substitutability works
-                </Link>
-              </Stack>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Chip label="Scene 5: Action" size="small" />
-                <Link component={RouterLink} to="/results" sx={{ fontSize: '0.88rem' }}>
-                  Enter the result explorer
-                </Link>
-              </Stack>
-              <Stack direction="row" spacing={1} alignItems="center">
+                <Speed fontSize="small" />
                 <Chip
-                  icon={<Speed fontSize="small" />}
-                  label={isReducedMotion ? 'Reduced motion mode enabled' : 'Parallax-aware mode'}
+                  label={isReducedMotion ? 'Reduced motion mode' : 'Scroll-linked transitions enabled'}
                   size="small"
                 />
               </Stack>
+              <Link
+                component={RouterLink}
+                to="/alternatives"
+                sx={{ fontSize: '0.88rem', alignSelf: 'center' }}
+              >
+                See how similarity and substitution are separated in analysis
+              </Link>
+              <Link
+                component={RouterLink}
+                to="/results"
+                sx={{ fontSize: '0.88rem', alignSelf: 'center' }}
+              >
+                Open the full result explorer
+              </Link>
             </Stack>
+
             <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-              No price claim is implied by structural similarity. Use the dedicated equivalence layer for FDA status and acquisition-cost evidence.
+              Structural resemblance does not imply clinical interchangeability. Use the equivalence layer and clinician
+              judgment for treatment decisions.
             </Typography>
           </Paper>
         </SceneShell>
