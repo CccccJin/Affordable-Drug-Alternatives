@@ -22,6 +22,7 @@ import {
   ArrowDownward,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { WhenVisible } from '../common/WhenVisible';
 import { StaticSearchApi, loadDescriptors, withLoadedDescriptors } from '../../services/api/staticSearchApi';
 import type { Compound } from '../../types/api';
@@ -40,12 +41,31 @@ const DRILL_SMILES = 'CC(=O)OC1=CC=CC=C1C(=O)O';
 const SECTION_COUNT = 5;
 
 function Capsule3D() {
-  return (
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const scene = document.querySelector('[data-scene="0"]');
+    if (!scene) return undefined;
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
+      threshold: 0.2,
+    });
+    observer.observe(scene);
+    return () => observer.disconnect();
+  }, []);
+
+  const visual = (
     <Box
       aria-label="Rotating 3D capsule"
       role="img"
       sx={{
-        position: 'relative',
+        position: 'fixed',
+        left: { xs: '7vw', md: '8vw' },
+        top: { xs: '25vh', md: '27vh' },
+        width: { xs: '86vw', md: '42vw' },
+        maxWidth: 560,
+        opacity: visible ? 1 : 0,
+        visibility: visible ? 'visible' : 'hidden',
+        transition: 'opacity 320ms ease, visibility 320ms ease',
         zIndex: 2,
         display: 'grid',
         placeItems: 'center',
@@ -112,6 +132,8 @@ function Capsule3D() {
       </Box>
     </Box>
   );
+
+  return createPortal(visual, document.body);
 }
 
 const formatPercent = (value: number) => `${Math.round((Math.max(0, Math.min(1, value))) * 1000) / 10}%`;
