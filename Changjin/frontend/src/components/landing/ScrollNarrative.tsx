@@ -46,6 +46,9 @@ function Capsule3D() {
       aria-label="Rotating 3D capsule"
       role="img"
       sx={{
+        position: 'relative',
+        left: { xs: '-86vw', md: '-88vw' },
+        zIndex: 2,
         display: 'grid',
         placeItems: 'center',
         minHeight: { xs: 260, md: 360 },
