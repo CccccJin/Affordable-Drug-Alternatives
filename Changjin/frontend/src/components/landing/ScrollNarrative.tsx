@@ -22,7 +22,6 @@ import {
   ArrowDownward,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
-import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { WhenVisible } from '../common/WhenVisible';
 import { StaticSearchApi, loadDescriptors, withLoadedDescriptors } from '../../services/api/staticSearchApi';
 import type { Compound } from '../../types/api';
@@ -47,11 +46,10 @@ function Capsule3D() {
       role="img"
       sx={{
         position: 'relative',
-        left: { xs: '-86vw', md: '-88vw' },
         zIndex: 2,
         display: 'grid',
         placeItems: 'center',
-        minHeight: { xs: 260, md: 360 },
+        minHeight: { xs: 210, md: 300 },
         perspective: '1100px',
         overflow: 'hidden',
         borderRadius: 4,
@@ -65,7 +63,7 @@ function Capsule3D() {
           borderRadius: '50%',
           background: 'rgba(34, 71, 73, 0.16)',
           filter: 'blur(14px)',
-          transform: 'translateY(112px)',
+          transform: 'translateY(86px)',
         },
         '@keyframes capsuleRoll': {
           from: { transform: 'rotateX(16deg) rotateY(-28deg) rotateZ(-10deg)' },
@@ -555,15 +553,7 @@ export const ScrollNarrative: React.FC<ScrollNarrativeProps> = ({
                       background: 'radial-gradient(circle at 50% 42%, rgba(47,143,158,0.2), transparent 70%)',
                     }}
                   />
-                  <Box sx={{ transform: isReducedMotion ? 'none' : 'translateY(4px)' }}>
-              <Capsule3D />
-              <MoleculeViewer
-                      smiles={DRILL_SMILES}
-                      width={isMobile ? 190 : 240}
-                      height={isMobile ? 120 : 170}
-                      label={DRILL_NAME}
-                    />
-                  </Box>
+                  <Capsule3D />
                 </Box>
               </Paper>
             </Grid>
