@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Typography } from '@mui/material';
+import { Alert, Typography, Box } from '@mui/material';
 
 /**
  * Structural, not a footnote: a price must never be read as a patient cost.
@@ -15,10 +15,13 @@ export const NadacDisclaimer: React.FC = () => (
       NADAC is what pharmacies pay to acquire a drug. It is not a copay, not a cash
       price, and not a reimbursement rate.
     </Typography>
+    <Box component="details">
+      <Box component="summary" sx={{ cursor: 'pointer', fontSize: '0.8rem' }}>Why patient savings differ</Box>
     <Typography variant="caption" color="text.secondary">
       Medicare Part D puts the realised per-unit cost of a cheap generic at roughly
       5&times; its acquisition cost, because a dispensing fee is fixed per
       prescription. A 99% saving here does not become a 99% saving for a patient.
     </Typography>
+    </Box>
   </Alert>
 );

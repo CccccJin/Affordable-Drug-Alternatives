@@ -156,12 +156,7 @@ export const PriceSpread: React.FC<{ rows: SpreadRow[]; nadacWeek: string }> = (
         NADAC cost spread inside each equivalence group
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, maxWidth: '68ch' }}>
-        Every dot is one product CMS surveyed, at what a pharmacy pays to acquire
-        it — not a copay and not a cash price. Every row is a set of products FDA
-        rates therapeutically equivalent, so a pharmacist may swap between them.
-        The axis is logarithmic and shared across rows, and each row uses a single
-        pricing unit because a cost per tablet and a cost per millilitre are not
-        comparable quantities.
+        Each dot is a surveyed product. Rows group FDA-rated equivalents by strength and pricing unit. Shared logarithmic scale · US dollars per unit.
       </Typography>
 
       {/* The widest spread, drawn at a size nothing else gets. One protagonist
@@ -178,7 +173,7 @@ export const PriceSpread: React.FC<{ rows: SpreadRow[]; nadacWeek: string }> = (
             {specimen.ingredient}
           </Typography>
           <Typography variant="h5" component="p" sx={{ fontWeight: 700, color: BRAND_MARK }}>
-            {ratioLabel(specimen.ratio)}
+            {ratioLabel(specimen.ratio)} spread
           </Typography>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
@@ -217,23 +212,20 @@ export const PriceSpread: React.FC<{ rows: SpreadRow[]; nadacWeek: string }> = (
               component="li"
               key={row.key}
               sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '150px 1fr 96px' },
-                gap: { xs: 0.5, sm: 2 },
-                alignItems: 'center',
-                py: 1,
+                p: 2.5,
                 borderBottom: `1px solid ${theme.palette.divider}`,
               }}
             >
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.25 }}>
-                  {row.ingredient.split(' ')[0].toLowerCase()}
+                  {row.ingredient.toLowerCase()}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {row.strength}, n={row.n}{row.sparse ? ', sparse' : ''}
+                  {row.strength} · {row.dosageForm.toLowerCase()} · per {row.unit} · n={row.n}{row.sparse ? ', sparse' : ''}
                 </Typography>
               </Box>
-              <Plot row={row} width={width} height={30} r={2.6} />
+              <Plot row={row} width={width} height={40} r={2.6} />
+              <Axis width={width} />
               <Typography
                 variant="body2"
                 sx={{

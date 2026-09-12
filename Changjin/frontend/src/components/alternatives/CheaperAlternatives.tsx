@@ -168,10 +168,7 @@ export const CheaperAlternatives: React.FC = () => {
           Therapeutic equivalence lookup
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 660 }}>
-          Enter a brand or generic name to see how FDA has rated other products
-          containing the same active ingredient, alongside CMS NADAC acquisition
-          costs where they are published. This is a reference view of public FDA and
-          CMS records — not medical advice, and not a recommendation to substitute.
+          Find FDA-rated equivalents and compare published pharmacy acquisition costs.
         </Typography>
       </Box>
 
@@ -270,10 +267,7 @@ export const CheaperAlternatives: React.FC = () => {
                 Biologics
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Licensed under the Purple Book rather than the Orange Book. Far fewer
-                have a published acquisition cost — CMS surveys retail pharmacies and
-                most biologics are clinician-administered — but the ones that do carry
-                the largest absolute differences in this dataset.
+                Purple Book follow-ons with published NADAC costs.
               </Typography>
               <BiologicHighlightTable families={result.biologicHighlights} onPick={submit} />
             </>

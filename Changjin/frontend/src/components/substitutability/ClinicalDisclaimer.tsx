@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, AlertTitle, Typography } from '@mui/material';
+import { Alert, AlertTitle, Typography, Box } from '@mui/material';
 import { dataAge, stalenessWarning } from '../../services/api/dataAge';
 
 /**
@@ -20,8 +20,11 @@ export const ClinicalDisclaimer: React.FC<{ generated?: string }> = ({ generated
     <AlertTitle sx={{ fontWeight: 700 }}>
       Reference information — not medical advice
     </AlertTitle>
+    <Typography variant="body2">Do not start, stop, or change a medication based on this page. Ask a licensed pharmacist or prescriber.</Typography>
+    <Box component="details" sx={{ mt: 1 }}>
+      <Box component="summary" sx={{ cursor: 'pointer', fontSize: '0.8rem' }}>About these records</Box>
     <Typography variant="body2" sx={{ mb: 1 }}>
-      Do not start, stop, or change a medication based on this page. An FDA
+      An FDA
       therapeutic-equivalence rating describes two products; it is assigned without
       reference to any individual patient and does not account for a diagnosis,
       other medications, allergies, or sensitivity to inactive ingredients.
@@ -34,6 +37,8 @@ export const ClinicalDisclaimer: React.FC<{ generated?: string }> = ({ generated
       application number listed for every product lets you check any claim on this
       page against them directly.
     </Typography>
+
+    </Box>
 
     {/* Stated, not implied: a price that is quietly two years old looks exactly
         like a current one. */}

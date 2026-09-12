@@ -69,7 +69,8 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
   const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
   const [colorScheme, setColorScheme] = useState<'similarity' | 'properties'>('similarity');
 
-  const [space, setSpace] = useState<ReturnType<typeof buildChemicalSpace> | null>(null);
+  const [projection, setProjection] = useState<{ compounds: Compound[]; space: ReturnType<typeof buildChemicalSpace> } | null>(null);
+  const space = projection?.compounds === compounds ? projection.space : null;
   const [spaceError, setSpaceError] = useState<string | null>(null);
 
   // Fingerprints come from RDKit rather than from the corpus blob: the plot
@@ -78,10 +79,13 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
   useEffect(() => {
     let cancelled = false;
     if (compounds.length === 0) {
-      setSpace(null);
+      setProjection(null);
       return;
     }
 
+    setProjection(null);
+    setSpaceError(null);
+    setSelectedCluster(null);
     (async () => {
       try {
         const { geometry } = await loadFingerprintCorpus();
@@ -92,10 +96,10 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
         );
         if (cancelled) return;
         setSpaceError(null);
-        setSpace(buildChemicalSpace(fingerprints, CLUSTER_CUTOFF));
+        setProjection({ compounds, space: buildChemicalSpace(fingerprints, CLUSTER_CUTOFF) });
       } catch (error) {
         if (cancelled) return;
-        setSpace(null);
+        setProjection(null);
         setSpaceError(error instanceof Error ? error.message : 'Could not project these compounds');
       }
     })();
@@ -106,7 +110,7 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
   }, [compounds]);
 
   const clusteringData = useMemo((): { points: ClusterPoint[]; clusters: ClusterInfo[] } => {
-    if (!space) return { points: [], clusters: [] };
+    if (!space || space.points.length !== compounds.length) return { points: [], clusters: [] };
 
     const points: ClusterPoint[] = space.points.map((point, i) => ({
       x: point.x,
@@ -185,7 +189,7 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
         cy={cy}
         r={4 + payload.compound.similarity * 7}
         fill={getColor(payload.cluster, payload.compound.similarity)}
-        fillOpacity={0.85}
+        fillOpacity={selectedCluster === null || selectedCluster === payload.cluster ? 0.85 : 0.12}
         stroke="#fff"
         strokeWidth={1}
         style={{ cursor: 'pointer' }}
@@ -227,16 +231,17 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
   };
 
   return (
-    <Card className={className} elevation={2}>
+    <Card className={className} variant="outlined" sx={{ minWidth: 0 }}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 3 }}>
           <Typography variant="h6">
-            Compound Clustering Analysis
+            Chemical space
           </Typography>
 
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Color by</InputLabel>
+            <InputLabel id="cluster-color-label">Color by</InputLabel>
             <Select
+              labelId="cluster-color-label"
               value={colorScheme}
               label="Color by"
               onChange={(e) => setColorScheme(e.target.value as 'similarity' | 'properties')}
@@ -299,19 +304,19 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
               )}
             </Box>
 
+            {colorScheme === 'similarity' && <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Typography variant="caption">0</Typography><Box aria-label="Similarity color scale, 0 to 1" sx={{ width: 120, height: 8, borderRadius: 1, background: 'linear-gradient(90deg, rgb(255,100,0), rgb(0,100,255))' }} /><Typography variant="caption">1 · similarity</Typography>
+            </Box>}
             <Typography variant="body2" color="text.secondary">
               Click a point for its cluster. Colours show {
                 colorScheme === 'similarity' ? 'similarity to the query' : 'cluster assignment'
               }.
             </Typography>
             {space && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                Axes are classical MDS on 1 &minus; Tanimoto over Morgan fingerprints, so
-                distance on the plot approximates structural distance. Kruskal stress{' '}
-                <strong>{space.stress.toFixed(2)}</strong> &mdash; two dimensions cannot hold
-                the geometry of a 1024-bit space, so read proximity as a hint, not a measurement.
-                Clusters are Taylor&ndash;Butina at Tanimoto &ge; {CLUSTER_CUTOFF}.
-              </Typography>
+              <Box component="details" sx={{ mt: 1, color: 'text.secondary' }}>
+                <Box component="summary" sx={{ cursor: 'pointer' }}>Projection method</Box>
+                <Typography variant="caption">MDS of Morgan fingerprint distances (1 − Tanimoto). Nearby points suggest similar structures; distances are approximate. Stress: {space.stress.toFixed(2)}. Butina clusters use Tanimoto ≥ {CLUSTER_CUTOFF}.</Typography>
+              </Box>
             )}
           </Box>
 
@@ -322,14 +327,17 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
             </Typography>
 
             {clusteringData.clusters.length > 0 ? (
-              <Box>
+              <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
                 {clusteringData.clusters.map((cluster) => (
                   <Box
                     key={cluster.id}
-                    component="div"
-                    onClick={() => setSelectedCluster(cluster.id)}
+                    component="button"
+                    type="button"
+                    aria-pressed={selectedCluster === cluster.id}
+                    onClick={() => setSelectedCluster(current => current === cluster.id ? null : cluster.id)}
                     sx={{
                       p: 2,
+                      width: '100%', textAlign: 'left', color: 'text.primary', bgcolor: 'background.paper', font: 'inherit',
                       border: 1,
                       borderColor: selectedCluster === cluster.id ? 'primary.main' : 'divider',
                       borderRadius: 1,
@@ -385,13 +393,13 @@ export const ClusteringVisualization: React.FC<ClusteringVisualizationProps> = (
             )}
 
             {selectedCluster !== null && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   Cluster {selectedCluster} Details
                 </Typography>
                 <Typography variant="body2">
                   {clusteringData.clusters.find(c => c.id === selectedCluster)?.compounds.length || 0}{' '}
-                  compounds within Tanimoto {CLUSTER_CUTOFF} of this cluster&rsquo;s centre.
+                  compounds with Tanimoto similarity ≥ {CLUSTER_CUTOFF} to the cluster representative.
                 </Typography>
               </Box>
             )}

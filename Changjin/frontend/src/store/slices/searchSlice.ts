@@ -44,7 +44,7 @@ const saveHistoryToStorage = (history: SearchHistory[]) => {
 
 const initialState: SearchState = {
   query: '',
-  searchType: 'smiles',
+  searchType: 'name',
   filters: {},
   isLoading: false,
   error: null,

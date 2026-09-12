@@ -1,14 +1,17 @@
 import React from 'react';
-import { Typography, Box, alpha } from '@mui/material';
+import { Typography, Box, alpha, Alert, Button } from '@mui/material';
 import { PropertyDistributionChart } from './PropertyDistributionChart';
 import { ClusteringVisualization } from './ClusteringVisualization';
 import { useQuery } from '@tanstack/react-query';
 import { useSubstitutabilitySummaries } from '../../hooks/useSubstitutabilitySummaries';
 import { substitutabilityQueryKey } from '../../hooks/useSubstitutability';
+import { loadBiologics } from '../../services/api/biologicsApi';
+import { biologicsQueryKey } from '../../hooks/useAlternatives';
 import { loadSubstitutability } from '../../services/api/substitutabilityApi';
 import { spreadRowsFor } from './spreadData';
 import { useDescriptors } from '../../hooks/useDescriptors';
 import { PriceSpread } from './PriceSpread';
+import { withLoadedDescriptors } from '../../services/api/staticSearchApi';
 import type { Compound } from '../../types/api';
 
 /**
@@ -70,12 +73,16 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   // separate file. Asking for it here starts the fetch as soon as the tab is
   // opened rather than when a chart first renders.
   const descriptors = useDescriptors();
+  const chartCompounds = React.useMemo(() => descriptors.ready ? withLoadedDescriptors(compounds) : compounds, [compounds, descriptors.ready]);
 
   const substitutability = useQuery({
     queryKey: substitutabilityQueryKey,
     queryFn: loadSubstitutability,
     staleTime: Infinity,
   });
+  const biologics = useQuery({ queryKey: biologicsQueryKey, queryFn: loadBiologics, staleTime: Infinity });
+  const evidenceReady = !!substitutability.data && !!biologics.data;
+  const evidenceError = substitutability.isError || biologics.isError;
   const substitutabilityData = substitutability.data;
   const spreadRows = React.useMemo(
     () => (substitutabilityData ? spreadRowsFor(substitutabilityData, compounds) : []),
@@ -127,7 +134,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           structural similarity: the one number the caveat above tells them not
           to act on. What the page is for now comes first, and the structural
           analysis sits underneath as supporting detail. */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
         <SummaryCard tone="primary" value={compounds.length} label="Total Compounds" />
         <SummaryCard
           tone="info"
@@ -136,23 +143,23 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         />
         <SummaryCard
           tone="success"
-          value={substitutable}
+          value={evidenceReady ? substitutable : '—'}
           label="A pharmacist can substitute"
         />
         <SummaryCard
           tone="warning"
           // One decimal, like the result cards. Rounding to whole percent turned
           // a 99.9% saving into "100%", which reads as free.
-          value={bestSaving === null ? '—' : `${bestSaving.toFixed(1)}%`}
+          value={!evidenceReady || bestSaving === null ? '—' : `${bestSaving.toFixed(1)}%`}
           label="Largest saving available"
         />
       </Box>
 
+      {!evidenceReady && (evidenceError ? <Alert severity="warning" sx={{ mt: 2 }} action={<Button onClick={() => { void substitutability.refetch(); void biologics.refetch(); }}>Retry</Button>}>FDA/CMS data unavailable. Equivalence and savings are unknown.</Alert> : <Typography role="status" variant="body2" sx={{ mt: 2 }}>Loading FDA/CMS evidence…</Typography>)}
       <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
-        Substitutability and savings come from the FDA Orange and Purple Books and
-        CMS NADAC, and cover US products only. Structural similarity is not
-        substitutability: the two right-hand figures are the ones tied to an FDA
-        rating. NADAC is a pharmacy acquisition cost, not a price you would pay.
+        US FDA/CMS records · NADAC pharmacy acquisition costs, not patient prices.
+        Savings compare products within matching FDA groups, not the query with its results.
+        Structural similarity is not substitutability.
       </Typography>
 
       {/* The evidence the two right-hand cards are drawn from. Absent when no
@@ -167,8 +174,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         Structural analysis
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: '68ch' }}>
-        How these results are shaped as molecules, which is a separate question
-        from whether any of them may be substituted for another.
+        Explore similarity, molecular weight and structural clusters.
       </Typography>
       {descriptors.error ? (
         <Typography variant="body2" color="text.secondary">
@@ -179,9 +185,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           Loading molecular properties…
         </Typography>
       ) : (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { lg: '1fr 1fr' }, gap: 3 }}>
-          <PropertyDistributionChart compounds={compounds} />
-          <ClusteringVisualization compounds={compounds} />
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 3 }}>
+          <PropertyDistributionChart compounds={chartCompounds} />
+          <ClusteringVisualization compounds={chartCompounds} />
         </Box>
       )}
     </Box>

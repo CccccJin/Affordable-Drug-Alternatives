@@ -235,6 +235,22 @@ export const loadDescriptors = async (): Promise<void> => {
   }
 };
 
+/** Search results are snapshots; enrich existing results after the deferred load. */
+export const withLoadedDescriptors = (compounds: Compound[]): Compound[] => {
+  if (!descriptorsLoaded || !compoundsCache) return compounds;
+  const wanted = new Set(compounds.map(c => c.chembl_id));
+  const records = new Map(compoundsCache.records.filter(c => wanted.has(c.chembl_id)).map(c => [c.chembl_id, c]));
+  return compounds.map(compound => {
+    const record = records.get(compound.chembl_id);
+    if (!record) return compound;
+    const enriched = { ...compound };
+    for (const key of Object.values(DESCRIPTOR_FIELDS)) {
+      Object.assign(enriched, { [key]: record[key] });
+    }
+    return enriched;
+  });
+};
+
 /** Whether descriptors are already in memory. */
 export const hasDescriptors = (): boolean => descriptorsLoaded;
 

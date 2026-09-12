@@ -22,6 +22,7 @@ import { join } from 'path';
 import {
   StaticSearchApi,
   loadDescriptors,
+  withLoadedDescriptors,
   hasDescriptors,
   __resetCompoundsCache,
 } from '../services/api/staticSearchApi';
@@ -198,3 +199,14 @@ describe('nobody pulls the descriptors back onto the search path', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+ it('enriches results obtained before descriptors load without changing their scores', async () => {
+   const response = await StaticSearchApi.search({ smiles: 'CCO' });
+   const original = response.results[0];
+   await loadDescriptors();
+   const enriched = withLoadedDescriptors(response.results)[0];
+   expect(enriched.molecular_weight).toBe(46.07);
+   expect(enriched.similarity).toBe(original.similarity);
+   expect(enriched.chembl_id).toBe(original.chembl_id);
+   expect(original.molecular_weight).toBeNull();
+ });

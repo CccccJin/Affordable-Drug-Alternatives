@@ -6,20 +6,14 @@ import {
   Box,
   Typography,
   Alert,
-  Switch,
-  FormControlLabel,
   Paper,
   Stack,
-  Tooltip,
   useTheme,
   alpha,
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  AutoAwesome as SparkleIcon,
-  HubOutlined as StructureIcon,
   BoltOutlined as BoltIcon,
-  TuneOutlined as TuneIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -42,24 +36,6 @@ import { brand, serifStack } from '../../styles/theme';
 import { useCorpusSize } from '../../hooks/useCorpusSize';
 import { WhenVisible } from '../common/WhenVisible';
 
-const FEATURES = [
-  {
-    icon: <StructureIcon fontSize="small" />,
-    title: 'Structure-aware',
-    text: 'SMILES strings give precise structural searches; compound names are auto-converted.',
-  },
-  {
-    icon: <SparkleIcon fontSize="small" />,
-    title: 'Morgan fingerprints',
-    text: 'Tanimoto over ECFP4 bits, computed in-browser — the same score the API returns.',
-  },
-  {
-    icon: <TuneIcon fontSize="small" />,
-    title: 'Property filters',
-    text: 'Refine by molecular weight, LogP, hydrogen bonding, and structural flexibility.',
-  },
-];
-
 export const SearchForm: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -68,7 +44,8 @@ export const SearchForm: React.FC = () => {
 
   const [localQuery, setLocalQuery] = useState(searchState.query);
   const [localSearchType, setLocalSearchType] = useState(searchState.searchType);
-  const [useAI, setUseAI] = useState(false);
+  const useAI = false;
+  const [showResearch, setShowResearch] = useState(false);
   const [localFilters, setLocalFilters] = useState<Record<string, number | undefined>>(
     searchState.filters as Record<string, number | undefined>
   );
@@ -77,6 +54,7 @@ export const SearchForm: React.FC = () => {
   const corpusSize = useCorpusSize();
 
   const handleSearch = async () => {
+    if (isLoading || searchState.isLoading) return;
     if (!localQuery.trim()) {
       dispatch(setError('Please enter a search term'));
       return;
@@ -198,13 +176,8 @@ export const SearchForm: React.FC = () => {
             mx: 'auto',
           }}
         >
-          {corpusSize ? corpusSize.toLocaleString() : 'Named'} ChEMBL compounds,
-          scored by Morgan/Tanimoto fingerprint in your browser. For what FDA
-          rates substitutable, and what CMS publishes it costs, use the{' '}
-          <MuiLink component={RouterLink} to="/alternatives">
-            therapeutic equivalence lookup
-          </MuiLink>
-          . Neither is medical advice.
+          Find structurally similar molecules across {corpusSize ? corpusSize.toLocaleString() : 'the'} ChEMBL compounds.
+
         </Typography>
       </Box>
 
@@ -265,39 +238,7 @@ export const SearchForm: React.FC = () => {
             </Button>
           </Box>
 
-          {/* AI toggle. Disabled in the static build: ChemBERTa search needs
-              the FastAPI backend and a 315 MB torch model, so the switch says
-              so up front rather than failing after a click. */}
-          <Tooltip title="ChemBERTa embedding search needs the FastAPI backend, which this static demo does not deploy. Structural similarity runs fully in the browser.">
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={useAI}
-                  onChange={(e) => setUseAI(e.target.checked)}
-                  color="primary"
-                  disabled
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <SparkleIcon
-                    sx={{
-                      fontSize: 18,
-                      color: useAI ? brand.indigo : 'text.disabled',
-                      transition: 'color 0.2s ease',
-                    }}
-                  />
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    AI-powered search
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                    (backend only)
-                  </Typography>
-                </Box>
-              }
-              sx={{ mr: 0 }}
-            />
-          </Tooltip>
+
         </Stack>
 
         <TextField
@@ -341,57 +282,20 @@ export const SearchForm: React.FC = () => {
         </Button>
       </Paper>
 
-      {/* Feature cards */}
-      <Box
-        className="anim-fade-up anim-delay-2"
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-          gap: 2,
-          mb: 3,
-        }}
-      >
-        {FEATURES.map((feature) => (
-          <Paper
-            key={feature.title}
-            elevation={0}
-            sx={{
-              p: 2.5,
-              borderRadius: 4,
-              border: `1px solid ${theme.palette.divider}`,
-              backgroundColor: alpha(theme.palette.background.paper, 0.6),
-              transition: 'transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease',
-              '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: '0 12px 32px rgba(16,16,24,0.08)',
-              },
-            }}
-          >
-            <Box
-              sx={{
-                width: 34,
-                height: 34,
-                borderRadius: '10px',
-                mb: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: brand.gradientSoft,
-                color: brand.indigo,
-              }}
-            >
-              {feature.icon}
-            </Box>
-            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-              {feature.title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {feature.text}
-            </Typography>
-          </Paper>
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
+        <Typography variant="body2" sx={{ alignSelf: 'center' }}>Try:</Typography>
+        {['Aspirin', 'Ibuprofen', 'Atorvastatin'].map(name => (
+          <Button key={name} size="small" variant="outlined" onClick={() => {
+            setLocalSearchType('name');
+            setLocalQuery(name);
+            dispatch(setError(null));
+          }}>{name}</Button>
         ))}
-      </Box>
-
+      </Stack>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Looking for FDA-rated equivalents? Open the{' '}
+        <MuiLink component={RouterLink} to="/alternatives">therapeutic equivalence lookup</MuiLink>.
+      </Typography>
       {/* Advanced Property Filters */}
       <Box className="anim-fade-up anim-delay-3">
         <AdvancedPropertyFilters
@@ -401,15 +305,17 @@ export const SearchForm: React.FC = () => {
       </Box>
     </Box>
 
-    {/* Research Results — directly below the property filter, wider column for charts */}
-    <Box sx={{ maxWidth: 1040, mx: 'auto' }}>
-      {/* Gated on visibility, not just split: a lazy component that always
-          renders downloads its chunk on first paint regardless. */}
-      <WhenVisible minHeight={400}>
-        <Suspense fallback={<Box sx={{ py: 8 }} />}>
-          <ResearchResults />
-        </Suspense>
-      </WhenVisible>
+    <Box sx={{ maxWidth: 1040, mx: 'auto', mt: 3 }}>
+      <Box component="details" sx={{ color: 'text.secondary', mb: 2 }}>
+        <Box component="summary" sx={{ cursor: 'pointer', py: 1 }}>How search works</Box>
+        <Typography variant="body2">Morgan/Tanimoto structural similarity runs in your browser. Coverage is a named ChEMBL subset. Similarity does not establish therapeutic equivalence. This is not medical advice.</Typography>
+      </Box>
+      <Button onClick={() => setShowResearch(v => !v)} aria-expanded={showResearch} aria-controls="research-results">
+        {showResearch ? 'Hide research overview' : 'Explore the research'}
+      </Button>
+      {showResearch && <Box id="research-results"><WhenVisible minHeight={400}>
+        <Suspense fallback={<Box sx={{ py: 8 }} />}><ResearchResults /></Suspense>
+      </WhenVisible></Box>}
     </Box>
     </>
   );

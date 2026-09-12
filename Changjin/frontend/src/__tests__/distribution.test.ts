@@ -45,12 +45,12 @@ describe('similarity distribution', () => {
     const bins = similarityDistribution([compound(0.4)]);
     expect(total(bins)).toBe(1);
     expect(bins.find(b => b.range === '0.4-0.6')?.count).toBe(1);
-    expect(bins.find(b => b.range === '0.2-0.4')).toBeUndefined();
+    expect(bins.find(b => b.range === '0.2-0.4')?.count).toBe(0);
   });
 
   it('averages similarity within a bin', () => {
     const bins = similarityDistribution([compound(0.85), compound(0.95)]);
-    expect(bins[0].avgSimilarity).toBeCloseTo(0.9, 10);
+    expect(bins.find(b => b.range === '0.8-1.0')?.avgSimilarity).toBeCloseTo(0.9, 10);
   });
 });
 

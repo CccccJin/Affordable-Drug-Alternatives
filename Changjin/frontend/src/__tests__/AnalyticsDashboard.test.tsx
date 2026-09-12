@@ -183,3 +183,10 @@ describe('AnalyticsDashboard summary cards', () => {
       .toBeInTheDocument();
   });
 });
+
+it('does not present missing evidence as zero while the FDA request is pending', () => {
+  global.fetch = jest.fn(() => new Promise(() => {})) as unknown as typeof fetch;
+  renderDashboard([compound('CHEMBL1487', 'ATORVASTATIN', 1)]);
+  expect(screen.getByText('A pharmacist can substitute').parentElement).toHaveTextContent('—');
+  expect(screen.getByRole('status')).toHaveTextContent('Loading FDA/CMS evidence');
+});

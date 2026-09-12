@@ -73,7 +73,6 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   error,
   onViewDetails,
   currentPage = 1,
-  totalPages = 1,
   onPageChange,
   onSortChange,
   sortBy = 'similarity',
@@ -91,6 +90,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   const corpusProgress = useCorpusProgress();
   const withData = shown.filter(c => summaries.has(c.chembl_id));
   const visible = onlySubstitutable ? withData : shown;
+
+  const pageCount = Math.ceil(visible.length / 20);
+  const page = Math.min(currentPage, Math.max(1, pageCount));
+  const pageResults = visible.slice((page - 1) * 20, page * 20);
 
   const handleSearchQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onSearchQueryChange?.(event.target.value);
@@ -166,7 +169,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <ScienceIcon sx={{ fontSize: 34 }} />
         </Box>
         <Typography variant="h5" gutterBottom>
-          No compounds found
+          {searchQuery ? 'No matches in these results' : 'No compounds found'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>
           {results?.best_similarity != null && results.threshold != null ? (
@@ -177,9 +180,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
               genuinely unlike anything in the subset, rather than mismatched.
             </>
           ) : (
-            'Try adjusting your search criteria, relaxing the property filters, or lowering the similarity threshold.'
+            'Try another name or relax the property filters.'
           )}
         </Typography>
+        {searchQuery && <Button sx={{ mt: 2 }} onClick={() => onSearchQueryChange?.('')}>Clear result filter</Button>}
       </Box>
     );
   }
@@ -264,7 +268,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           action={
             <Button
               size="small"
-              onClick={() => setOnlySubstitutable(v => !v)}
+              onClick={() => { setOnlySubstitutable(v => !v); onPageChange?.(1); }}
               sx={{ whiteSpace: 'nowrap' }}
             >
               {onlySubstitutable ? 'Show all results' : 'Show only these'}
@@ -282,7 +286,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
       {/* Results Grid */}
       <Box sx={RESULTS_GRID_SX}>
-        {visible.map((compound, index) => (
+        {pageResults.map((compound, index) => (
           <Box
             key={compound.chembl_id}
             className="anim-fade-up"
@@ -303,11 +307,11 @@ export const ResultsList: React.FC<ResultsListProps> = ({
       </Box>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {pageCount > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
           <Pagination
-            count={totalPages}
-            page={currentPage}
+            count={pageCount}
+            page={page}
             onChange={(_, page) => onPageChange?.(page)}
             color="primary"
             size="large"
@@ -316,7 +320,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
       )}
 
       {/* Post-processing Info */}
-      {results.post_processed && (
+      {results.post_processed && results.post_processed.filtered_out.length > 0 && (
         <Alert severity="info" sx={{ mt: 4 }}>
           <Typography variant="body2">
             {results.post_processed.clusters.length > 0 && (
@@ -341,7 +345,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
       {/* Export Dialog */}
       <ExportDialog
-        compounds={exportSubject ? [exportSubject] : results.results}
+        compounds={exportSubject ? [exportSubject] : visible}
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
       />

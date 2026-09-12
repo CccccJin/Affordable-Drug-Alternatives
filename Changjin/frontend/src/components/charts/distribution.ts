@@ -57,8 +57,7 @@ const bin = (
           ? members.reduce((sum, c) => sum + c.similarity, 0) / members.length
           : 0,
       };
-    })
-    .filter(d => d.count > 0);
+    });
 
 const MW_RANGES: Range[] = [
   { min: 0, max: 100, label: '0-100' },

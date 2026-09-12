@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 import {
   Box,
   Typography,
+  Button,
   Alert,
   Chip,
   Stack,
@@ -12,7 +13,7 @@ import {
   alpha,
 } from '@mui/material';
 import { AutoAwesome as SparkleIcon } from '@mui/icons-material';
-import { useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
 import { setSelectedCompound } from '../../store/slices/resultsSlice';
@@ -25,8 +26,10 @@ const AnalyticsDashboard = lazy(() =>
 import {
   DEFAULT_SIMILARITY_THRESHOLD,
   StaticSearchApi,
+  withLoadedDescriptors,
 } from '../../services/api/staticSearchApi';
 import type { Compound, SearchResponse } from '../../types/api';
+import { useDescriptors } from '../../hooks/useDescriptors';
 import { monoStack } from '../../styles/theme';
 
 export const SearchResults: React.FC = () => {
@@ -46,6 +49,7 @@ export const SearchResults: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('similarity');
+  const descriptors = useDescriptors(sortBy === 'molecular_weight');
   const [filterQuery, setFilterQuery] = useState('');
   const [activeTab, setActiveTab] = useState(0);
   const [results, setResults] = useState<SearchResponse | null>(null);
@@ -62,14 +66,17 @@ export const SearchResults: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // TODO: Implement pagination
+
   };
 
   const handleSortChange = (newSortBy: string) => {
     setSortBy(newSortBy);
+    setCurrentPage(1);
   };
 
   useEffect(() => {
+    let cancelled = false;
+    setCurrentPage(1);
     const runSearch = async () => {
       if (!query) {
         setResults(null);
@@ -96,15 +103,16 @@ export const SearchResults: React.FC = () => {
               filters: searchState.filters,
             });
 
-        setResults(response);
+        if (!cancelled) setResults(response);
       } catch (searchError) {
-        setError(searchError instanceof Error ? searchError : new Error('Search failed'));
+        if (!cancelled) setError(searchError instanceof Error ? searchError : new Error('Search failed'));
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     runSearch();
+    return () => { cancelled = true; };
   }, [query, searchType, useAI, searchState.filters]);
 
   const visibleResults = React.useMemo(() => {
@@ -122,7 +130,8 @@ export const SearchResults: React.FC = () => {
         )
       : results.results;
 
-    const sorted = [...filtered].sort((left, right) => {
+    const hydrated = descriptors.ready ? withLoadedDescriptors(filtered) : filtered;
+    const sorted = [...hydrated].sort((left, right) => {
       if (sortBy === 'name') {
         return (left.pref_name || left.chembl_id).localeCompare(
           right.pref_name || right.chembl_id
@@ -130,7 +139,7 @@ export const SearchResults: React.FC = () => {
       }
 
       if (sortBy === 'molecular_weight') {
-        return (left.molecular_weight || 0) - (right.molecular_weight || 0);
+        return (left.molecular_weight ?? Infinity) - (right.molecular_weight ?? Infinity);
       }
 
       return right.similarity - left.similarity;
@@ -141,12 +150,13 @@ export const SearchResults: React.FC = () => {
       count: sorted.length,
       results: sorted,
     };
-  }, [filterQuery, results, sortBy]);
+  }, [filterQuery, results, sortBy, descriptors.ready]);
 
   const activeFilterEntries = Object.entries(searchState.filters);
 
   return (
     <Box>
+      <Button component={RouterLink} to="/search" sx={{ mb: 2 }}>← New search</Button>
       {/* Search summary */}
       <Box className="anim-fade-up" sx={{ mb: 4 }}>
         <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.5 }}>
@@ -224,11 +234,11 @@ export const SearchResults: React.FC = () => {
             onSortChange={handleSortChange}
             sortBy={sortBy}
             searchQuery={filterQuery}
-            onSearchQueryChange={setFilterQuery}
+            onSearchQueryChange={value => { setFilterQuery(value); setCurrentPage(1); }}
           />
         ) : (
           <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress size={24} /></Box>}>
-            <AnalyticsDashboard compounds={visibleResults?.results || []} />
+            {isLoading ? <Box role="status" sx={{ py: 6 }}>Loading search results…</Box> : error ? <Alert severity="error">{error.message}</Alert> : <AnalyticsDashboard compounds={visibleResults?.results || []} />}
           </Suspense>
         )}
       </Box>
@@ -240,16 +250,10 @@ export const SearchResults: React.FC = () => {
         onClose={handleCloseDetails}
       />
 
-      <Alert severity="info" sx={{ mt: 5 }}>
-        <Typography variant="body2">
-          Similarity is a real Morgan/Tanimoto computation (ECFP4, radius 2,
-          1024 bits) run in your browser against <strong>public/data</strong>, so
-          scores match what the FastAPI <code>/search</code> endpoint returns.
-          What the static build limits is <em>coverage</em>: the named subset of
-          ChEMBL rather than its full 2.4M rows, which are mostly unnamed
-          screening entries.
-        </Typography>
-      </Alert>
+      <Box component="details" sx={{ mt: 3, color: 'text.secondary' }}>
+        <Box component="summary" sx={{ cursor: 'pointer', py: 1 }}>Search method and coverage</Box>
+        <Typography variant="body2">Morgan/Tanimoto (ECFP4, radius 2, 1024 bits) over the named ChEMBL subset. Analytics reflect the current filtered results, up to 50 matches.</Typography>
+      </Box>
     </Box>
   );
 };
