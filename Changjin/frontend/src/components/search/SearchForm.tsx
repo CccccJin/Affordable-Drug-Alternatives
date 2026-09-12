@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useRef, useState } from 'react';
 import {
   Link as MuiLink,
   TextField,
@@ -10,6 +10,7 @@ import {
   Stack,
   useTheme,
   alpha,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -34,14 +35,17 @@ const ResearchResults = lazy(() =>
   import('../research/ResearchResults').then(m => ({ default: m.ResearchResults })));
 import { brand, serifStack } from '../../styles/theme';
 import { useCorpusSize } from '../../hooks/useCorpusSize';
+import { ScrollNarrative } from '../landing/ScrollNarrative';
 import { WhenVisible } from '../common/WhenVisible';
 
 export const SearchForm: React.FC = () => {
   const theme = useTheme();
+  const isReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const searchState = useSelector((state: RootState) => state.search);
 
+  const workspaceRef = useRef<HTMLElement | null>(null);
   const [localQuery, setLocalQuery] = useState(searchState.query);
   const [localSearchType, setLocalSearchType] = useState(searchState.searchType);
   const useAI = false;
@@ -52,6 +56,13 @@ export const SearchForm: React.FC = () => {
 
   const { searchBySMILES, searchByName, isLoading } = useCompoundSearch();
   const corpusSize = useCorpusSize();
+
+  const enterWorkspace = useCallback(() => {
+    workspaceRef.current?.scrollIntoView({
+      behavior: isReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }, [isReducedMotion]);
 
   const handleSearch = async () => {
     if (isLoading || searchState.isLoading) return;
@@ -118,205 +129,235 @@ export const SearchForm: React.FC = () => {
 
   return (
     <>
-    <Box sx={{ maxWidth: 880, mx: 'auto' }}>
-      {/* Hero */}
-      <Box className="anim-fade-up" sx={{ textAlign: 'center', mb: { xs: 4, md: 6 }, pt: { xs: 2, md: 5 } }}>
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.75,
-            px: 1.75,
-            py: 0.6,
-            mb: 3,
-            borderRadius: 999,
-            border: `1px solid ${theme.palette.divider}`,
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          <BoltIcon sx={{ fontSize: 14, color: brand.indigo }} />
-          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-            Powered by ChEMBL 35 &amp; RDKit
-          </Typography>
-        </Box>
+      <ScrollNarrative onEnterWorkspace={enterWorkspace} />
 
-        {/* "Find affordable drug alternatives" promised a consumer price
-            comparison. This is a cheminformatics tool: it scores structural
-            similarity and looks up what FDA has published, and the results page
-            says in as many words that similarity is not substitutability. A
-            headline that promises the other thing sets a visitor up to read
-            every number on the site as advice about their own medication. */}
-        <Typography variant="h1" component="h1" sx={{ mb: 2.5 }}>
-          Search{' '}
-          <Box
-            component="em"
-            sx={{
-              fontFamily: serifStack,
-              fontStyle: 'italic',
-              fontWeight: 400,
-              background: brand.gradient,
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              pr: '0.06em',
-            }}
-          >
-            chemical
-          </Box>{' '}
-          similarity
-        </Typography>
-
-        <Typography
-          variant="subtitle1"
-          sx={{
-            color: 'text.secondary',
-            fontWeight: 400,
-            maxWidth: 560,
-            mx: 'auto',
-          }}
-        >
-          Find structurally similar molecules across {corpusSize ? corpusSize.toLocaleString() : 'the'} ChEMBL compounds.
-
-        </Typography>
-      </Box>
-
-      {/* Search panel */}
-      <Paper
+      <Box
         component="section"
-        aria-label="Compound search"
-        className="anim-fade-up anim-delay-1"
-        elevation={0}
+        ref={workspaceRef}
+        id="search-workspace"
         sx={{
-          p: { xs: 2.5, sm: 4 },
-          mb: 3,
-          borderRadius: 5,
-          border: `1px solid ${theme.palette.divider}`,
-          backgroundColor: alpha(theme.palette.background.paper, 0.85),
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 1px 2px rgba(16,16,24,0.04), 0 12px 32px rgba(16,16,24,0.07)',
+          maxWidth: 980,
+          mx: 'auto',
+          px: 3,
+          pt: 4,
+          pb: 2,
+          scrollMarginTop: isReducedMotion ? 0 : 84,
         }}
       >
-        {searchState.error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => dispatch(setError(null))}>
-            {searchState.error}
-          </Alert>
-        )}
-
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-          justifyContent="space-between"
-          sx={{ mb: 2.5 }}
-        >
-          {/* Segmented search-type control */}
+        <Box sx={{ maxWidth: 880, mx: 'auto' }}>
+          {/* Hero */}
           <Box
-            role="group"
-            aria-label="Search by"
-            sx={{
-              display: 'flex',
-              p: 0.5,
-              borderRadius: '12px',
-              backgroundColor: alpha(theme.palette.text.primary, 0.05),
-              width: { xs: '100%', sm: 320 },
-            }}
+            className="anim-fade-up"
+            sx={{ textAlign: 'center', mb: { xs: 4, md: 6 }, pt: { xs: 0, md: 1 } }}
           >
-            <Button
-              onClick={() => setLocalSearchType('smiles')}
-              aria-pressed={localSearchType === 'smiles'}
-              sx={segmentSx(localSearchType === 'smiles')}
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.75,
+                py: 0.6,
+                mb: 3,
+                borderRadius: 999,
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: alpha(theme.palette.background.paper, 0.7),
+                backdropFilter: 'blur(8px)',
+              }}
             >
-              SMILES string
-            </Button>
-            <Button
-              onClick={() => setLocalSearchType('name')}
-              aria-pressed={localSearchType === 'name'}
-              sx={segmentSx(localSearchType === 'name')}
+              <BoltIcon sx={{ fontSize: 14, color: brand.indigo }} />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                Powered by ChEMBL 35 &amp; RDKit
+              </Typography>
+            </Box>
+
+            {/* "Find affordable drug alternatives" promised a consumer price
+                comparison. This is a cheminformatics tool: it scores structural
+                similarity and looks up what FDA has published, and the results page
+                says in as many words that similarity is not substitutability. A
+                headline that promises the other thing sets a visitor up to read
+                every number on the site as advice about their own medication. */}
+            <Typography variant="h1" component="h1" sx={{ mb: 2.5 }}>
+              Search{' '}
+              <Box
+                component="em"
+                sx={{
+                  fontFamily: serifStack,
+                  fontStyle: 'italic',
+                  fontWeight: 400,
+                  background: brand.gradient,
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  pr: '0.06em',
+                }}
+              >
+                chemical
+              </Box>{' '}
+              similarity
+            </Typography>
+
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: 'text.secondary',
+                fontWeight: 400,
+                maxWidth: 560,
+                mx: 'auto',
+              }}
             >
-              Compound name
-            </Button>
+              Find structurally similar molecules across {corpusSize ? corpusSize.toLocaleString() : 'the'} ChEMBL compounds.
+            </Typography>
           </Box>
 
+          {/* Search panel */}
+          <Paper
+            component="section"
+            aria-label="Compound search"
+            className="anim-fade-up anim-delay-1"
+            elevation={0}
+            sx={{
+              p: { xs: 2.5, sm: 4 },
+              mb: 3,
+              borderRadius: 5,
+              border: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.85),
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 1px 2px rgba(16,16,24,0.04), 0 12px 32px rgba(16,16,24,0.07)',
+            }}
+          >
+            {searchState.error && (
+              <Alert severity="error" sx={{ mb: 3 }} onClose={() => dispatch(setError(null))}>
+                {searchState.error}
+              </Alert>
+            )}
 
-        </Stack>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              justifyContent="space-between"
+              sx={{ mb: 2.5 }}
+            >
+              {/* Segmented search-type control */}
+              <Box
+                role="group"
+                aria-label="Search by"
+                sx={{
+                  display: 'flex',
+                  p: 0.5,
+                  borderRadius: '12px',
+                  backgroundColor: alpha(theme.palette.text.primary, 0.05),
+                  width: { xs: '100%', sm: 320 },
+                }}
+              >
+                <Button
+                  onClick={() => setLocalSearchType('smiles')}
+                  aria-pressed={localSearchType === 'smiles'}
+                  sx={segmentSx(localSearchType === 'smiles')}
+                >
+                  SMILES string
+                </Button>
+                <Button
+                  onClick={() => setLocalSearchType('name')}
+                  aria-pressed={localSearchType === 'name'}
+                  sx={segmentSx(localSearchType === 'name')}
+                >
+                  Compound name
+                </Button>
+              </Box>
+            </Stack>
 
-        <TextField
-          fullWidth
-          label={localSearchType === 'smiles' ? 'SMILES string' : 'Compound name'}
-          value={localQuery}
-          onChange={(e) => setLocalQuery(e.target.value)}
-          placeholder={
-            localSearchType === 'smiles'
-              ? 'e.g. CC(=O)OC1=CC=CC=C1C(=O)O'
-              : 'e.g. Aspirin'
-          }
-          sx={{
-            mb: 2.5,
-            '& .MuiOutlinedInput-input': {
-              fontFamily:
+            <TextField
+              fullWidth
+              label={localSearchType === 'smiles' ? 'SMILES string' : 'Compound name'}
+              value={localQuery}
+              onChange={(e) => setLocalQuery(e.target.value)}
+              placeholder={
                 localSearchType === 'smiles'
-                  ? '"SF Mono", ui-monospace, Menlo, monospace'
-                  : 'inherit',
-              fontSize: '1.05rem',
-              py: 1.9,
-            },
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleSearch();
-            }
-          }}
-        />
+                  ? 'e.g. CC(=O)OC1=CC=CC=C1C(=O)O'
+                  : 'e.g. Aspirin'
+              }
+              sx={{
+                mb: 2.5,
+                '& .MuiOutlinedInput-input': {
+                  fontFamily:
+                    localSearchType === 'smiles'
+                      ? '"SF Mono", ui-monospace, Menlo, monospace'
+                      : 'inherit',
+                  fontSize: '1.05rem',
+                  py: 1.9,
+                },
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            />
 
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<SearchIcon />}
-          onClick={handleSearch}
-          disabled={isLoading || !localQuery.trim()}
-          fullWidth
-          sx={{ py: 1.6, fontSize: '1.02rem' }}
-        >
-          {isLoading ? 'Searching…' : 'Search compounds'}
-        </Button>
-      </Paper>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<SearchIcon />}
+              onClick={handleSearch}
+              disabled={isLoading || !localQuery.trim()}
+              fullWidth
+              sx={{ py: 1.6, fontSize: '1.02rem' }}
+            >
+              {isLoading ? 'Searching…' : 'Search compounds'}
+            </Button>
+          </Paper>
 
-      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
-        <Typography variant="body2" sx={{ alignSelf: 'center' }}>Try:</Typography>
-        {['Aspirin', 'Ibuprofen', 'Atorvastatin'].map(name => (
-          <Button key={name} size="small" variant="outlined" onClick={() => {
-            setLocalSearchType('name');
-            setLocalQuery(name);
-            dispatch(setError(null));
-          }}>{name}</Button>
-        ))}
-      </Stack>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Looking for FDA-rated equivalents? Open the{' '}
-        <MuiLink component={RouterLink} to="/alternatives">therapeutic equivalence lookup</MuiLink>.
-      </Typography>
-      {/* Advanced Property Filters */}
-      <Box className="anim-fade-up anim-delay-3">
-        <AdvancedPropertyFilters
-          filters={localFilters}
-          onFiltersChange={handleFiltersChange}
-        />
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
+            <Typography variant="body2" sx={{ alignSelf: 'center' }}>Try:</Typography>
+            {['Aspirin', 'Ibuprofen', 'Atorvastatin'].map(name => (
+              <Button
+                key={name}
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setLocalSearchType('name');
+                  setLocalQuery(name);
+                  dispatch(setError(null));
+                }}
+              >
+                {name}
+              </Button>
+            ))}
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Looking for FDA-rated equivalents? Open the{' '}
+            <MuiLink component={RouterLink} to="/alternatives">therapeutic equivalence lookup</MuiLink>.
+          </Typography>
+
+          {/* Advanced Property Filters */}
+          <Box className="anim-fade-up anim-delay-3">
+            <AdvancedPropertyFilters
+              filters={localFilters}
+              onFiltersChange={handleFiltersChange}
+            />
+          </Box>
+        </Box>
+
+        <Box sx={{ maxWidth: 1040, mx: 'auto', mt: 3 }}>
+          <Box component="details" sx={{ color: 'text.secondary', mb: 2 }}>
+            <Box component="summary" sx={{ cursor: 'pointer', py: 1 }}>How search works</Box>
+            <Typography variant="body2">
+              Morgan/Tanimoto structural similarity runs in your browser. Coverage is a named ChEMBL subset. Similarity does not establish therapeutic equivalence. This is not medical advice.
+            </Typography>
+          </Box>
+          <Button onClick={() => setShowResearch(v => !v)} aria-expanded={showResearch} aria-controls="research-results">
+            {showResearch ? 'Hide research overview' : 'Explore the research'}
+          </Button>
+          {showResearch && (
+            <Box id="research-results">
+              <WhenVisible minHeight={400}>
+                <Suspense fallback={<Box sx={{ py: 8 }} />}><ResearchResults /></Suspense>
+              </WhenVisible>
+            </Box>
+          )}
+        </Box>
       </Box>
-    </Box>
-
-    <Box sx={{ maxWidth: 1040, mx: 'auto', mt: 3 }}>
-      <Box component="details" sx={{ color: 'text.secondary', mb: 2 }}>
-        <Box component="summary" sx={{ cursor: 'pointer', py: 1 }}>How search works</Box>
-        <Typography variant="body2">Morgan/Tanimoto structural similarity runs in your browser. Coverage is a named ChEMBL subset. Similarity does not establish therapeutic equivalence. This is not medical advice.</Typography>
-      </Box>
-      <Button onClick={() => setShowResearch(v => !v)} aria-expanded={showResearch} aria-controls="research-results">
-        {showResearch ? 'Hide research overview' : 'Explore the research'}
-      </Button>
-      {showResearch && <Box id="research-results"><WhenVisible minHeight={400}>
-        <Suspense fallback={<Box sx={{ py: 8 }} />}><ResearchResults /></Suspense>
-      </WhenVisible></Box>}
-    </Box>
     </>
   );
 };

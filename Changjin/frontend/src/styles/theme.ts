@@ -2,28 +2,29 @@ import { createTheme, alpha, type ThemeOptions } from '@mui/material/styles';
 
 /* ---------------------------------------------------------------------------
    ChemSearch design tokens
-   A warm-neutral, premium palette with an indigo→violet accent, inspired by
-   modern AI product design: generous whitespace, soft depth, rounded shapes.
+   A low-saturation blue-green palette with fog-white surfaces and understated
+   contrast for long sessions.
 --------------------------------------------------------------------------- */
 
 export const brand = {
-  indigo: '#4F46E5',
-  indigoDark: '#4338CA',
-  indigoLight: '#818CF8',
-  violet: '#A855F7',
-  gradient: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+  indigo: '#2F8F9E',
+  indigoDark: '#1F6473',
+  indigoLight: '#5DA5B3',
+  violet: '#4B958A',
+  gradient: 'linear-gradient(135deg, #2F8F9E 0%, #4B958A 100%)',
   gradientSoft:
-    'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(168,85,247,0.10) 100%)',
+    'linear-gradient(135deg, rgba(47,143,158,0.12) 0%, rgba(75,149,138,0.10) 100%)',
 };
 
 const ink = {
-  primary: '#1A1A1F',
-  secondary: '#63635E',
-  border: '#E9E8E3',
+  primary: '#1E272B',
+  secondary: '#5F6A70',
+  border: '#DCE5E9',
 };
 
 const fontStack = [
-  'Inter',
+  '"Manrope"',
+  '"Avenir Next"',
   '-apple-system',
   'BlinkMacSystemFont',
   '"Segoe UI"',
@@ -33,7 +34,7 @@ const fontStack = [
   'sans-serif',
 ].join(',');
 
-export const serifStack = '"Instrument Serif", Georgia, "Times New Roman", serif';
+export const serifStack = '"Merriweather", Georgia, "Times New Roman", serif';
 export const monoStack =
   '"SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace';
 
@@ -125,7 +126,7 @@ const buildComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => 
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: isLight ? '#F7F7F5' : '#0E0E12',
+          backgroundColor: isLight ? '#F1F7FA' : '#0B1214',
         },
       },
     },
@@ -152,10 +153,10 @@ const buildComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => 
         containedPrimary: {
           background: brand.gradient,
           color: '#fff',
-          boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
+          boxShadow: '0 2px 10px rgba(47,143,158,0.25)',
           '&:hover': {
             background: brand.gradient,
-            boxShadow: '0 4px 16px rgba(99,102,241,0.45)',
+            boxShadow: '0 4px 16px rgba(47,143,158,0.35)',
             transform: 'translateY(-1px)',
           },
           '&.Mui-disabled': {
@@ -208,7 +209,7 @@ const buildComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => 
               transition: 'border-color 0.2s ease',
             },
             '&:hover fieldset': {
-              borderColor: isLight ? '#CFCFC8' : 'rgba(255,255,255,0.2)',
+              borderColor: isLight ? '#B9CDD4' : 'rgba(255,255,255,0.2)',
             },
             '&.Mui-focused': {
               boxShadow: `0 0 0 4px ${alpha(brand.indigo, 0.12)}`,
@@ -267,7 +268,7 @@ const buildComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => 
         },
         standardInfo: {
           backgroundColor: isLight ? alpha(brand.indigo, 0.06) : alpha(brand.indigo, 0.15),
-          color: isLight ? '#3730A3' : '#C7D2FE',
+          color: isLight ? '#2B5A63' : '#D0EEF2',
           '& .MuiAlert-icon': {
             color: brand.indigo,
           },
@@ -281,7 +282,7 @@ const buildComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => 
           fontSize: '0.75rem',
           fontWeight: 500,
           padding: '6px 12px',
-          backgroundColor: isLight ? '#1A1A1F' : '#F2F2F0',
+          backgroundColor: isLight ? '#1D2A32' : '#F2F2F0',
           color: isLight ? '#fff' : '#1A1A1F',
         },
       },
@@ -348,31 +349,31 @@ export const themeOptions: ThemeOptions = {
     },
     secondary: {
       main: brand.violet,
-      light: '#C084FC',
-      dark: '#7E22CE',
+      light: '#73B0A7',
+      dark: '#2F7A70',
     },
     success: {
-      main: '#15803D',
-      light: '#4ADE80',
-      dark: '#166534',
+      main: '#2F7A70',
+      light: '#60B8AE',
+      dark: '#225F57',
     },
     error: {
-      main: '#DC2626',
-      light: '#F87171',
-      dark: '#B91C1C',
+      main: '#C24141',
+      light: '#E56B6B',
+      dark: '#8F2F2F',
     },
     warning: {
-      main: '#B45309',
-      light: '#FBBF24',
-      dark: '#92400E',
+      main: '#B37C32',
+      light: '#D8A347',
+      dark: '#845B1F',
     },
     info: {
-      main: '#2563EB',
-      light: '#60A5FA',
-      dark: '#1D4ED8',
+      main: '#2D7AA3',
+      light: '#61A6CD',
+      dark: '#205B7B',
     },
     background: {
-      default: '#F7F7F5',
+      default: '#F1F7FA',
       paper: '#FFFFFF',
     },
     text: {
@@ -394,7 +395,7 @@ export const darkThemeOptions: ThemeOptions = {
     ...themeOptions.palette,
     mode: 'dark',
     background: {
-      default: '#0E0E12',
+      default: '#0B1214',
       paper: '#17171C',
     },
     text: {
