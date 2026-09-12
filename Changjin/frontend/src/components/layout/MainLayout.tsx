@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, CssBaseline, Box, Container } from '@mui/material';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { RootState } from '../../store/store';
 import { createAppTheme } from '../../styles/theme';
 import { Header } from './Header';
@@ -14,8 +14,10 @@ interface MainLayoutProps {
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const themeMode = useSelector((state: RootState) => state.ui.theme);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const theme = React.useMemo(() => createAppTheme(themeMode), [themeMode]);
+  const isLanding = location.pathname === '/' || location.pathname === '/search';
 
   const handleNewSearch = React.useCallback(() => {
     navigate('/search');
@@ -57,8 +59,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               right: -140,
               background:
                 themeMode === 'light'
-                  ? 'radial-gradient(circle, rgba(99,102,241,0.16), transparent 65%)'
-                  : 'radial-gradient(circle, rgba(99,102,241,0.20), transparent 65%)',
+                  ? 'radial-gradient(circle, rgba(47,143,158,0.16), transparent 65%)'
+                  : 'radial-gradient(circle, rgba(47,143,158,0.20), transparent 65%)',
             },
             '&::after': {
               width: 480,
@@ -67,8 +69,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               left: -160,
               background:
                 themeMode === 'light'
-                  ? 'radial-gradient(circle, rgba(168,85,247,0.10), transparent 65%)'
-                  : 'radial-gradient(circle, rgba(168,85,247,0.14), transparent 65%)',
+                  ? 'radial-gradient(circle, rgba(75,149,138,0.10), transparent 65%)'
+                  : 'radial-gradient(circle, rgba(75,149,138,0.14), transparent 65%)',
               animationDelay: '-12s',
             },
           }}
@@ -77,13 +79,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Header onSearchClick={handleNewSearch} />
 
         <Container
+          maxWidth={isLanding ? false : 'lg'}
           component="main"
-          maxWidth="lg"
           sx={{
             flexGrow: 1,
             width: '100%',
-            px: { xs: 2.5, sm: 4 },
-            py: { xs: 4, md: 6 },
+            px: isLanding ? 0 : { xs: 2.5, sm: 4 },
+            py: isLanding ? 0 : { xs: 4, md: 6 },
           }}
         >
           {children}
