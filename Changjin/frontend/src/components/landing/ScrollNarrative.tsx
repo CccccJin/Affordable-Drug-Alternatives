@@ -30,6 +30,7 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
   useEffect(() => {
     const section = root.current, surface = canvas.current;
     if (!section || !surface) return;
+    const header = document.querySelector('header');
     let disposed = false, raf = 0, last = -1, lastChapter = -1;
     let lenis: import('lenis').default | null = null;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -57,8 +58,10 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
       if (disposed) return;
       lenis?.raf(time);
       const bounds = section.getBoundingClientRect();
-      const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 68;
+      const headerHeight = header?.getBoundingClientRect().height ?? 68;
       section.style.setProperty('--pill-header-height', `${headerHeight}px`);
+      const backdropActive = String(bounds.top <= headerHeight + 1 && bounds.bottom > headerHeight);
+      if (header && header.dataset.pillBackdrop !== backdropActive) header.dataset.pillBackdrop = backdropActive;
       const height = window.innerHeight - headerHeight;
       const p = Math.max(0, Math.min(1, (headerHeight - bounds.top) / Math.max(1, bounds.height - height)));
       const chapter = Math.min(4, Math.floor(p * 5));
@@ -73,6 +76,7 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
     return () => {
       disposed = true; cancelAnimationFrame(raf); media.removeEventListener('change', motion);
       lenis?.destroy(); model.current?.dispose(); model.current = null; goTo.current = null;
+      header?.removeAttribute('data-pill-backdrop');
     };
   }, [motionPaused]);
   const enter = () => {
@@ -90,6 +94,7 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
     <section ref={root} className="pill-journey" data-motion={reduced ? 'reduced' : 'full'} aria-label="A closer look at molecular discovery">
       <style>{narrativeStyles}</style>
       <div className="pill-stage" data-chapter={active}>
+        <div className="pill-stage-content">
         {headerSlot && createPortal(<div className="pill-header-controls"><button type="button" aria-label="Reduce animation" aria-pressed={reduced} onClick={() => setMotionPaused(value => !value)}>Motion {reduced ? 'off' : 'on'}</button><button type="button" onClick={enter}>Skip intro <span aria-hidden="true">↗</span></button></div>, headerSlot)}
         <div className="pill-word" aria-hidden="true" key={active}>{chapters[active].word}</div>
         <div className="pill-orbit" aria-hidden="true" />
@@ -117,6 +122,7 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
           <span className="pill-research">FOR RESEARCH.<br />FOR THE CURIOUS.</span>
         </div>
         <div className="pill-progress" aria-hidden="true" />
+        </div>
       </div>
       <div className="pill-endnote">Structural similarity does not establish clinical interchangeability. <Link to="/alternatives">Explore FDA-rated equivalence ↗</Link></div>
     </section>

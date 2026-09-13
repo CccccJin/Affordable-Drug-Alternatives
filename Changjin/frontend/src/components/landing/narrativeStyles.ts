@@ -1,8 +1,14 @@
 export const narrativeStyles = `
 .pill-journey { --ink:#183d39; --muted:#536b65; --accent:#256f60; --journey:0; position:relative; height:580svh; width:100%; color:var(--ink); background:#edf0e8; font-family:'Manrope','Avenir Next',sans-serif; }
 .pill-journey *, .pill-journey *::before, .pill-journey *::after { box-sizing:border-box; }
-.pill-stage { position:sticky; top:68px; height:calc(100svh - 68px); min-height:610px; width:100%; overflow:hidden; isolation:isolate; background:radial-gradient(ellipse at 71% 52%,#fffef7 0%,#edf0e8 44%,#dfe8df 100%); }
-.pill-stage::after { content:''; position:absolute; inset:0; z-index:-1; opacity:.16; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%238da18e' filter='url(%23n)' opacity='.26' d='M0 0h160v160H0z'/%3E%3C/svg%3E"); pointer-events:none; }
+.pill-stage { position:sticky; top:68px; height:calc(100svh - 68px); min-height:610px; width:100%; overflow:visible; isolation:isolate; }
+.pill-stage::before { content:''; position:absolute; inset:calc(-1 * var(--pill-header-height,68px)) 0 0; z-index:-2; background:radial-gradient(ellipse at 71% 52%,#fffef7 0%,#edf0e8 44%,#dfe8df 100%); pointer-events:none; }
+.pill-stage::after { content:''; position:absolute; inset:calc(-1 * var(--pill-header-height,68px)) 0 0; z-index:-1; opacity:.16; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%238da18e' filter='url(%23n)' opacity='.26' d='M0 0h160v160H0z'/%3E%3C/svg%3E"); pointer-events:none; }
+.pill-stage-content { position:absolute; inset:0; overflow:hidden; isolation:isolate; }
+header[data-pill-backdrop='true'] { background-color:transparent; border-bottom-color:transparent; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; color:#183d39; }
+header[data-pill-backdrop='true'][data-scrolled='true'] { backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+header[data-pill-backdrop='true'] .MuiTypography-root,header[data-pill-backdrop='true'] button { color:#183d39; }
+header[data-pill-backdrop='true'] .MuiTypography-caption { color:#536b65; }
 .pill-journey button { font:inherit; cursor:pointer; }
 .pill-journey a { color:inherit; }
 .pill-journey button:focus-visible,.pill-journey a:focus-visible { outline:3px solid #b26432; outline-offset:5px; }
