@@ -80,6 +80,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         <Container
           maxWidth={isLanding ? false : 'lg'}
+          disableGutters={isLanding}
           component="main"
           sx={{
             flexGrow: 1,
