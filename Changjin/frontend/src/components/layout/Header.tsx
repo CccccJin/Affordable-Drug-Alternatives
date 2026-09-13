@@ -68,6 +68,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
   const isLanding = location.pathname === '/' || location.pathname === '/search';
   const dispatch = useDispatch();
   const themeMode = useSelector((state: RootState) => state.ui.theme);
+  const [scrolled, setScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 24);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const isLight = themeMode === 'light';
   const isActive = (path: string) =>
@@ -96,13 +104,19 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
       position="sticky"
       elevation={0}
       color="transparent"
+      data-scrolled={scrolled}
       sx={{
-        backdropFilter: 'blur(16px) saturate(1.6)',
-        WebkitBackdropFilter: 'blur(16px) saturate(1.6)',
-        backgroundColor: isLight
-          ? 'rgba(247,247,245,0.78)'
-          : 'rgba(14,14,18,0.72)',
-        borderBottom: `1px solid ${theme.palette.divider}`,
+        backdropFilter: scrolled ? 'blur(16px) saturate(1.35)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(16px) saturate(1.35)' : 'none',
+        backgroundImage: 'none',
+        backgroundColor: scrolled
+          ? (isLight ? 'rgba(247,247,245,0.78)' : 'rgba(14,14,18,0.76)')
+          : 'transparent',
+        borderBottom: '1px solid',
+        borderColor: scrolled ? theme.palette.divider : 'transparent',
+        boxShadow: scrolled ? `0 4px 20px ${alpha('#000', isLight ? 0.04 : 0.16)}` : 'none',
+        transition: 'background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease, backdrop-filter 240ms ease',
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
     >
       <Container maxWidth={isLanding ? false : 'lg'} disableGutters sx={{ px: { xs: 2.5, sm: 4 } }}>
