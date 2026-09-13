@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { narrativeStyles } from './narrativeStyles';
 
 const Molecule = lazy(() => import('../molecules/MoleculeViewer').then(m => ({ default: m.MoleculeViewer })));
@@ -22,6 +23,9 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
   const [motionPaused, setMotionPaused] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => { setHeaderSlot(document.getElementById('narrative-header-controls')); }, []);
 
   useEffect(() => {
     const section = root.current, surface = canvas.current;
@@ -29,7 +33,6 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
     let disposed = false, raf = 0, last = -1, lastChapter = -1;
     let lenis: import('lenis').default | null = null;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const mobile = window.matchMedia('(max-width: 760px)');
     const motion = () => {
       setReduced(media.matches || motionPaused);
       if (media.matches || motionPaused) { lenis?.destroy(); lenis = null; }
@@ -54,8 +57,10 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
       if (disposed) return;
       lenis?.raf(time);
       const bounds = section.getBoundingClientRect();
-      const height = window.innerHeight - (mobile.matches ? 60 : 68);
-      const p = Math.max(0, Math.min(1, ((mobile.matches ? 60 : 68) - bounds.top) / Math.max(1, bounds.height - height)));
+      const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 68;
+      section.style.setProperty('--pill-header-height', `${headerHeight}px`);
+      const height = window.innerHeight - headerHeight;
+      const p = Math.max(0, Math.min(1, (headerHeight - bounds.top) / Math.max(1, bounds.height - height)));
       const chapter = Math.min(4, Math.floor(p * 5));
       if (chapter !== lastChapter) { lastChapter = chapter; setActive(chapter); }
       if (p !== last) {
@@ -76,7 +81,7 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
   };
   const selectChapter = (index: number) => {
     const section = root.current; if (!section) return;
-    const header = window.innerWidth <= 760 ? 60 : 68;
+    const header = document.querySelector('header')?.getBoundingClientRect().height ?? 68;
     const start = section.getBoundingClientRect().top + window.scrollY - header;
     const distance = section.offsetHeight - window.innerHeight + header;
     goTo.current?.(Math.max(0, start + distance * (index === 0 ? 0 : (index + 0.15) / 5)));
@@ -85,7 +90,7 @@ export function ScrollNarrative({ onEnterWorkspace }: ScrollNarrativeProps) {
     <section ref={root} className="pill-journey" data-motion={reduced ? 'reduced' : 'full'} aria-label="A closer look at molecular discovery">
       <style>{narrativeStyles}</style>
       <div className="pill-stage" data-chapter={active}>
-        <div className="pill-topline"><span>CHEMSEARCH / A CLOSER LOOK</span><div><button type="button" aria-label="Reduce animation" aria-pressed={reduced} onClick={() => setMotionPaused(value => !value)}>Motion {reduced ? 'off' : 'on'}</button><button type="button" onClick={enter}>Skip intro <span aria-hidden="true">↗</span></button></div></div>
+        {headerSlot && createPortal(<div className="pill-header-controls"><button type="button" aria-label="Reduce animation" aria-pressed={reduced} onClick={() => setMotionPaused(value => !value)}>Motion {reduced ? 'off' : 'on'}</button><button type="button" onClick={enter}>Skip intro <span aria-hidden="true">↗</span></button></div>, headerSlot)}
         <div className="pill-word" aria-hidden="true" key={active}>{chapters[active].word}</div>
         <div className="pill-orbit" aria-hidden="true" />
         <div className="pill-visual" aria-label="Three-dimensional pearl and teal capsule" role="img">

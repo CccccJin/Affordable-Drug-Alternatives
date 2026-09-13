@@ -6,9 +6,10 @@ export const narrativeStyles = `
 .pill-journey button { font:inherit; cursor:pointer; }
 .pill-journey a { color:inherit; }
 .pill-journey button:focus-visible,.pill-journey a:focus-visible { outline:3px solid #b26432; outline-offset:5px; }
-.pill-topline { position:absolute; top:25px; left:3.5%; right:3.5%; display:flex; justify-content:space-between; align-items:center; z-index:6; font:10px 'SFMono-Regular',Consolas,monospace; letter-spacing:.12em; }
-.pill-topline button { padding:8px 0 8px 18px; color:var(--ink); background:none; border:0; font-size:12px; letter-spacing:0; }
-.pill-topline button span { font-size:20px; margin-left:14px; }
+.pill-header-controls { display:flex; align-items:center; gap:16px; white-space:nowrap; }
+.pill-header-controls button { min-height:40px; padding:8px 0; color:inherit; background:none; border:0; font:12px 'Manrope','Avenir Next',sans-serif; cursor:pointer; }
+.pill-header-controls button span { font-size:20px; margin-left:10px; vertical-align:middle; }
+.pill-header-controls button:focus-visible { outline:3px solid #b26432; outline-offset:4px; }
 .pill-word { position:absolute; left:2.3%; top:65px; width:95.4%; font-size:clamp(70px,12.5vw,235px); line-height:.85; font-weight:800; letter-spacing:-.075em; text-align:center; white-space:nowrap; color:#245747; opacity:.12; z-index:0; animation:pill-word-in .65s ease both; user-select:none; }
 .pill-stage[data-chapter='0'] .pill-word { opacity:.92; font-size:12.5vw; }
 .pill-stage[data-chapter='4'] .pill-word { font-size:16.2vw; }
@@ -73,6 +74,7 @@ html.lenis,html.lenis body { height:auto; }
 .pill-journey[data-motion='reduced'] { height:440svh; }
 .pill-journey[data-motion='reduced'] .pill-word,.pill-journey[data-motion='reduced'] .pill-copy { animation:none; transition:none; transform:none; }
 .pill-journey[data-motion='reduced'] canvas { transition:none; }
+.pill-stage { top:var(--pill-header-height,68px); height:calc(100svh - var(--pill-header-height,68px)); }
 @media (max-width:760px) and (max-height:740px) { .pill-stage { min-height:0; } .pill-copy-wrap { top:50%; } .pill-copy h2 { font-size:29px; margin-bottom:8px; } .pill-copy p { font-size:11px; margin-bottom:10px; } .pill-eyebrow { margin-bottom:8px; } .pill-visual { bottom:45%; } .pill-specimen { display:none; } .pill-topline button { font-size:10px; padding-left:10px; } .pill-structure { transform:scale(.7); } }
 @media (prefers-reduced-motion:reduce) { .pill-journey { height:440svh; } .pill-word,.pill-copy { animation:none; transition:none; transform:none; } .pill-visual canvas { transition:none; } }
 `;

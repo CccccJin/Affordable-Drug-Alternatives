@@ -65,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
+  const isLanding = location.pathname === '/' || location.pathname === '/search';
   const dispatch = useDispatch();
   const themeMode = useSelector((state: RootState) => state.ui.theme);
 
@@ -104,8 +105,8 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
         borderBottom: `1px solid ${theme.palette.divider}`,
       }}
     >
-      <Container maxWidth="lg" disableGutters sx={{ px: { xs: 2.5, sm: 4 } }}>
-        <Toolbar disableGutters sx={{ minHeight: { xs: 60, md: 68 }, gap: 1 }}>
+      <Container maxWidth={isLanding ? false : 'lg'} disableGutters sx={{ px: { xs: 2.5, sm: 4 } }}>
+        <Toolbar disableGutters sx={{ minHeight: isLanding ? { xs: 104, md: 68 } : { xs: 60, md: 68 }, gap: 1, flexWrap: isLanding ? { xs: 'wrap', md: 'nowrap' } : 'nowrap', py: isLanding ? { xs: 0.5, md: 0 } : 0 }}>
           {/* Brand */}
           <Box
             role="link"
@@ -147,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
           </Box>
 
           {/* Navigation */}
-          <Box component="nav" aria-label="Main" sx={{ display: 'flex', gap: 0.5 }}>
+          <Box component="nav" aria-label="Main" sx={{ display: 'flex', gap: 0.5, order: isLanding ? { xs: 2, md: 0 } : 0, width: isLanding ? { xs: 'calc(100% - 56px)', md: 'auto' } : 'auto' }}>
             <Button
               startIcon={!isMobile ? <SearchIcon fontSize="small" /> : undefined}
               onClick={onSearchClick ?? (() => navigate('/search'))}
@@ -175,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
             <IconButton
               aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
               onClick={() => dispatch(setTheme(isLight ? 'dark' : 'light'))}
-              sx={{ ml: 0.5, color: 'text.secondary' }}
+              sx={{ ml: 0.5, color: 'text.secondary', order: isLanding ? { xs: 2, md: 0 } : 0 }}
             >
               {isLight ? (
                 <DarkModeIcon fontSize="small" />
@@ -184,6 +185,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick }) => {
               )}
             </IconButton>
           </Tooltip>
+          {isLanding && <Box id="narrative-header-controls" sx={{ order: { xs: 1, md: 3 }, flexShrink: 0, ml: { xs: 'auto', md: 2 } }} />}
         </Toolbar>
       </Container>
     </AppBar>
